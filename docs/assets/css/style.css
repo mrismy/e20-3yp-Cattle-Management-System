@@ -122,6 +122,7 @@ img {
 
 .col-lg-5{
     font-size: larger;
+    color: #434242;
     
 }
 .col-lg-5 .para{
@@ -240,11 +241,11 @@ img {
 
 
 
-/* H&S DESIGN */
+/* H&S DESIGN AND TESTING*/
 
 /* Underline for the main heading */
 .underline {
-    width: 80px;
+    width: 60px;
     height: 4px;
     background-color: var(--c-brand); /* Match brand color */
     margin: 12px auto 24px auto;
@@ -258,13 +259,8 @@ img {
     margin: 8px auto 16px auto;
 }
 
-/* Paragraph styling */
-.section-title p {
-    max-width: 1000px;
-    margin: 0 auto 20px auto;
-    font-size: large;
-    color: #444;
-    padding-bottom: 50px;
+.lead{
+    margin-bottom: 70px;
 }
 
 /* Styling for the lists */
@@ -279,7 +275,8 @@ img {
 .custom-list li {
     padding: 8px 0; 
     border-bottom: 1.2px solid #ddd; 
-    font-size: 1.1rem;
+    font-size: 1.rem;
+    color: #434242;
 }
 
 .custom-list li:last-child {
@@ -307,3 +304,45 @@ img {
     }
 }
 
+
+/* ESTIMATED BUDGET*/
+
+/* Table Styling */
+.table-responsive {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch; 
+  }
+.table {
+    margin: 0 auto;
+    width: 100%;
+    font-size: 1.1rem;
+  }
+  
+  .table thead th {
+    background-color: #343a40;
+    color: white;
+    white-space: nowrap;
+  }
+  
+  .table tfoot th {
+    font-weight: bold;
+    font-size: 1.1rem;
+  }
+  
+  .table-danger th {
+    background-color: #f7cbcb;
+  }
+  
+  .table-bordered {
+    border: 1.2px solid #dee2e6;
+  }
+  
+  .table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+  }
+  /* Adjust font size for smaller screens */
+@media (max-width: 768px) {
+    .table {
+      font-size: 0.5rem; 
+    }
+  }
