@@ -114,13 +114,21 @@ img {
 .section-title p {
     max-width: 1000px;
     margin-left: auto;
+    font-weight: 500;
+    color: #444;
     font-size: x-large;
     margin-right: auto;
 }
 
 .col-lg-5{
     font-size: larger;
+    
 }
+.col-lg-5 .para{
+    font-weight: 500;
+    color: #444;
+}
+
 
 /* ICONBOX */
 .iconbox {
@@ -134,3 +142,168 @@ img {
     font-size: 34px;
     
 }
+
+
+
+/* ARHITECTURE */
+/* Styling for the section title */
+.section-title {
+    margin-bottom: 40px;
+}
+
+.section-title .line {
+    width: 60px;
+    height: 4px;
+    background-color: var(--c-brand);
+    margin: 16px auto 24px auto;
+}
+
+/* Styled paragraph */
+.styled-paragraph {
+    max-width: 1000px;
+    font-size: x-large;
+    font-weight: 500;
+    color: #444; /* Default color */
+}
+
+/* Styled list */
+.styled-list {
+    list-style: none; /* Remove default bullets */
+    padding: 0;
+    margin: 0;
+}
+
+/* List items */
+.styled-list .list-group-item {
+    display: flex;
+    align-items: center;
+    padding: 16px;
+    font-size: 1.2rem;
+    color: #434242; 
+    background-color: #f9f9f9; 
+    border: 1px solid #b4acac; 
+    border-radius: 8px; 
+    transition: background-color 0.8s ease, color 0.6s ease, box-shadow 0.3s ease;
+    margin-bottom: 10px;
+}
+
+/* Bullet styling */
+.styled-list .list-group-item::before {
+    content: "•"; 
+    color: var(--c-brand);
+    font-size: 1.9rem;
+    margin-right: 12px; 
+}
+
+/* Hover effect for list items */
+.styled-list .list-group-item:hover {
+    background-color: var(--c-brand); 
+    color: #fff; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, .4); 
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .styled-paragraph {
+        font-size: 1rem;
+    }
+    .styled-list .list-group-item {
+        font-size: 1rem;
+    }
+}
+
+/* Styling for the image under the list */
+.image-container {
+    text-align: center; 
+    margin-top: 20px;
+}
+
+.styled-image {
+    max-width: 100%;
+    height: auto; 
+    border-radius: 10px; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4); /* Optional: Add shadow */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .styled-paragraph {
+        font-size: 1rem;
+    }
+    .styled-list .list-group-item {
+        font-size: 1rem;
+    }
+    .styled-image {
+        max-width: 90%;
+    }
+}
+
+
+
+/* H&S DESIGN */
+
+/* Underline for the main heading */
+.underline {
+    width: 80px;
+    height: 4px;
+    background-color: var(--c-brand); /* Match brand color */
+    margin: 12px auto 24px auto;
+}
+
+/* Underline for the list titles (HARDWARE, SOFTWARE) */
+.list-underline {
+    width: 50px;
+    height: 3px;
+    background-color: var(--c-brand);
+    margin: 8px auto 16px auto;
+}
+
+/* Paragraph styling */
+.section-title p {
+    max-width: 1000px;
+    margin: 0 auto 20px auto;
+    font-size: large;
+    color: #444;
+    padding-bottom: 50px;
+}
+
+/* Styling for the lists */
+.custom-list {
+    list-style-type: none;
+    padding-left: 0;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2);
+}
+
+.custom-list li {
+    padding: 8px 0; 
+    border-bottom: 1.2px solid #ddd; 
+    font-size: 1.1rem;
+}
+
+.custom-list li:last-child {
+    border-bottom: none; 
+}
+
+.custom-list li:hover {
+    background-color: #e9ecef; 
+    transition: background-color 0.6s;
+}
+
+/* Title styling for lists */
+.list-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: #444;
+    text-align: center;
+    margin-bottom: 8px;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .row.g-4 > div {
+        margin-bottom: 20px;
+    }
+}
+
