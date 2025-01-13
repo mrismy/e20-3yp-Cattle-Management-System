@@ -410,3 +410,44 @@ img {
     background-color: #fff;
     border-color: #007bff;
 }
+
+
+
+/* USEFUL LINK*/
+.links-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    flex-wrap: wrap;
+    margin-top: 20px;
+  }
+
+  .glow-button {
+    display: inline-block;
+    padding: 10px 20px;
+    border: 2px solid white;
+    border-radius: 25px;
+    color: #fff;
+    text-decoration: none;
+    font-family: 'Arial', sans-serif;
+    font-size: 16px;
+    font-weight: bold;
+    background: radial-gradient(circle at center, #007bff, #007bff);
+    box-shadow:  0 10px 20px rgba(0, 0, 0, 0.2);
+    transition: all 0.8s ease-in-out;
+  }
+
+  .glow-button:hover {
+    color: #007bff;
+    background: none;
+    background-color: #fff;
+    border-color: #007bff; 
+    box-shadow: 0 5px 15px rgba(0, 123, 255, 0.4);
+}
+
+.glow-button:active {
+    transform: scale(2);
+    box-shadow: 0 0 15px rgba(6, 6, 6, 0.8);
+}
+
+
