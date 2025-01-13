@@ -50,18 +50,6 @@ img {
 
 
 
-/* Increase navbar height */
-.navbar {
-    height: 70px; /* Set the desired height */
-    line-height: 70px; /* Center-align text vertically */
-  }
-.nav-link {
-    line-height: normal; /* Prevent link text from being misaligned */
-  }
-
-.navbar-brand{
-    font-weight: bold;
-}
 
 /* NAVBAR */
 .navbar {
@@ -81,6 +69,11 @@ img {
     color: var(--c-brand); /* Change the text color on hover */
     text-decoration: underline; /* Optional: Add underline on hover */
 }
+.navbar-brand{
+    font-weight: bold;
+}
+
+
 
 /* HERO */
 #hero {
