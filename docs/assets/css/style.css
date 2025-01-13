@@ -47,6 +47,8 @@ img {
 }
 
 
+
+
 /* Increase navbar height */
 .navbar {
     height: 70px; /* Set the desired height */
@@ -74,4 +76,61 @@ img {
     color: var(--c-brand);
 }
 
-  
+
+/* HERO */
+#hero {
+    background: url(../images/cattle.jpg);
+    background-position: center;
+    background-size: cover;
+}
+#hero h1 {
+    position: relative;
+    top: -140px; /* Adjust this value to move it higher */
+  }
+  #hero h5 {
+    position: relative;
+    top: -140px; /* Adjust this value to move it higher */
+  }
+#hero h1 {
+    letter-spacing: 5px;
+  }
+#hero h5 {
+    letter-spacing: 8px;
+  }
+
+
+/* SECTION TITLE */
+.section-title {
+    margin-bottom: 60px;
+}
+
+.section-title .line {
+    width: 60px;
+    height: 4px;
+    background-color: var(--c-brand);
+    margin: 16px auto 24px auto;
+}
+
+.section-title p {
+    max-width: 1000px;
+    margin-left: auto;
+    font-size: x-large;
+    margin-right: auto;
+}
+
+.col-lg-5{
+    font-size: larger;
+}
+
+/* ICONBOX */
+.iconbox {
+    width: 70px;
+    height: 70px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(var(--c-brand-rgb), 0.1);
+    color: var(--c-brand);
+    font-size: 34px;
+    
+}
