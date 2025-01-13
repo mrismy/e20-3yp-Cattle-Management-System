@@ -14,7 +14,7 @@ title: Project Template
 ---
 
 ## Team
--  E/20/009, Name, [email](mailto:name@email.com)
+-  eNumber, Name, [email](mailto:name@email.com)
 -  eNumber, Name, [email](mailto:name@email.com)
 -  eNumber, Name, [email](mailto:name@email.com)
 
