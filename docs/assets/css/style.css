@@ -5,6 +5,7 @@
 :root {
     --c-dark: #212529;
     --c-brand: #4e57d4;
+    --primary: #0d6efd;
     --c-brand-light: #6970dd;
     --c-brand-rgb: 78, 87, 212;
     --c-body: #727272;
@@ -346,3 +347,67 @@ img {
       font-size: 0.5rem; 
     }
   }
+
+/* TEAM MEMBER STYLES */
+.team-member {
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 10px;
+    padding: 20px;
+    transition: transform 0.6s ease, box-shadow 0.6s ease;
+}
+
+.team-member:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+}
+
+/* Team Member Image */
+.team-member img {
+    width: 125px;
+    height: 125px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: 15px;
+}
+
+/* Team Member Name and Role */
+.team-member h5 {
+    font-weight: bold;
+    margin-bottom: 5px;
+    color: #333;
+}
+
+.team-member p {
+    color: #777;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+/* Social Icons */
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.social-icons a {
+    width: 30px;
+    height: 30px;
+    background-color: #007bff;
+    border: 2px solid #007bff;
+    border-radius: 50%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    color: #fff;
+    font-size: 18px;
+    transition: all 0.6s ease;
+}
+
+.social-icons a:hover {
+    color: #007bff;
+    background-color: #fff;
+    border-color: #007bff;
+}
+
