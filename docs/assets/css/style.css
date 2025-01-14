@@ -117,6 +117,9 @@ img {
     font-size: x-large;
     margin-right: auto;
 }
+.section-title h1{
+    color: #212529;
+}
 
 .col-lg-5{
     font-size: larger;
