@@ -21,7 +21,10 @@
     <!-- navigation bar -->
     <nav class="navbar navbar-expand-lg bg-white sticky-top">
       <div class="container">
-        <a class="navbar-brand" href="#"> CMS </a>
+        <a class="navbar-brand d-flex align-items-center" href="#">
+          <img src="./assets/images/logN.jpg" alt="CMS Logo" width="50" height="50" class="me-2">
+          
+        </a>
         <button
           class="navbar-toggler"
           type="button"
@@ -92,9 +95,9 @@
               <h1 class="display-4 fw-semibold">INTRODUCTION</h1>
               <div class="line"></div>
               <p>
-                Our Cattle Management System is a user-friendly website designed
+                Our Cattle Management System is a user-friendly web application designed
                 to help farmers efficiently manage their cattle. It tracks
-                important details like health, live GPS location, and heart
+                important details like temperature, live GPS location, and heart
                 rate, making it easier to ensure the well-being of your
                 livestock. With this system, you can save time, improve
                 operations, and focus on growing your farm.
@@ -104,7 +107,7 @@
         </div>
         <div class="row justify-content-between align-items-center">
           <div class="col-lg-6">
-            <img src="./assets/images/Intro.jpg" alt="" />
+            <img src="./assets/images/Intro1.jpg" alt="" />
           </div>
           <div class="col-lg-5">
             <h1>Our Features</h1>
@@ -120,8 +123,8 @@
               <div>
                 <h5>Health Monitoring</h5>
                 <p>
-                  The system monitors cattle heart rates to detect potential
-                  health issues early, helping prevent diseases.
+                  The system monitors cattles' heart rate and temperature to detect potential
+                  health issues early.Hence, helping prevent diseases.
                 </p>
               </div>
             </div>
@@ -145,7 +148,7 @@
                 <h5>Alert Notifications</h5>
                 <p>
                   The system provides real-time alerts through a software
-                  interface when anomalies are detected, allowing quick action.
+                  interface when anomalies are detected.Hence, allowing quick action.
                 </p>
               </div>
             </div>
@@ -210,7 +213,7 @@
             <!-- Image Section -->
             <div class="image-container mt-4">
               <img
-                src="./assets/images/Design A.png"
+                src="./assets/images/Design.png"
                 alt="Cattle Monitoring System"
                 class="img-fluid styled-image"
               />
@@ -249,15 +252,14 @@
                   <div class="list-underline"></div>
                   <ul class="custom-list">
                     <li>
-                      Micro Controller (MCU ESP8266) : Central processing unit
+                      Micro Controller (ESP32) : Central processing unit
                     </li>
                     <li>Heart Rate Sensor (MAX 30102) : Measure Heart rate</li>
                     <li>Gps Module (NEO-6M): Get GPS coordinates</li>
-                    <li>OLED Display: Interactive notifications</li>
                     <li>
-                      Temperature Sensor (DS18B20) : Measure body temperature
+                      Temperature Sensor (MAX 30205) : Measure body temperature
                     </li>
-                    <li>Accelerometer(ADXL345 ) : Detect the motion</li>
+                    <li>Accelerometer(MPU 6050 ) : Detect the motion</li>
                   </ul>
                 </div>
               </div>
@@ -267,10 +269,12 @@
                   <h2 class="list-title">SOFTWARE FRAMEWORKS</h2>
                   <div class="list-underline"></div>
                   <ul class="custom-list">
-                    <li>Java: Core programming language</li>
-                    <li>Spring Boot: For back end coding</li>
-                    <li>AWS: For cloud management</li>
                     <li>React: For front end development</li>
+                    <li>Express Js: Web application framework</li>
+                    <li>Node Js: Manage Server and Routes</li>
+                    <li>Mongo DB: Database management</li>
+                    <li>MQTT Broker: To coordinate MQTT messages</li>
+                    <li>AWS: For cloud management</li>
                     <li>Flutter: For mobile app development</li>
                   </ul>
                 </div>
@@ -312,7 +316,6 @@
                     <li>Sensor Calibration: Ensuring accurate readings from sensors</li>
                     <li>Temperature Resistance: Testing performance in extreme conditions</li>
                     <li>GPS Accuracy: Validating precise location tracking</li>
-                    <li>Durability Testing: Assessing physical robustness under stress</li>
                   </ul>
                 </div>
               </div>
@@ -325,7 +328,6 @@
                     <li>Unit Testing: Testing individual components for correctness</li>
                     <li>Integration Testing: Verifying interaction between software modules</li>
                     <li>Load Testing: Evaluating performance under high traffic</li>
-                    <li>Bug Tracking: Identifying and resolving issues</li>
                     <li>User Interface Testing: Ensuring a seamless user experience</li>
                   </ul>
                 </div>
@@ -362,58 +364,58 @@
                 </thead>
                 <tbody>
                   <tr>
-                    <td>Micro Controller</td>
-                    <td>1</td>
-                    <td>2,500</td>
-                    <td>2,500</td>
+                    <td>ESP32</td>
+                    <td>2</td>
+                    <td>1,490</td>
+                    <td>2,980</td>
                   </tr>
                   <tr>
                     <td>Heart Rate Sensor</td>
-                    <td>1</td>
-                    <td>3,000</td>
-                    <td>3,000</td>
+                    <td>2</td>
+                    <td>980</td>
+                    <td>1,960</td>
                   </tr>
                   <tr>
                     <td>Gps Module</td>
-                    <td>1</td>
-                    <td>2,500</td>
-                    <td>2,500</td>
+                    <td>2</td>
+                    <td>900</td>
+                    <td>1,800</td>
                   </tr>
                   <tr>
                     <td>Temperature Sensor</td>
-                    <td>1</td>
-                    <td>1,500</td>
-                    <td>1,500</td>
-                  </tr>
-                  <tr>
-                    <td>OLED Display</td>
-                    <td>1</td>
-                    <td>1,000</td>
-                    <td>1,000</td>
+                    <td>2</td>
+                    <td>2,600</td>
+                    <td>5,200</td>
                   </tr>
                   <tr>
                     <td>Accelerometer</td>
-                    <td>1</td>
-                    <td>1,500</td>
-                    <td>1,500</td>
+                    <td>2</td>
+                    <td>595</td>
+                    <td>1,190</td>
                   </tr>
                   <tr>
                     <td>Battery</td>
-                    <td>1</td>
-                    <td>3,000</td>
-                    <td>3,000</td>
+                    <td>2</td>
+                    <td>2,780</td>
+                    <td>5,560</td>
                   </tr>
                   <tr>
-                    <td>Miscellaneous Components</td>
+                    <td>PCB Printing</td>
+                    <td>2</td>
+                    <td>2,000</td>
+                    <td>4,000</td>
+                  </tr>
+                  <tr>
+                    <td>Other Expenses</td>
                     <td>-</td>
                     <td>-</td>
-                    <td>10,000</td>
+                    <td>2,500</td>
                   </tr>
                 </tbody>
                 <tfoot>
                   <tr class="table-danger">
                     <th colspan="3" class="text-end">Total</th>
-                    <th>25,000 LKR</th>
+                    <th>25,190 LKR</th>
                   </tr>
                 </tfoot>
               </table>
@@ -445,7 +447,7 @@
                   <h5 class="mb-0 mt-4">Ahemad I.I</h5>
                   <p>E/20/009</p>
                   <div class="social-icons">
-                      <a href="https://people.ce.pdn.ac.lk/students/e20/009/"><i class='ri-profile-fill'></i></a>
+                      <a href="https://www.thecn.com/IA518"><i class='ri-profile-fill'></i></a>
                       <a href="https://www.linkedin.com/in/imaam-ahemad/"><i class='ri-linkedin-box-fill'></i></a>
                       <a href="https://github.com/Ahemad72"><i class='ri-github-fill'></i></a>
                       
@@ -458,7 +460,7 @@
                   <h5 class="mb-0 mt-4">Ketharagan P</h5>
                   <p>E/20/199</p>
                   <div class="social-icons">
-                      <a href="https://people.ce.pdn.ac.lk/students/e20/199/"><i class='ri-profile-fill'></i></a>
+                      <a href="https://www.thecn.com/EK646"><i class='ri-profile-fill'></i></a>
                       <a href="https://www.linkedin.com/in/ketharagan-p-767b11204?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BgWG7fQWRRi%2BcPUXEJOmapw%3D%3D">
                         <i class='ri-linkedin-box-fill'></i></a>
                       <a href="https://github.com/ketha29"><i class='ri-github-fill'></i></a>
@@ -472,7 +474,7 @@
                   <h5 class="mb-0 mt-4">Rishanthan S</h5>
                   <p>E/20/338</p>
                   <div class="social-icons">
-                      <a href="https://people.ce.pdn.ac.lk/students/e20/338/"><i class='ri-profile-fill'></i></a>
+                      <a href="https://www.thecn.com/RS2026"><i class='ri-profile-fill'></i></a>
                       <a href="https://www.linkedin.com/in/rishanthan-sridharan-7bb03b204"><i class='ri-linkedin-box-fill'></i></a>
                       <a href="https://github.com/Rishanthan13"><i class='ri-github-fill'></i></a>
                       
@@ -481,14 +483,13 @@
           </div>
           <div class="col-lg-3 col-sm-6">
               <div class="team-member card-effect">
-                  <img src="./assets/images/e20339.jpg" alt="">
+                  <img src="./assets/images/339 (Custom).jpg" alt="">
                   <h5 class="mb-0 mt-4">Rismy A.M</h5>
                   <p>E/20/339</p>
                   <div class="social-icons">
-                      <a href="https://people.ce.pdn.ac.lk/students/e20/339/"><i class='ri-profile-fill'></i></a>
+                      <a href="https://www.thecn.com/ER732"><i class='ri-profile-fill'></i></a>
                       <a href="https://www.linkedin.com/in/mohamad-rismy-229063288?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BI%2FsAD6tEQsCvB15Mi9SnpQ%3D%3D"><i class='ri-linkedin-box-fill'></i></a>
                       <a href="https://github.com/mrismy"><i class='ri-github-fill'></i></a>
-                      
                   </div>
               </div>
           </div>
