@@ -11,3 +11,11 @@ The location tracking feature helps monitor the movement of cattle within a desi
 
 ## Impact on Livestock Management  
 Our system gives a solution to overcome the errors in traditional health monitoring and improve operational efficiency, enhances livestock management and ensures better productivity and animal welfare.  
+
+## High Level System Organization
+![img](docs/images/high_level_system_architecture.PNG)
+
+The above diagram shows a high-level architecture of how the system is organized. The wearable neck collar collects heart rate, temperature, and location data and sends it to the backend cloud server through an MQTT broker.
+
+### 1. Neck Collar(IoT Device)
+ The neck collar is a combination of a microcontroller and other sensors. The sensors send data to the MQTT broker via the ESP32 microcontroller.
