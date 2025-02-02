@@ -23,7 +23,11 @@ The above diagram shows a high-level architecture of how the system is organized
 The neck collar is a combination of a microcontroller and other sensors. The sensors send data to the MQTT broker via the ESP32 microcontroller.
 
 ### 2. Data Flow in the System
+![img](docs/images/data_flow.PNG)
+
 The above diagram shows the flow of data in our system. Multiple neck collars establish a connection with the MQTT broker and publish data to it. The server subscribes and listens to the topics in the MQTT broker. 
 
 The data flow of user login and authentication is shown in red.
+
+### 3. Control Flow
  
