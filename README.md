@@ -31,7 +31,9 @@ The data flow of user login and authentication is shown in red.
 
 ### 3. Control Flow
  <p float="left">
-  <img src="docs/images/Contol_flow.PNG" width="300" />
-  <img src="images/location-tracking.jpg" width="300" />
+  <img src="docs/images/Contol_flow.PNG" width="45%" />
+  <img src="docs/images/Data_table.PNG" width="45%" />
 </p>
+
+The above diagram shows the control flow in our system. The data sent to the backend is processed and passed through some predefined control statements. If the conditions are not satisfied the user (farm management) is alert about that specific cattle. also, the specific cattle is continuously monitored in opposition to timely monitoring.  
 
