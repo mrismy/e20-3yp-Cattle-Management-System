@@ -18,4 +18,12 @@ Our system gives a solution to overcome the errors in traditional health monitor
 The above diagram shows a high-level architecture of how the system is organized. The wearable neck collar collects heart rate, temperature, and location data and sends it to the backend cloud server through an MQTT broker.
 
 ### 1. Neck Collar(IoT Device)
- The neck collar is a combination of a microcontroller and other sensors. The sensors send data to the MQTT broker via the ESP32 microcontroller.
+![img](docs/images/Neck_colar.PNG)
+
+The neck collar is a combination of a microcontroller and other sensors. The sensors send data to the MQTT broker via the ESP32 microcontroller.
+
+### 2. Data Flow in the System
+The above diagram shows the flow of data in our system. Multiple neck collars establish a connection with the MQTT broker and publish data to it. The server subscribes and listens to the topics in the MQTT broker. 
+
+The data flow of user login and authentication is shown in red.
+ 
