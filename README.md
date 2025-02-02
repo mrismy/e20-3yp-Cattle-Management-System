@@ -30,4 +30,8 @@ The above diagram shows the flow of data in our system. Multiple neck collars es
 The data flow of user login and authentication is shown in red.
 
 ### 3. Control Flow
- 
+ <p float="left">
+  <img src="images/health-monitoring.jpg" width="300" />
+  <img src="images/location-tracking.jpg" width="300" />
+</p>
+
