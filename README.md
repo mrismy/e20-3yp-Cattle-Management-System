@@ -1,57 +1,39 @@
-___
-# DELETE THIS INSTRUCTIONS AND ADD AN INTRODUCTION ABOUT YOUR PROJECT
-___
+# Cattle Management System  
 
-# eYY-3yp-project-template
+## Introduction  
+The Cattle Management System is a proposed solution designed to enhance the management and monitoring of cattle. The system focuses on two main features: **health monitoring** and **location tracking**. The system aims to improve livestock management by providing farmers with real-time data, enabling them to make informed decisions and ensure the safety and health of their cattle. This project is designed to be user-friendly, making it easy for farmers to manage their cattle efficiently.  
 
-This is a sample repository you can use for your Embedded Systems project. Once you followed these instructions, remove the text and add a brief introduction to here.
+## Health Monitoring Feature  
+The health monitoring feature allows farmers to track the well-being of each animal by recording important health data such as **temperature** and **heart rate**. By continuously monitoring these data points, the system helps identify any health abnormalities early, allowing farmers to intervene and prevent further issues.  
 
-### Enable GitHub Pages
+## Location Tracking Feature  
+The location tracking feature helps monitor the movement of cattle within a designated area, ensuring that they are where they are supposed to be and preventing issues like wandering or theft. This feature utilizes technologies such as **GPS module** to provide real-time updates on the cattle's location, ensuring their safety.  
 
-You can put the things to be shown in GitHub pages into the _docs/_ folder. Both html and md file formats are supported. You need to go to settings and enable GitHub pages and select _main_ branch and _docs_ folder from the dropdowns, as shown in the below image.
+## Impact on Livestock Management  
+Our system gives a solution to overcome the errors in traditional health monitoring and improve operational efficiency, enhances livestock management and ensures better productivity and animal welfare.  
 
-![image](https://user-images.githubusercontent.com/11540782/98789936-028d3600-2429-11eb-84be-aaba665fdc75.png)
+## High Level System Organization
+![img](docs/images/high_level_system_architecture.PNG)
 
-### Special Configurations
+The above diagram shows a high-level architecture of how the system is organized. The wearable neck collar collects heart rate, temperature, and location data and sends it to the backend cloud server through an MQTT broker.
 
-These projects will be automatically added into [https://projects.ce.pdn.ac.lk](). If you like to show more details about your project on this site, you can fill the parameters in the file, _/docs/index.json_
+### 1. Neck Collar(IoT Device)
+![img](docs/images/Neck_colar.PNG)
 
-```
-{
-  "title": "This is the title of the project",
-  "team": [
-    {
-      "name": "Team Member Name 1",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
-    },
-    {
-      "name": "Team Member Name 2",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
-    },
-    {
-      "name": "Team Member Name 3",
-      "email": "email@eng.pdn.ac.lk",
-      "eNumber": "E/yy/xxx"
-    }
-  ],
-  "supervisors": [
-    {
-      "name": "Dr. Supervisor 1",
-      "email": "email@eng.pdn.ac.lk"
-    },
-    {
-      "name": "Supervisor 2",
-      "email": "email@eng.pdn.ac.lk"
-    }
-  ],
-  "tags": ["Web", "Embedded Systems"]
-}
-```
+The neck collar is a combination of a microcontroller and other sensors. The sensors send data to the MQTT broker via the ESP32 microcontroller.
 
-Once you filled this _index.json_ file, please verify the syntax is correct. (You can use [this](https://jsonlint.com/) tool).
+### 2. Data Flow in the System
+![img](docs/images/data_flow.PNG)
 
-### Page Theme
+The above diagram shows the flow of data in our system. Multiple neck collars establish a connection with the MQTT broker and publish data to it. The server subscribes and listens to the topics in the MQTT broker. 
 
-A custom theme integrated with this GitHub Page, which is based on [github.com/cepdnaclk/eYY-project-theme](https://github.com/cepdnaclk/eYY-project-theme). If you like to remove this default theme, you can remove the file, _docs/\_config.yml_ and use HTML based website.
+The data flow of user login and authentication is shown in red.
+
+### 3. Control Flow
+ <p float="left">
+  <img src="docs/images/Contol_flow.PNG" width="45%" />
+  <img src="docs/images/Data_table.PNG" width="45%" />
+</p>
+
+The above diagram shows the control flow in our system. The data sent to the backend is processed and passed through some predefined control statements. If the conditions are not satisfied the user (farm management) is alert about that specific cattle. also, the specific cattle is continuously monitored in opposition to timely monitoring.  
+
