@@ -4,6 +4,7 @@ import { AiFillSafetyCertificate } from 'react-icons/ai';
 import { MdDangerous } from 'react-icons/md';
 import { FaCircleUser } from 'react-icons/fa6';
 import Nav from './Nav';
+import Map from './Map';
 import NotificationIcon from './NotificationIcon';
 import { useState } from 'react';
 import NotificationDropDown from './NotificationDropDown';
@@ -79,7 +80,10 @@ const Dashboard = () => {
             </div>
 
             {/* Map */}
-            <div className="felx bg-blue-200 rounded-2xl w-5xl"></div>
+            <Map />
+            {/* <div className="flex bg-blue-200 rounded-2xl w-5xl">
+              <Map />
+            </div> */}
           </div>
         </div>
       </div>
