@@ -26,13 +26,13 @@ export class CattleSensorData {
         // Check heart rate
         if (cattleData.heartRate < this.boundaries.heartRate.min ||
             cattleData.heartRate > this.boundaries.heartRate.max) {
-            alerts.push(`🚨 Alert: Heart rate of cattle ${cattleId} is abnormal!`);
+            alerts.push('Alert: Heart rate of cattle ${cattleId} is abnormal!');
         }
 
         // Check temperature
         if (cattleData.temperature < this.boundaries.temperature.min ||
             cattleData.temperature > this.boundaries.temperature.max) {
-            alerts.push(`🔥 Alert: Temperature of cattle ${cattleId} is abnormal!`);
+            alerts.push('Alert: Temperature of cattle ${cattleId} is abnormal!');
         }
 
         // Check GPS location (geofence)
@@ -42,11 +42,11 @@ export class CattleSensorData {
                 latitude > this.boundaries.gpsGeofence.maxLatitude ||
                 longitude < this.boundaries.gpsGeofence.minLongitude ||
                 longitude > this.boundaries.gpsGeofence.maxLongitude) {
-                alerts.push(`📍 Alert: Cattle ${cattleId} is out of the designated area!`);
+                alerts.push('Alert: Cattle ${cattleId} is out of the designated area!');
             }
         }
 
-        return alerts.length ? alerts : [`✅ Cattle ${cattleId} is healthy and within safe boundaries.`];
+        return alerts.length ? alerts : ['Cattle ${cattleId} is healthy and within safe boundaries.'];
     }
 }
 
