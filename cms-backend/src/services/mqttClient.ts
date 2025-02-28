@@ -1,5 +1,8 @@
 import mqtt, { MqttClient, ISubscriptionGrant } from 'mqtt';
 import { SensorDataInterface } from '../types/sensorDataInterface';
+import {CattleSensorData} from '../services/controls'
+import mongoose from "mongoose";
+import sensorData from '../model/sensorData';
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
 
@@ -37,7 +40,7 @@ class MqttHandler {
         });
 
         // Ensure only ONE message listener is attached globally
-        this.client.on('message', (receivedTopic, message) => {
+        this.client.on('message', async (receivedTopic, message) => {
             try {
                 const data = JSON.parse(message.toString());
                 const receivedMsg: SensorDataInterface = data;
@@ -51,6 +54,13 @@ class MqttHandler {
                         timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
                     };
                     console.log(`Updated data for Cow ${deviceId}:`, this.latestupdate[deviceId]);
+
+                    // Store data in MongoDB
+                    await this.storeSensorData(deviceId, heartRate, temperature, gpsLocation);
+                    
+                    // Check alerts and log them
+                    const alerts = CattleSensorData.checkSensors(deviceId);
+                    alerts.forEach((alert: any) => console.log(alert));
                 }
 
             } catch (error) {
@@ -58,6 +68,30 @@ class MqttHandler {
             }
         });
     }
+
+
+    // Function to store sensor data in MongoDB
+    private async storeSensorData(
+        deviceId: number,
+        heartRate: number,
+        temperature: number,
+        gpsLocation?: { latitude: number; longitude: number }
+    ) {
+        try {
+            const newSensorData = new sensorData({
+                deviceId,
+                heartRate,
+                temperature,
+                gpsLocation,
+            });
+
+            await newSensorData.save();
+            console.log(`Sensor data stored in DB for device ${deviceId}:`);
+        } catch (error) {
+            console.error(" Error storing sensor data:", error);
+        }
+    }
+
 
     public static getInstance(): MqttHandler {
         if (!MqttHandler.instance) {
