@@ -3,7 +3,8 @@ import mongoose from 'mongoose';
 const cattleSchema = new mongoose.Schema({
     tagId:{
         type: Number,
-        required: true
+        required: true,
+        unique: true
     },
 
     name:{
