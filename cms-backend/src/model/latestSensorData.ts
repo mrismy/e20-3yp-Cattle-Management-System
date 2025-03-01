@@ -42,6 +42,6 @@ const sensorDataSchema = new mongoose.Schema({
 )
 
 
-const sensorData = mongoose.model('sensorData',sensorDataSchema)
+const sensorData = mongoose.model('latestSensorData',sensorDataSchema)
 export default sensorData;
 

@@ -3,12 +3,14 @@ import { SensorDataInterface } from '../types/sensorDataInterface';
 import {CattleSensorData} from '../services/controls'
 import mongoose from "mongoose";
 import sensorData from '../model/sensorData';
+import latestSensorData from '../model/latestSensorData';
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
 
 interface CattleData {
     heartRate: number;
     temperature: number;
+    deviceId: number;
     gpsLocation?: {
         latitude: number;
         longitude: number;
@@ -49,6 +51,7 @@ class MqttHandler {
                 if (deviceId) {
                     this.latestupdate[deviceId] = {
                         heartRate,
+                        deviceId,
                         temperature,
                         gpsLocation,
                         timestamp: new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" }),
@@ -57,10 +60,39 @@ class MqttHandler {
 
                     // Store data in MongoDB
                     await this.storeSensorData(deviceId, heartRate, temperature, gpsLocation);
+
+                    // Store latest data in MongoDB
+                    const existingData = await latestSensorData.findOne({ deviceId });
+
+                    if (existingData) {
+                        existingData.heartRate = heartRate;
+                        existingData.temperature = temperature;
+                        existingData.gpsLocation = gpsLocation;
+                        //existingData.timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
+                        await existingData.save();
+                        console.log(`Updated latest sensor data in DB for device ${deviceId}:`);
+                    } else {
+                        await this.storeLatestSensorData(deviceId, heartRate, temperature, gpsLocation);
+                    }
                     
                     // Check alerts and log them
-                    const alerts = CattleSensorData.checkSensors(deviceId);
-                    alerts.forEach((alert: any) => console.log(alert));
+                    const { status, action } = await CattleSensorData.checkSensors(deviceId);
+
+                    action.forEach((actionCode: number) => {
+                        if (actionCode === 0) {
+                            console.log(status, "Cattle data not found.");
+                        }
+                        else if (actionCode === 1) {
+                            console.log(status, "Cattle is safe and within limits.");
+                        } else if (actionCode === 2) {
+                            console.log(status, "Heart rate is abnormal.");
+                        } else if (actionCode === 3) {
+                            console.log(status, "Temperature is abnormal.");
+                        } else if (actionCode === 4) {
+                            console.log(status, "Cattle is out of the designated area.");
+                        }
+                    });
+                    
                 }
 
             } catch (error) {
@@ -87,6 +119,28 @@ class MqttHandler {
 
             await newSensorData.save();
             console.log(`Sensor data stored in DB for device ${deviceId}:`);
+        } catch (error) {
+            console.error(" Error storing sensor data:", error);
+        }
+    }
+
+    // Function to store latest sensor data in MongoDB
+    private async storeLatestSensorData(
+        deviceId: number,
+        heartRate: number,
+        temperature: number,
+        gpsLocation?: { latitude: number; longitude: number }
+    ) {
+        try {
+            const newSensorData = new latestSensorData({
+                deviceId,
+                heartRate,
+                temperature,
+                gpsLocation,
+            });
+
+            await newSensorData.save();
+            console.log(`Latest Sensor data stored in DB for device ${deviceId}:`);
         } catch (error) {
             console.error(" Error storing sensor data:", error);
         }

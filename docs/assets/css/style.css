@@ -241,6 +241,27 @@ img {
 }
 
 
+/* VIDEO STYLING*/
+/* Center the video */
+.video-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 80px;
+  }
+  
+  /* Styling the video with a colorful border and shadow */
+  video {
+    border: 2px solid #000000; 
+    border-radius: 5px; 
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3); 
+    transition: transform 0.3s ease-in-out;
+  }
+  
+  video:hover {
+    transform: scale(1.01); /* Slight zoom effect */
+  }
+  
 
 /* H&S DESIGN AND TESTING*/
 

@@ -1,4 +1,5 @@
 import mongoose from 'mongoose';
+import moment from "moment-timezone";
 
 const cattleSchema = new mongoose.Schema({
     tagId:{
@@ -11,7 +12,12 @@ const cattleSchema = new mongoose.Schema({
         type: String,
         required: true
     }
-});
+},
+    {
+        timestamps: true
+    }
+);
+
 
 const Cattle = mongoose.model('cattle',cattleSchema)
 export default Cattle;
