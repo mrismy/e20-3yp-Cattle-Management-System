@@ -1,4 +1,5 @@
 import Dashboard from './components/Dashboard';
+import CattleList from './components/CattleList';
 import Nav from './components/Nav';
 import TopNav from './components/TopNav';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
@@ -13,6 +14,7 @@ function App() {
           <div className="h-9/10 relative">
             <Routes>
               <Route path="/dashboard" element={<Dashboard />} />
+              <Route path="/livestock" element={<CattleList />} />
             </Routes>
           </div>
         </div>
