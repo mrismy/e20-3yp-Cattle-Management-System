@@ -1,8 +1,49 @@
 import { useState } from 'react';
 import { RiAddCircleLine } from 'react-icons/ri';
+import {
+  getAllCattle,
+  getSafeCattle,
+  getUnsafeCattle,
+} from '../services/CattleListService';
 
 const CattleList = () => {
   const [cattleStatus, setCattleStatus] = useState('all livestocks');
+  const [allCattleData, setAllCattleData] = useState('');
+  const [safeCattleData, setSafeCattleData] = useState('');
+  const [unsafeCattleData, setUnsafeCattleData] = useState('');
+
+  // Fetch all cattle data
+  const fetchAllCattle = async () => {
+    try {
+      const response = await getAllCattle();
+      const data = response.data;
+      setAllCattleData(data);
+    } catch (error) {
+      console.error('Error in fetch cattle details');
+    }
+  };
+
+  // Fetch safe cattle data
+  const fetchSafeCattle = async () => {
+    try {
+      const response = await getSafeCattle();
+      const data = response.data;
+      setSafeCattleData(data);
+    } catch (error) {
+      console.error('Error in fetch cattle details');
+    }
+  };
+
+  // Fetch unsafe cattle data
+  const fetchUnsafeCattle = async () => {
+    try {
+      const response = await getUnsafeCattle();
+      const data = response.data;
+      setUnsafeCattleData(data);
+    } catch (error) {
+      console.error('Error in fetch cattle details');
+    }
+  };
 
   return (
     <div className="mt-12 overflow-x-auto px-5">
@@ -43,7 +84,6 @@ const CattleList = () => {
             {[
               'cattle id',
               'livestock name',
-              'collor id',
               'added on',
               'current state',
               'last update',
@@ -57,16 +97,14 @@ const CattleList = () => {
             ))}
           </tr>
         </thead>
-        <tbody className="bg-green-50 divide-y divide-white">
-          <tr className="items-center justify-center">
+
+        <tbody className="divide-y divide-white">
+          <tr className="bg-green-50 hover:bg-green-100 items-center justify-center">
             <td className="px-5 py-2 text-sm text-gray-700 text-center">
               cow_10
             </td>
             <td className="px-5 py-2 text-sm text-gray-700 text-center">
               Cow10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              collor_10
             </td>
             <td className="px-5 py-2 text-sm text-gray-700 text-center">
               Date
@@ -81,32 +119,7 @@ const CattleList = () => {
               Action
             </td>
           </tr>
-          {cattleStatus === 'unsafe' && (
-            <tr>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                cow_10
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Cow10
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                collor_10
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Date
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                safe
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Date
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Action
-              </td>
-            </tr>
-          )}
-          <tr>
+          <tr className="bg-green-50 hover:bg-green-100 items-center justify-center">
             <td className="px-5 py-2 text-sm text-gray-700 text-center">
               cow_10
             </td>
@@ -114,13 +127,10 @@ const CattleList = () => {
               Cow10
             </td>
             <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              collor_10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
               Date
             </td>
             <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              safe
+              <div className="bg-red-200 rounded-md">unsafe</div>
             </td>
             <td className="px-5 py-2 text-sm text-gray-700 text-center">
               Date
