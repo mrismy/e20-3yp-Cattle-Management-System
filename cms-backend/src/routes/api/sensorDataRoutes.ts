@@ -96,4 +96,13 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
     }
 });
 
+router.get('/alert/:Id',async (req:any,res:any)=>{
+    try {
+        const { status, action } = await CattleSensorData.checkSensors(req.params.Id);
+        res.status(200).json(action);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching sensor data' });
+    }
+})
+
 export {router as sensorDataRouter}
