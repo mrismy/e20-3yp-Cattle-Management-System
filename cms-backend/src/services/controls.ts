@@ -1,53 +1,61 @@
-import { mqttClient } from "../services/mqttClient"; // Import MQTT handler
+import latestSensorData from "../model/latestSensorData";
 
 export class CattleSensorData {
-    // Define the boundaries for each sensor
     private static boundaries = {
-        heartRate: { min: 60, max: 100 }, // Example: Normal range
-        temperature: { min: 36, max: 39 }, // Example: Normal cattle body temp
-        gpsGeofence: { // Example geofence for cattle area
+        heartRate: { min: 60, max: 100 }, 
+        temperature: { min: 36, max: 39 }, 
+        gpsGeofence: { 
             minLatitude: 6.772591, maxLatitude: 6.972591,
             minLongitude: 80.697847, maxLongitude: 80.897847
         }
     };
 
-    // Function to check all sensor values
-    public static checkSensors(cattleId: number): string[] {
-        const alerts: string[] = [];
+    public static async checkSensors(cattleId: number): Promise<{ status: string, action: number[] }> {
+        let status: string = "safe";
+        let action: number[] = [];
 
-        // Fetch latest cattle data from MQTT storage
-        const latestUpdate = mqttClient.getLatestUpdate();
-        const cattleData = latestUpdate[cattleId];
+        const latestData = await latestSensorData.findOne({ deviceId: cattleId });
 
-        if (!cattleData) {
-            return [`No data available for cattle ${cattleId}`];
+        if (!latestData) {
+            return {
+                status: "unsafe",
+                action: [0]
+            };
         }
 
-        // Check heart rate
+        const cattleData = latestData.toObject();
+
         if (cattleData.heartRate < this.boundaries.heartRate.min ||
             cattleData.heartRate > this.boundaries.heartRate.max) {
-            alerts.push('Alert: Heart rate of cattle ${cattleId} is abnormal!');
+            action.push(2);  
         }
 
-        // Check temperature
         if (cattleData.temperature < this.boundaries.temperature.min ||
             cattleData.temperature > this.boundaries.temperature.max) {
-            alerts.push('Alert: Temperature of cattle ${cattleId} is abnormal!');
+            action.push(3);  
         }
 
-        // Check GPS location (geofence)
         if (cattleData.gpsLocation) {
             const { latitude, longitude } = cattleData.gpsLocation;
             if (latitude < this.boundaries.gpsGeofence.minLatitude ||
                 latitude > this.boundaries.gpsGeofence.maxLatitude ||
                 longitude < this.boundaries.gpsGeofence.minLongitude ||
                 longitude > this.boundaries.gpsGeofence.maxLongitude) {
-                alerts.push('Alert: Cattle ${cattleId} is out of the designated area!');
+                action.push(4);  
             }
         }
 
-        return alerts.length ? alerts : ['Cattle ${cattleId} is healthy and within safe boundaries.'];
+
+        if (action.length === 0) {
+            return {
+                status: "safe",
+                action: [1]  
+            };
+        }
+
+        return {
+            status,
+            action
+        };
     }
 }
-
-
