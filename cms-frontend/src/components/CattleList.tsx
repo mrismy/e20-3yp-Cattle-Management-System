@@ -1,8 +1,51 @@
-import { useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { RiAddCircleLine } from 'react-icons/ri';
+import { getAllCattle } from '../services/CattleListService';
+import GlobalContext from '../context/GlobalContext';
+import AddCattleForm from './AddCattleForm';
+import { CattleData } from './Interface';
+import dayjs from 'dayjs';
+import { MdDeleteOutline } from 'react-icons/md';
+import { MdOutlineEdit } from 'react-icons/md';
+import CattleCard from './CattleCard';
 
 const CattleList = () => {
+  const {
+    showCattleAddForm,
+    setShowCattleAddForm,
+    showCattleCard,
+    setShowCattleCard,
+  } = useContext(GlobalContext);
   const [cattleStatus, setCattleStatus] = useState('all livestocks');
+  const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
+  const [selectedCattleData, setSelectedCattleData] =
+    useState<CattleData | null>(null);
+
+  const displayCattleCard = (cattleData: CattleData) => {
+    setSelectedCattleData(cattleData);
+    setShowCattleCard(true);
+  };
+
+  const addCattleForm = () => {
+    setShowCattleAddForm(true);
+    console.log(showCattleAddForm);
+  };
+
+  // Fetch all cattle data
+  const fetchAllCattle = async () => {
+    try {
+      const response = await getAllCattle();
+      const data = response.data;
+      console.log('Response:', data);
+      setAllCattleData(data);
+    } catch (error) {
+      console.error('Error fetching cattle data:', error);
+      setAllCattleData([]);
+    }
+  };
+  useEffect(() => {
+    fetchAllCattle();
+  }, []);
 
   return (
     <div className="mt-12 overflow-x-auto px-5">
@@ -27,7 +70,9 @@ const CattleList = () => {
         </nav>
 
         {/* Add livestock button */}
-        <button className="flex items-center justify-center space-x-2 bg-green-700 py-2 px-4 rounded-md text-white text-sm font-medium">
+        <button
+          className="flex items-center justify-center space-x-2 bg-green-700 py-2 px-4 rounded-md text-white text-sm font-medium hover:bg-white hover:text-green-800 hover:border-1 border-green-600"
+          onClick={addCattleForm}>
           <div className="text-lg">
             <RiAddCircleLine />
           </div>
@@ -43,7 +88,6 @@ const CattleList = () => {
             {[
               'cattle id',
               'livestock name',
-              'collor id',
               'added on',
               'current state',
               'last update',
@@ -57,80 +101,44 @@ const CattleList = () => {
             ))}
           </tr>
         </thead>
-        <tbody className="bg-green-50 divide-y divide-white">
-          <tr className="items-center justify-center">
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              cow_10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Cow10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              collor_10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              <div className="bg-green-200 rounded-md">safe</div>
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Action
-            </td>
-          </tr>
-          {cattleStatus === 'unsafe' && (
-            <tr>
+
+        <tbody className="divide-y divide-white">
+          {allCattleData.map((cattleData: CattleData) => (
+            <tr
+              key={cattleData.cattleId}
+              onClick={() => displayCattleCard(cattleData)}
+              className="bg-green-50 hover:bg-green-100 items-center justify-center">
               <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                cow_10
+                {cattleData.cattleId}
               </td>
               <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Cow10
+                {cattleData.cattleName}
               </td>
               <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                collor_10
+                {dayjs(cattleData.createdAt).format('DD/MM/YYYY HH:mm')}
               </td>
               <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Date
+                <div
+                  className={`${
+                    cattleData.status === 'safe' ? 'bg-green-200' : 'bg-red-200'
+                  } rounded-md`}>
+                  {cattleData.status}
+                </div>
               </td>
               <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                safe
+                {dayjs(cattleData.updatedAt).format('DD/MM/YYYY HH:mm')}
               </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Date
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                Action
+              <td className="flex justify-center space-x-3 px-5 py-2 text-lg text-gray-700 text-center">
+                <MdDeleteOutline />
+                <MdOutlineEdit />
               </td>
             </tr>
-          )}
-          <tr>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              cow_10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Cow10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              collor_10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              safe
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Action
-            </td>
-          </tr>
+          ))}
         </tbody>
       </table>
+
+      {showCattleAddForm && <AddCattleForm />}
+      {showCattleCard && <CattleCard cattleData={selectedCattleData} />}
     </div>
   );
 };
