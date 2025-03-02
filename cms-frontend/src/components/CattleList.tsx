@@ -1,15 +1,17 @@
-import { useContext, useState } from 'react';
+import { useContext, useEffect, useState } from 'react';
 import { RiAddCircleLine } from 'react-icons/ri';
 import { getAllCattle } from '../services/CattleListService';
 import GlobalContext from '../context/GlobalContext';
 import AddCattleForm from './AddCattleForm';
+import { CattleData } from './Interface';
+import dayjs from 'dayjs';
+import { MdDeleteOutline } from 'react-icons/md';
+import { MdOutlineEdit } from 'react-icons/md';
 
 const CattleList = () => {
   const { showCattleAddForm, setShowCattleAddForm } = useContext(GlobalContext);
   const [cattleStatus, setCattleStatus] = useState('all livestocks');
-  const [allCattleData, setAllCattleData] = useState('');
-  const [safeCattleData, setSafeCattleData] = useState('');
-  const [unsafeCattleData, setUnsafeCattleData] = useState('');
+  const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
 
   const addCattleForm = () => {
     setShowCattleAddForm(true);
@@ -21,11 +23,16 @@ const CattleList = () => {
     try {
       const response = await getAllCattle();
       const data = response.data;
+      console.log('Response:', data);
       setAllCattleData(data);
     } catch (error) {
-      console.error('Error in fetch cattle details');
+      console.error('Error fetching cattle data:', error);
+      setAllCattleData([]);
     }
   };
+  useEffect(() => {
+    fetchAllCattle();
+  }, []);
 
   return (
     <div className="mt-12 overflow-x-auto px-5">
@@ -83,46 +90,36 @@ const CattleList = () => {
         </thead>
 
         <tbody className="divide-y divide-white">
-          <tr className="bg-green-50 hover:bg-green-100 items-center justify-center">
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              cow_10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Cow10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              <div className="bg-green-200 rounded-md">safe</div>
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Action
-            </td>
-          </tr>
-          <tr className="bg-green-50 hover:bg-green-100 items-center justify-center">
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              cow_10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Cow10
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              <div className="bg-red-200 rounded-md">unsafe</div>
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Date
-            </td>
-            <td className="px-5 py-2 text-sm text-gray-700 text-center">
-              Action
-            </td>
-          </tr>
+          {allCattleData.map((cattleData: CattleData) => (
+            <tr
+              key={cattleData.cattleId}
+              className="bg-green-50 hover:bg-green-100 items-center justify-center">
+              <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                {cattleData.cattleId}
+              </td>
+              <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                {cattleData.cattleName}
+              </td>
+              <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                {dayjs(cattleData.createdAt).format('DD/MM/YYYY HH:mm')}
+              </td>
+              <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                <div
+                  className={`${
+                    cattleData.status === 'safe' ? 'bg-green-200' : 'bg-red-200'
+                  } rounded-md`}>
+                  {cattleData.status}
+                </div>
+              </td>
+              <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                {dayjs(cattleData.updatedAt).format('DD/MM/YYYY HH:mm')}
+              </td>
+              <td className="flex justify-center space-x-3 px-5 py-2 text-lg text-gray-700 text-center">
+                <MdDeleteOutline />
+                <MdOutlineEdit />
+              </td>
+            </tr>
+          ))}
         </tbody>
       </table>
 
