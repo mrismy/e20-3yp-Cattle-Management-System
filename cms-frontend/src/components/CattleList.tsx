@@ -1,16 +1,20 @@
-import { useState } from 'react';
+import { useContext, useState } from 'react';
 import { RiAddCircleLine } from 'react-icons/ri';
-import {
-  getAllCattle,
-  getSafeCattle,
-  getUnsafeCattle,
-} from '../services/CattleListService';
+import { getAllCattle } from '../services/CattleListService';
+import GlobalContext from '../context/GlobalContext';
+import AddCattleForm from './AddCattleForm';
 
 const CattleList = () => {
+  const { showCattleAddForm, setShowCattleAddForm } = useContext(GlobalContext);
   const [cattleStatus, setCattleStatus] = useState('all livestocks');
   const [allCattleData, setAllCattleData] = useState('');
   const [safeCattleData, setSafeCattleData] = useState('');
   const [unsafeCattleData, setUnsafeCattleData] = useState('');
+
+  const addCattleForm = () => {
+    setShowCattleAddForm(true);
+    console.log(showCattleAddForm);
+  };
 
   // Fetch all cattle data
   const fetchAllCattle = async () => {
@@ -18,28 +22,6 @@ const CattleList = () => {
       const response = await getAllCattle();
       const data = response.data;
       setAllCattleData(data);
-    } catch (error) {
-      console.error('Error in fetch cattle details');
-    }
-  };
-
-  // Fetch safe cattle data
-  const fetchSafeCattle = async () => {
-    try {
-      const response = await getSafeCattle();
-      const data = response.data;
-      setSafeCattleData(data);
-    } catch (error) {
-      console.error('Error in fetch cattle details');
-    }
-  };
-
-  // Fetch unsafe cattle data
-  const fetchUnsafeCattle = async () => {
-    try {
-      const response = await getUnsafeCattle();
-      const data = response.data;
-      setUnsafeCattleData(data);
     } catch (error) {
       console.error('Error in fetch cattle details');
     }
@@ -68,7 +50,9 @@ const CattleList = () => {
         </nav>
 
         {/* Add livestock button */}
-        <button className="flex items-center justify-center space-x-2 bg-green-700 py-2 px-4 rounded-md text-white text-sm font-medium">
+        <button
+          className="flex items-center justify-center space-x-2 bg-green-700 py-2 px-4 rounded-md text-white text-sm font-medium hover:bg-white hover:text-green-800 hover:border-1 border-green-600"
+          onClick={addCattleForm}>
           <div className="text-lg">
             <RiAddCircleLine />
           </div>
@@ -141,6 +125,8 @@ const CattleList = () => {
           </tr>
         </tbody>
       </table>
+
+      {showCattleAddForm && <AddCattleForm />}
     </div>
   );
 };
