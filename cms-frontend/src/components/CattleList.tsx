@@ -7,11 +7,24 @@ import { CattleData } from './Interface';
 import dayjs from 'dayjs';
 import { MdDeleteOutline } from 'react-icons/md';
 import { MdOutlineEdit } from 'react-icons/md';
+import CattleCard from './CattleCard';
 
 const CattleList = () => {
-  const { showCattleAddForm, setShowCattleAddForm } = useContext(GlobalContext);
+  const {
+    showCattleAddForm,
+    setShowCattleAddForm,
+    showCattleCard,
+    setShowCattleCard,
+  } = useContext(GlobalContext);
   const [cattleStatus, setCattleStatus] = useState('all livestocks');
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
+  const [selectedCattleData, setSelectedCattleData] =
+    useState<CattleData | null>(null);
+
+  const displayCattleCard = (cattleData: CattleData) => {
+    setSelectedCattleData(cattleData);
+    setShowCattleCard(true);
+  };
 
   const addCattleForm = () => {
     setShowCattleAddForm(true);
@@ -93,6 +106,7 @@ const CattleList = () => {
           {allCattleData.map((cattleData: CattleData) => (
             <tr
               key={cattleData.cattleId}
+              onClick={() => displayCattleCard(cattleData)}
               className="bg-green-50 hover:bg-green-100 items-center justify-center">
               <td className="px-5 py-2 text-sm text-gray-700 text-center">
                 {cattleData.cattleId}
@@ -124,6 +138,7 @@ const CattleList = () => {
       </table>
 
       {showCattleAddForm && <AddCattleForm />}
+      {showCattleCard && <CattleCard cattleData={selectedCattleData} />}
     </div>
   );
 };

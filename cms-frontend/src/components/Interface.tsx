@@ -4,4 +4,5 @@ export interface CattleData {
   createdAt: string;
   status: string;
   updatedAt: string;
+  heartRate: number;
 }

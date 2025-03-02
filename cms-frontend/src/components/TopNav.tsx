@@ -6,7 +6,7 @@ import { FaCircleUser } from 'react-icons/fa6';
 const TopNav = () => {
   const [isHovered, setIsHovered] = useState(false);
   return (
-    <div className="flex flex-row h-1/10 bg-green-50 shadow-xl justify-between items-center">
+    <div className="flex flex-row h-1/10 bg-green-50 shadow-xl justify-between items-center z-10">
       <h1 className="ml-7 font-stretch-110% font-bold text-2xl text-green-800">
         Dashboard
       </h1>
