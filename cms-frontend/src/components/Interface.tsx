@@ -5,4 +5,9 @@ export interface CattleData {
   status: string;
   updatedAt: string;
   heartRate: number;
+  temperature: number;
+  gpsLocation: {
+    latitude: number;
+    longitude: number;
+  };
 }
