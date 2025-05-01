@@ -5,6 +5,7 @@ import TopNav from './components/TopNav';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import ContextWrapper from './context/ContextWrapper';
 import AddCattleForm from './components/AddCattleForm';
+import MapMenu from './components/MapMenu';
 
 function App() {
   return (
@@ -18,6 +19,7 @@ function App() {
               <Routes>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/livestock" element={<CattleList />} />
+                <Route path="/map" element={<MapMenu />} />
                 <Route path="/add-cattle" element={<AddCattleForm />} />
               </Routes>
             </div>
