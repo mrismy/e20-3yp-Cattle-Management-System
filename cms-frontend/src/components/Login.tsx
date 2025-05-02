@@ -1,4 +1,5 @@
 import CattleGrazing from '../assets/images/CattleLogin3.jpg';
+import Divider from '@mui/material/Divider';
 
 const Login = () => {
   return (
@@ -6,7 +7,7 @@ const Login = () => {
       {/* login form */}
       <div className="flex items-center justify-center bg-lime-100 w-full lg:w-1/2">
         {/* <div className="flex flex-col bg-white h-4/5 w-4/5"> */}
-        <div className="bg-white px-10 py-20 rounded-3xl border-2 border-gray-100">
+        <div className="bg-white px-10 py-12 rounded-3xl border-2 border-gray-100">
           <h1 className="text-5xl font-semibold">Sign in to CMS now</h1>
           <p className="font-medium text-lg text-gray-500 mt-4">
             Welcome back! Please enter youe details
@@ -27,13 +28,19 @@ const Login = () => {
                 type="password"
               />
             </div>
-            <button className="mt-6 ml-2 font-medium text-base text-violet-400">
+            <button className="mt-2 ml-2 font-medium text-base text-violet-400">
               Forgot Pasword
             </button>
-            <div className="mt-8 flex flex-col">
+            <div className="mt-5 flex flex-col">
               <button className="active:scale-[.98] active:duration-75 hover:scale-[1.01] ease-in-out transition-all py-3 rounded-xl bg-violet-500 text-white text-lg font-bold">
                 Sign in
               </button>
+            </div>
+            <div className="mt-5">
+              <Divider>Or</Divider>
+            </div>
+            <div className="mt-5 border border-amber-300">
+              log in with google
             </div>
           </div>
         </div>
@@ -54,6 +61,7 @@ const Login = () => {
     //   </div>
 
     //   <div className="relative w-1/2 h-full flex flex-col">
+
     //     <img src={CattleGrazing} className="w-full h-full object-cover" />
     //   </div>
     // </div>
