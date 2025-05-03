@@ -2,6 +2,7 @@ const express = require('express');
 import mongoose from 'mongoose';
 import { cattleRouter } from './routes/api/cattleRoutes';
 import { sensorDataRouter } from './routes/api/sensorDataRoutes';
+import { authRouter } from './routes/api/authRoutes';
 import { mqttClient } from './services/mqttClient';
 const cors = require('cors');
 require('dotenv').config();
@@ -32,6 +33,7 @@ app.get('/', (req: any, res: any) => {
 // Register the routes
 app.use('/api/cattle', cattleRouter);
 app.use('/api/sensor', sensorDataRouter);
+app.use(authRouter);
 
 mongoose
   .connect(DB_CONNECTION)
@@ -47,4 +49,4 @@ mongoose
     console.log('Connection failed ', err);
   });
 
-mqttClient.subscribe('iot/cattle');
+// mqttClient.subscribe('iot/cattle');
