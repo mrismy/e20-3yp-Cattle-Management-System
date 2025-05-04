@@ -1,49 +1,131 @@
+import { SubmitHandler, useForm } from 'react-hook-form';
 import CattleGrazing from '../assets/images/CattleLogin3.jpg';
 import { useNavigate } from 'react-router-dom';
 
+type FormFields = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  password: string;
+};
+
 const Signup = () => {
   const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<FormFields>();
+
+  const onSubmit: SubmitHandler<FormFields> = async (data) => {
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 2000));
+      throw new Error();
+      console.log(data);
+    } catch (error) {
+      console.error('Error during signup:', error);
+      setError('root', {
+        message: 'An error occurred during signup. Please try again.',
+      });
+    }
+  };
 
   return (
     <div className="flex w-full h-screen">
       {/* Signup form */}
       <div className="flex items-center justify-center bg-lime-100 w-full lg:w-1/2">
-        <div className="bg-white w-xl px-10 py-12 rounded-3xl border-2 border-gray-100">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="bg-white w-xl px-10 py-12 rounded-3xl border-2 border-gray-100">
           <h1 className="text-5xl font-semibold">Sign up to CMS now</h1>
           <div className="mt-8">
             <div className="mt-3">
               <label className="text-lg font-medium">First name</label>
               <input
+                {...register('firstName', {
+                  required: 'First name is required',
+                  minLength: {
+                    value: 2,
+                    message: 'First name must be at least 2 characters',
+                  },
+                })}
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your first name"
               />
+              {errors.firstName && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.firstName.message}
+                </p>
+              )}
             </div>
             <div className="mt-3">
               <label className="text-lg font-medium">Last name</label>
               <input
+                {...register('lastName', {
+                  required: 'Last name is required',
+                  minLength: {
+                    value: 2,
+                    message: 'Last name must be at least 2 characters',
+                  },
+                })}
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your last name"
               />
+              {errors.lastName && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.lastName.message}
+                </p>
+              )}
             </div>
             <div>
               <label className="text-lg font-medium">Email</label>
               <input
+                {...register('email', {
+                  required: 'Email is required',
+                  pattern: {
+                    value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: 'Invalid email address',
+                  },
+                })}
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your email"
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
             <div className="mt-3">
               <label className="text-lg font-medium">Password</label>
               <input
+                {...register('password', {
+                  required: 'Password is required',
+                  minLength: {
+                    value: 8,
+                    message: 'Password must be at least 8 characters',
+                  },
+                })}
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your password"
                 type="password"
               />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
             <div className="mt-5 flex flex-col">
               <button className="hover:scale-[1.01] ease-in-out transition-all py-3 rounded-xl bg-violet-500 text-white text-lg font-bold">
-                Sign up
+                {isSubmitting ? 'Signing up...' : 'Sign up'}
               </button>
+              {errors.root && (
+                <p className="text-red-500 text-md mt-1.5 ml-1">
+                  {errors.root.message}{' '}
+                </p>
+              )}
             </div>
             <div className="flex flex-row mt-3 ml-1 items-center space-x-4">
               <p className="text-md text-gray-500">Already have an account?</p>
@@ -57,7 +139,7 @@ const Signup = () => {
               <Divider>Or</Divider>
             </div> */}
           </div>
-        </div>
+        </form>
       </div>
 
       {/* Display the image */}
