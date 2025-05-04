@@ -1,18 +1,30 @@
 import CattleGrazing from '../assets/images/CattleLogin3.jpg';
-import { Link, useNavigate } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 
-const Login = () => {
+const Signup = () => {
   const navigate = useNavigate();
+
   return (
     <div className="flex w-full h-screen">
-      {/* login form */}
+      {/* Signup form */}
       <div className="flex items-center justify-center bg-lime-100 w-full lg:w-1/2">
         <div className="bg-white w-xl px-10 py-12 rounded-3xl border-2 border-gray-100">
-          <h1 className="text-5xl font-semibold">Log in to CMS now</h1>
-          <p className="font-medium text-lg text-gray-500 mt-4">
-            Welcome back! Please enter your details
-          </p>
+          <h1 className="text-5xl font-semibold">Sign up to CMS now</h1>
           <div className="mt-8">
+            <div className="mt-3">
+              <label className="text-lg font-medium">First name</label>
+              <input
+                className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
+                placeholder="Enter your first name"
+              />
+            </div>
+            <div className="mt-3">
+              <label className="text-lg font-medium">Last name</label>
+              <input
+                className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
+                placeholder="Enter your last name"
+              />
+            </div>
             <div>
               <label className="text-lg font-medium">Email</label>
               <input
@@ -28,24 +40,18 @@ const Login = () => {
                 type="password"
               />
             </div>
-            <button className="mt-2 ml-1 font-medium text-base text-violet-400">
-              Forgot Pasword
-            </button>
             <div className="mt-5 flex flex-col">
               <button className="hover:scale-[1.01] ease-in-out transition-all py-3 rounded-xl bg-violet-500 text-white text-lg font-bold">
-                Log in
+                Sign up
               </button>
             </div>
             <div className="flex flex-row mt-3 ml-1 items-center space-x-4">
-              <p className="text-md text-gray-500">
-                Don't you have an account?
-              </p>
+              <p className="text-md text-gray-500">Already have an account?</p>
               <button
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/login')}
                 className="text-md text-violet-400 hover:text-violet-700 hover:scale-[1.02]">
-                Sign up here
+                Log in here
               </button>
-              <Link to="/signup"></Link>
             </div>
             {/* <div className="mt-5">
               <Divider>Or</Divider>
@@ -62,4 +68,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;
