@@ -1,6 +1,8 @@
 import { SubmitHandler, useForm } from 'react-hook-form';
 import CattleGrazing from '../assets/images/CattleLogin3.jpg';
 import { useNavigate } from 'react-router-dom';
+import { signup } from '../services/AuthServices';
+import axios from 'axios';
 
 type FormFields = {
   firstName: string;
@@ -20,14 +22,22 @@ const Signup = () => {
 
   const onSubmit: SubmitHandler<FormFields> = async (data) => {
     try {
-      await new Promise((resolve) => setTimeout(resolve, 2000));
-      throw new Error();
+      await signup(data);
       console.log(data);
+      navigate('/login');
     } catch (error) {
       console.error('Error during signup:', error);
-      setError('root', {
-        message: 'An error occurred during signup. Please try again.',
-      });
+      if (axios.isAxiosError(error)) {
+        if (error.response?.data?.errors.email) {
+          setError('email', {
+            message: error.response?.data?.errors.email,
+          });
+        } else {
+          setError('root', {
+            message: error.message,
+          });
+        }
+      }
     }
   };
 
