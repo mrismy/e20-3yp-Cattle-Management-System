@@ -13,7 +13,13 @@ function App() {
   return (
     <BrowserRouter>
       <ContextWrapper>
-        {/* <div className="flex w-full h-screen">
+        <div>
+          <Routes>
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+          </Routes>
+        </div>
+        <div className="flex w-full h-screen">
           <Nav />
           <div className="flex flex-col w-5/6 bg-gray-100">
             <TopNav />
@@ -26,12 +32,6 @@ function App() {
               </Routes>
             </div>
           </div>
-        </div> */}
-        <div>
-          <Routes>
-            <Route path="/signup" element={<Signup />} />
-            <Route path="/login" element={<Login />} />
-          </Routes>
         </div>
       </ContextWrapper>
     </BrowserRouter>
