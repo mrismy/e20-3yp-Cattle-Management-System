@@ -7,6 +7,7 @@ interface UserInterface {
   lastName: string;
   email: string;
   password: string;
+  refreshToken: string;
 }
 
 interface UserModelInterface extends mongoose.Model<UserInterface> {
@@ -33,26 +34,10 @@ const userSchema = new mongoose.Schema<UserInterface, UserModelInterface>({
     required: [true, 'Please enter your password'],
     minlength: [8, 'Minimum password length is 8 characters'],
   },
+  refreshToken: {
+    type: String,
+  },
 });
-
-// fire a function to encrypt password before doc saved to db
-userSchema.pre('save', async function (next) {
-  const salt = await bcrypt.genSalt();
-  this.password = await bcrypt.hash(this.password, salt);
-  next();
-});
-
-userSchema.statics.login = async function (email: string, password: string) {
-  const user = await this.findOne({ email });
-  if (user) {
-    const auth = await bcrypt.compare(password, user.password);
-    if (auth) {
-      return user;
-    }
-    throw Error('Incorrect password');
-  }
-  throw Error('Incorrect email');
-};
 
 const User = mongoose.model<UserInterface, UserModelInterface>(
   'User',

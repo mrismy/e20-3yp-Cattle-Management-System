@@ -6,7 +6,8 @@ import { authRouter } from './routes/api/authRoutes';
 import { mqttClient } from './services/mqttClient';
 const cors = require('cors');
 require('dotenv').config();
-
+import verifyJWT from './middlewear/verifyJWT';
+const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT || 5000;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
 
@@ -26,14 +27,18 @@ app.use(cors(corsOptions));
 // Middleware to parse JSON
 app.use(express.json());
 
+// Middleware for cookie parsing
+app.use(cookieParser());
+
 app.get('/', (req: any, res: any) => {
   res.send('Hello world');
 });
 
 // Register the routes
+app.use(authRouter);
+app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
 app.use('/api/cattle', cattleRouter);
 app.use('/api/sensor', sensorDataRouter);
-app.use(authRouter);
 
 mongoose
   .connect(DB_CONNECTION)

@@ -1,5 +1,7 @@
 import { error } from 'console';
 import User from '../model/UserModel';
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
 
 interface UserInterface {
   firstName: string;
@@ -37,18 +39,55 @@ const handleErrors = (err: any) => {
 module.exports.login = async (req: any, res: any) => {
   const { email, password } = req.body;
   try {
-    const user = await User.login(email, password);
-    res.status(200).json({ message: 'Login successful', user });
+    // check if user exists
+    const user = await User.findOne({ email });
+    if (!user) {
+      return res.status(400).json({ message: 'User not found' });
+    }
+    // check if password is correct
+    const auth = await bcrypt.compare(password, user.password);
+    if (!auth) {
+      return res.status(400).json({ message: 'Invalid credentials' });
+    }
+    const accessToken = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.ACCESS_TOKEN_SECRET,
+      { expiresIn: '30s' }
+    );
+    const refreshToken = jwt.sign(
+      { userId: user._id, email: user.email },
+      process.env.REFRESH_TOKEN_SECRET,
+      { expiresIn: '1d' }
+    );
+    // save refresh token with current user
+    user.refreshToken = refreshToken;
+    await user.save();
+
+    res.cookie(
+      'jwt',
+      refreshToken,
+      { httpOnly: true },
+      { maxAge: 24 * 60 * 60 * 1000 }
+    );
+    return res.status(200).json({ accessToken });
   } catch (error: any) {
     const errors = handleErrors(error);
-    res.status(400).json({ errors });
+    res.status(500).json({ errors });
   }
 };
 
 module.exports.signup = async (req: any, res: any) => {
   const { firstName, lastName, email, password } = req.body;
   try {
-    const newUser = new User({ firstName, lastName, email, password });
+    // Hash the password
+    const salt = await bcrypt.genSalt();
+    const handledPassword = await bcrypt.hash(password, salt);
+    const newUser = new User({
+      firstName,
+      lastName,
+      email,
+      password: handledPassword,
+    });
     await newUser.save();
     res
       .status(201)
