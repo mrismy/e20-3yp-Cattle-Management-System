@@ -63,12 +63,11 @@ module.exports.login = async (req: any, res: any) => {
     user.refreshToken = refreshToken;
     await user.save();
 
-    res.cookie(
-      'jwt',
-      refreshToken,
-      { httpOnly: true },
-      { maxAge: 24 * 60 * 60 * 1000 }
-    );
+    res.cookie('jwt', refreshToken, {
+      httpOnly: true,
+      sameSite: 'None',
+      maxAge: 24 * 60 * 60 * 1000,
+    });
     return res.status(200).json({ accessToken });
   } catch (error: any) {
     const errors = handleErrors(error);
@@ -96,4 +95,27 @@ module.exports.signup = async (req: any, res: any) => {
     const errors = handleErrors(error);
     res.status(400).json({ errors });
   }
+};
+
+module.exports.logout = async (req: any, res: any) => {
+  // On client, also delete the access token
+  const cookie = req.cookies;
+  if (!cookie?.jwt) {
+    return res.sendStatus(204);
+  }
+  const refreshToken = cookie.jwt;
+
+  // check if refresh token is in db
+  const user = await User.findOne({ refreshToken }).exec();
+  console.log('User', user);
+  if (!user) {
+    res.clearCookie('jwt', { httpOnly: true });
+    return res.sendStatus(204);
+  }
+
+  // delete refresh token in db
+  user.refreshToken = '';
+  await user.save();
+  res.clearCookie('jwt', { httpOnly: true });
+  res.sendStatus(204);
 };
