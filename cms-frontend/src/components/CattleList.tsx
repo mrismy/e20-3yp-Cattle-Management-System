@@ -9,6 +9,7 @@ import { MdDeleteOutline } from 'react-icons/md';
 import { MdOutlineEdit } from 'react-icons/md';
 import CattleCard from './CattleCard';
 import NavSub from './NavSub';
+import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
 
 const CattleList = () => {
   const {
@@ -32,10 +33,11 @@ const CattleList = () => {
     console.log(showCattleAddForm);
   };
 
+  const axiosPrivate = UseAxiosPrivate();
   // Fetch all cattle data
   const fetchAllCattle = async () => {
     try {
-      const response = await getAllCattle();
+      const response = await axiosPrivate.get('/api/sensor/latestWithCattle');
       const data = response.data;
       console.log('Response:', data);
       setAllCattleData(data);
