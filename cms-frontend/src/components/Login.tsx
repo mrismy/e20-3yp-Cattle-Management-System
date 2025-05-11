@@ -1,8 +1,10 @@
-import { SubmitHandler, useForm } from 'react-hook-form';
+import { set, SubmitHandler, useForm } from 'react-hook-form';
 import CattleGrazing from '../assets/images/CattleLogin3.jpg';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
 import { login } from '../services/AuthServices';
 import axios from 'axios';
+import GlobalContext from '../context/GlobalContext';
+import { useContext } from 'react';
 
 type FormFields = {
   email: string;
@@ -17,11 +19,19 @@ const Login = () => {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormFields>();
+  const { setAuth } = useContext(GlobalContext);
 
   const onSubmit: SubmitHandler<FormFields> = async (data) => {
     try {
-      await login(data);
-      console.log('Login successful');
+      const respone = await login(data);
+      const accessToken = respone.data.accessToken;
+      console.log(accessToken);
+      setAuth({
+        email: data.email,
+        password: data.password,
+        accessToken: accessToken,
+      });
+      console.log('Login successful', respone.data.accessToken);
       navigate('/dashboard');
     } catch (error) {
       console.error('Error during signup:', error);

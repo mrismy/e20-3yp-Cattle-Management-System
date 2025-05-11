@@ -19,6 +19,7 @@ const corsOptions = {
   origin: 'http://localhost:5173', // Replace with the allowed domain(s)
   methods: ['GET', 'POST', 'PUT', 'DELETE'], // Optional: specify which HTTP methods are allowed
   allowedHeaders: ['Content-Type', 'Authorization'], // Optional: specify which headers are allowed
+  credentials: true,
 };
 
 // Use the custom CORS options

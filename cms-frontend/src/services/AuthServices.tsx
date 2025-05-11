@@ -28,6 +28,7 @@ export const signup = (data: SignUpFormFields) =>
 
 export const login = (data: LoginFormFields) =>
   axios.post(LOGIN, data, {
+    withCredentials: true,
     headers: {
       'Content-Type': 'application/json',
     },
