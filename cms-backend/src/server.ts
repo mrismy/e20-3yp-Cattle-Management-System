@@ -42,9 +42,13 @@ mongoose
     app.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
+
+    //TO-DO: latestupdate dictionary initialization
   })
   .catch((err: any) => {
     console.log('Connection failed ', err);
   });
-
-mqttClient.subscribe('iot/cattle');
+mqttClient.subscribe('zone/1/+/data');
+const jsonString = '{"message": "Hello from Node.js!"}';
+const jsonObject = JSON.parse(jsonString);
+//mqttClient.publish('iot/cattle', JSON.stringify(jsonObject));

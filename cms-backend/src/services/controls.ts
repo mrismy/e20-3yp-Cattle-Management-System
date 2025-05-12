@@ -28,11 +28,13 @@ export class CattleSensorData {
         if (cattleData.heartRate < this.boundaries.heartRate.min ||
             cattleData.heartRate > this.boundaries.heartRate.max) {
             action.push(2);  
+            status: "unsafe"
         }
 
         if (cattleData.temperature < this.boundaries.temperature.min ||
             cattleData.temperature > this.boundaries.temperature.max) {
             action.push(3);  
+            status: "unsafe"
         }
 
         if (cattleData.gpsLocation) {
@@ -42,6 +44,7 @@ export class CattleSensorData {
                 longitude < this.boundaries.gpsGeofence.minLongitude ||
                 longitude > this.boundaries.gpsGeofence.maxLongitude) {
                 action.push(4);  
+                status: "unsafe"
             }
         }
 
