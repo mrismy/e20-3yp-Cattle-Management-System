@@ -227,6 +227,117 @@ router.get('/withCattle/monthly/:months', async (req: any, res: any) => {
     }
 });
 
+router.get('/withCattle/byTag/:tagId', async (req: any, res: any) => {
+    try {
+        const tagId = parseInt(req.params.tagId);
+
+        const sensorDataList = await sensorData.find({ deviceId: tagId });
+        const cattleInfo = await cattle.findOne({ tagId });
+
+        if (!cattleInfo) {
+            return res.status(404).json({ message: 'Cattle not found' });
+        }
+
+        const result = await Promise.all(sensorDataList.map(async sensor => {
+            const { status, action } = await CattleSensorData.checkSensors(sensor.deviceId as number);
+
+            return {
+                ...sensor.toObject(),
+                cattleName: cattleInfo.name,
+                cattleId: cattleInfo.tagId,
+                cattleCreatedAt: cattleInfo.createdAt,
+                status,
+                action,
+            };
+        }));
+
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching sensor data for the given tag ID' });
+    }
+});
+
+// Weekly data by tagId
+router.get('/withCattle/weekly/:tagId/:weeks', async (req: any, res: any) => {
+    try {
+        const tagId = parseInt(req.params.tagId);
+        const weeks = parseInt(req.params.weeks);
+
+        if (isNaN(tagId) || isNaN(weeks) || weeks < 1) {
+            return res.status(400).json({ message: 'Invalid tag ID or number of weeks' });
+        }
+
+        const fromDate = dayjs().subtract(weeks, 'week').toDate();
+
+        const sensorDataList = await sensorData.find({
+            deviceId: tagId,
+            createdAt: { $gte: fromDate }
+        });
+
+        const cattleInfo = await cattle.findOne({ tagId });
+
+        if (!cattleInfo) {
+            return res.status(404).json({ message: 'Cattle not found' });
+        }
+
+        const result = await Promise.all(sensorDataList.map(async sensor => {
+            const { status, action } = await CattleSensorData.checkSensors(sensor.deviceId as number);
+            return {
+                ...sensor.toObject(),
+                cattleName: cattleInfo.name,
+                cattleId: cattleInfo.tagId,
+                cattleCreatedAt: cattleInfo.createdAt,
+                status,
+                action,
+            };
+        }));
+
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching weekly sensor data for tag ID' });
+    }
+});
+
+// Monthly data by tagId
+router.get('/withCattle/monthly/:tagId/:months', async (req: any, res: any) => { 
+    try {
+        const tagId = parseInt(req.params.tagId);
+        const months = parseInt(req.params.months);
+
+        if (isNaN(tagId) || isNaN(months) || months < 1) {
+            return res.status(400).json({ message: 'Invalid tag ID or number of months' });
+        }
+
+        const fromDate = dayjs().subtract(months, 'month').toDate();
+
+        const sensorDataList = await sensorData.find({
+            deviceId: tagId,
+            createdAt: { $gte: fromDate }
+        });
+
+        const cattleInfo = await cattle.findOne({ tagId });
+
+        if (!cattleInfo) {
+            return res.status(404).json({ message: 'Cattle not found' });
+        }
+
+        const result = await Promise.all(sensorDataList.map(async sensor => {
+            const { status, action } = await CattleSensorData.checkSensors(sensor.deviceId as number);
+            return {
+                ...sensor.toObject(),
+                cattleName: cattleInfo.name,
+                cattleId: cattleInfo.tagId,
+                cattleCreatedAt: cattleInfo.createdAt,
+                status,
+                action,
+            };
+        }));
+
+        res.status(200).json(result);
+    } catch (error) {
+        res.status(500).json({ message: 'Error fetching monthly sensor data for tag ID' });
+    }
+});   
 
 router.get('/alert/:Id',async (req:any,res:any)=>{
     try {
