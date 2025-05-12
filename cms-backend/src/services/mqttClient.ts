@@ -4,6 +4,9 @@ import {CattleSensorData} from '../services/controls'
 import mongoose from "mongoose";
 import sensorData from '../model/sensorData';
 import latestSensorData from '../model/latestSensorData';
+import path from 'path';
+import fs from 'fs';
+// const awsIot = require('aws-iot-device-sdk');
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
 
@@ -25,16 +28,50 @@ class MqttHandler {
     private latestupdate: Record<number,CattleData> = {};
 
     private constructor() {
-        this.client = mqtt.connect(MQTT_BROKER);
 
-        this.client.on('error', (err) => {
-            console.error('MQTT error:', err);
-        });
+        // this.client = mqtt.connect(MQTT_BROKER);
+
+        // try {
+        //     this.client = awsIot.device({
+        //         keyPath: path.join(__dirname, 'certs/private.pem.key'),  // Should be private key
+        //         certPath: path.join(__dirname, 'certs/certificate.pem.crt'),
+        //         caPath: path.join(__dirname, 'certs/AmazonRootCA1.pem'),
+        //         clientId: 'back_end', // Better client ID
+        //         host: 'aoowqlrrhcw8y-ats.iot.eu-north-1.amazonaws.com' // No http://
+        //     });
+        // } catch (error) {
+        //     console.error("Error connecting to MQTT broker:", error);
+        //     throw error; // Rethrow the error to be handled by the caller
+        // }
+
+        const certsDir = path.join(__dirname, '..', '..', 'certs');
+
+        const options = {
+            key: fs.readFileSync(path.join(certsDir, 'private.pem.key')),
+            cert: fs.readFileSync(path.join(certsDir, 'certificate.pem.crt')),
+            ca: fs.readFileSync(path.join(certsDir, 'AmazonRootCA1.pem')),
+            clientId: 'test-client',
+            protocol: 'mqtts' as mqtt.MqttProtocol,
+            host: 'aoowqlrrhcw8y-ats.iot.eu-north-1.amazonaws.com',
+            port: 8883,
+            rejectUnauthorized: true
+        };
+
+        this.client = mqtt.connect(options);
 
         this.client.on('connect', () => {
             this.isConnected = true;
-            console.log('Connected to MQTT broker');
+            console.log('Connected to AWS IoT');
         });
+
+        // this.client.on('error', (err) => {
+        //     console.error('MQTT error:', err);
+        // });
+
+        // this.client.on('connect', () => {
+        //     this.isConnected = true;
+        //     console.log('Connected to MQTT broker');
+        // });
 
         this.client.on('close', () => {
             this.isConnected = false;
@@ -45,6 +82,7 @@ class MqttHandler {
         this.client.on('message', async (receivedTopic, message) => {
             try {
                 const data = JSON.parse(message.toString());
+                console.log(`Received message on topic ${receivedTopic}:`, data);
                 const receivedMsg: SensorDataInterface = data;
                 const {deviceId, heartRate, temperature, gpsLocation}= receivedMsg;
                 
@@ -163,7 +201,9 @@ class MqttHandler {
 
     public publish(topic: string, message: string, options?: mqtt.IClientPublishOptions): void {
         if (!this.isConnected) {
-            throw new Error('MQTT client not connected');
+            console.warn(`MQTT client not connected. Retrying publishing to ${topic} in 2 seconds.`);
+            setTimeout(() => this.publish(topic, message,options), 2000);
+            return;
         }
         this.client.publish(topic, message, options, (err) => {
             if (err) {
