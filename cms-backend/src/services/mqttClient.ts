@@ -29,7 +29,7 @@ class MqttHandler {
 
     private constructor() {
 
-        // this.client = mqtt.connect(MQTT_BROKER);
+        this.client = mqtt.connect(MQTT_BROKER);
 
         // try {
         //     this.client = awsIot.device({
@@ -57,16 +57,16 @@ class MqttHandler {
             rejectUnauthorized: true
         };
 
-        this.client = mqtt.connect(options);
+        //this.client = mqtt.connect(options);
 
         this.client.on('connect', () => {
             this.isConnected = true;
             console.log('Connected to AWS IoT');
         });
 
-        // this.client.on('error', (err) => {
-        //     console.error('MQTT error:', err);
-        // });
+        this.client.on('error', (err) => {
+             console.error('MQTT error:', err);
+         });
 
         // this.client.on('connect', () => {
         //     this.isConnected = true;

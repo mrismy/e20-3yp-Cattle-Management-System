@@ -2,8 +2,8 @@ import latestSensorData from "../model/latestSensorData";
 
 export class CattleSensorData {
     private static boundaries = {
-        heartRate: { min: 60, max: 100 }, 
-        temperature: { min: 36, max: 39 }, 
+        heartRate: { min: 60, max: 80 }, 
+        temperature: { min: 37.5, max: 39.5 }, 
         gpsGeofence: { 
             minLatitude: 6.772591, maxLatitude: 6.972591,
             minLongitude: 80.697847, maxLongitude: 80.897847
