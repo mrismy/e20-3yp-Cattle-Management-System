@@ -9,55 +9,96 @@
 #include "string.h"
 #include "cJSON.h"
 #include <freertos/projdefs.h>
+#include "heartRate.h"
+#include "esp_timer.h"
 
 int counter = 0;
+// Data structure for sensor readings
+typedef struct
+{
+    int heart_rate;
+    float temperature;
+} sensor_data_t;
+
+sensor_data_t shared_data;
+sensor_data_t copy;
+SemaphoreHandle_t data_mutex;
 
 // Functions
 float readTemperature(void);
 int readHeartRate(void);
 void readGps(float *, float *);
 void createJsonDoc(char **);
+void print_uint16_array(const uint16_t *, size_t, const char *);
+void read_heartrate_task(void *);
+void lora_send_task(void *);
+void read_temp_task(void *);
 
-// void print_uint16_array(const uint16_t *arr, size_t len, const char *label)
-// {
-//     printf("%s: ", label);
-//     for (size_t i = 0; i < len; i++)
-//     {
-//         printf("%u ", arr[i]);
-//     }
-//     printf("\n");
-// }
+void read_heartrate_task(void *pvParameters) {
+    max30102Sensor_init();
+    
+    // Config
+    const uint8_t RATE_SIZE = 4;       // Moving average window
+    const uint16_t SAMPLES_PER_READ = 15; // FIFO size
+    uint8_t rates[RATE_SIZE];
+    uint8_t rateSpot = 0;
+    int64_t lastBeat = 0;
+    int beatAvg = 0, last_beatAvg = 0;
+    
+    // Buffers
+    uint16_t red[SAMPLES_PER_READ], ir[SAMPLES_PER_READ];
+    int64_t sample_times[SAMPLES_PER_READ];
 
-// #define RX_BUF_SIZE 256
-// uint8_t buffer[RX_BUF_SIZE];
+    while (1) {
+        // 1. Read FIFO (15 samples @ 400Hz = 37.5ms of data)
+        readRaw(red, ir);
+        int64_t batch_start = esp_timer_get_time(); // us (micro)
+        
+        // 2. Process each sample with timestamp
+        for (size_t i = 0; i < SAMPLES_PER_READ; i++) {
+            sample_times[i] = batch_start + (i * 2500); // 2.5ms spacing (100Hz)
+            
+            if (checkForBeat(ir[i])) {
+                int64_t delta = (sample_times[i] - lastBeat) / 1000; // ms
+                lastBeat = sample_times[i];
+                
+                if (delta > 0) {  // Prevent division by zero
+                    float bpm = 60000.0 / delta;  // Correct BPM calculation
+                    if (bpm > 20 && bpm < 255) {
+                        rates[rateSpot++] = (uint8_t)bpm;
+                        rateSpot %= RATE_SIZE;
+                        
+                        // Update average
+                        beatAvg = 0;
+                        for (uint8_t x = 0; x < RATE_SIZE; x++) beatAvg += rates[x];
+                        beatAvg /= RATE_SIZE;
+                    }
+                }
+            }
 
-// void rx_task(void *pvParameters) {
-//     while (1) {
-//         if (lora_received()) {
-//             int len = lora_receive_packet(buffer, RX_BUF_SIZE);
-//             buffer[len] = '\0';  // Null-terminate the string
-//             printf("Received: %s\n", buffer);
-//         }
-//         vTaskDelay(pdMS_TO_TICKS(100));  // Small delay
-//     }
-// }
+            if (ir[i]<500)
+            {
+                beatAvg = 0;
+            }
+            
+        }
+        
+        // 3. Thread-safe data update (only if changed)
+        if (beatAvg != last_beatAvg) {
+            xSemaphoreTake(data_mutex, portMAX_DELAY);
+            shared_data.heart_rate = beatAvg;
+            xSemaphoreGive(data_mutex);
+            last_beatAvg = beatAvg;
+        }
+        printf("Heart Rate: %d Temp: %.2f\n",shared_data.heart_rate,shared_data.temperature);
 
-void app_main()
-{
-    // xTaskCreate(ds18b20_task, "ds18b20_task", 4096, (void*)DS18B20_GPIO, 5, NULL);
-    // max30102Sensor_init();
-    // uint16_t red[16];
-    // uint16_t ir[16];
-    // The app_main function will stay running, so other tasks can execute
-    // while (1)
-    // {
-    //     readReadRaw(red,ir);
-    //     print_uint16_array(red,16,"RED");
-    //     // Main loop, you can also add other tasks here if needed
-    //     vTaskDelay(pdMS_TO_TICKS(1000));
-    // }
-    // ds18b20_init_sensor((gpio_num_t)4);
+        // 4. Delay until next batch (adjust for your actual FIFO refill rate)
+        vTaskDelay(37.5 / portTICK_PERIOD_MS); // ~100Hz effective
+    }
+}
 
+void lora_send_task(void *pvParameters)
+{   
     // Initialize Lora
     ESP_LOGI("LORA", "Initializing LoRa...");
 
@@ -66,19 +107,12 @@ void app_main()
         ESP_LOGE("LORA", "Failed to initialize LoRa!");
         return;
     }
-
-    // Optional configurations
     lora_set_frequency(433E6); // Set frequency to 433 MHz (or 868E6 / 915E6 based on your module)
-    // lora_set_sync_word(0x34);
-    // lora_set_spreading_factor(7);
-    // lora_set_bandwidth(125E3);
-    // lora_set_coding_rate(5); // 4/5
     lora_explicit_header_mode();
     lora_set_spreading_factor(7);
     lora_enable_crc();
 
-    // Optional: loop to send repeatedly
-    while (1)
+    while (true)
     {
         char *msg;
         createJsonDoc(&msg);
@@ -86,7 +120,7 @@ void app_main()
         {
             // Check LoRa packet size limit (e.g., 255 bytes)
             if (strlen(msg) <= 255)
-            {   
+            {
                 lora_send_packet((uint8_t *)msg, strlen(msg));
                 ESP_LOGI("LORA", "Sent: %s (len=%d)", msg, strlen(msg));
             }
@@ -101,49 +135,70 @@ void app_main()
     }
 }
 
-// void app_main(void) {
-//     // Initialize SPI + LoRa
-//     // spi_init();           // your custom SPI init
-//     lora_init();          // Init the LoRa chip
+void read_temp_task(void *pvParameter){
+    // Initialize the temperature sensor
+    ds18b20_init_sensor();
+    float temperature = 0;
+    shared_data.temperature = 0;
+    while (true)
+    {   
+        float temp;
+        getTemperature(&temp);
+        if (temp != temperature)
+        {
+            xSemaphoreTake(data_mutex,portMAX_DELAY);
+            shared_data.temperature = temp;
+            xSemaphoreGive(data_mutex);
+            temperature = temp;
+        }
+        
+    }
+    
+}
 
-//     lora_set_frequency(433E6);
-//     lora_set_spreading_factor(7);
-//     lora_set_bandwidth(125E3);
-//     lora_set_coding_rate(5);
-// lora_enable_crc();
-//     lora_explicit_header_mode();
-//     lora_idle();          // Make sure it's not in sleep
+void app_main(void *pvParamaters)
+{
+    init_uart();
+    data_mutex = xSemaphoreCreateMutex();
+    if (data_mutex == NULL)
+    {
+        ESP_LOGE("MAIN", "Failed to create mutex!");
+        return;
+    }
+    xTaskCreate(read_temp_task, "ds18b20_task", 4096, NULL, 2, NULL);
+    xTaskCreatePinnedToCore(read_heartrate_task, "HeartRate_Task", 4096, NULL, 2, NULL, 0);
+    xTaskCreatePinnedToCore(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL, 1);
 
-//     // Create receive task
-//     xTaskCreate(rx_task, "rx_task", 2048, NULL, 5, NULL);
-//     vTaskDelay(pdMS_TO_TICKS(1000));
-// }
+    ESP_LOGI("ESP32", "Tasks created, system running");
+}
 
 // Create Json Object
 void createJsonDoc(char **jsonStr)
 {
     // Read the sensor data
+    xSemaphoreTake(data_mutex, portMAX_DELAY);
     int id = counter;
-    float temp = readTemperature();
-    int hr = readHeartRate();
+    float temp = shared_data.temperature;
+    int hr = shared_data.heart_rate;
     float lat, lon;
     readGps(&lat, &lon);
+    xSemaphoreGive(data_mutex);
 
     // Prepare Json Doc
     char temp_str[10], lat_str[10], lon_str[10], hr_str[10], dev_id[5];
     cJSON *doc = cJSON_CreateObject();
-    
+
     // Format to 2 decimal places as strings
-    snprintf(dev_id,sizeof(dev_id),"%d", id);
+    snprintf(dev_id, sizeof(dev_id), "%d", id);
     snprintf(temp_str, sizeof(temp_str), "%.2f", temp);
     snprintf(hr_str, sizeof(hr_str), "%d", hr);
     snprintf(lat_str, sizeof(lat_str), "%.2f", lat);
     snprintf(lon_str, sizeof(lon_str), "%.2f", lon);
 
     // Add strings to JSON (not numbers)
-    cJSON_AddStringToObject(doc,"i",dev_id);
+    cJSON_AddStringToObject(doc, "i", dev_id);
     cJSON_AddStringToObject(doc, "t", temp_str);
-    cJSON_AddStringToObject(doc,"h",hr_str);
+    cJSON_AddStringToObject(doc, "h", hr_str);
     cJSON_AddStringToObject(doc, "la", lat_str);
     cJSON_AddStringToObject(doc, "lo", lon_str);
 
@@ -153,8 +208,22 @@ void createJsonDoc(char **jsonStr)
     // Clean up
     cJSON_Delete(doc);
 
-    // MOCKING DIFFERENT DEVICES
+    // MOCKING DIFFERENT 10 DEVICES
     counter++;
+    if (counter > 10)
+    {
+        counter = 0;
+    }
+}
+
+void print_uint16_array(const uint16_t *arr, size_t len, const char *label)
+{
+    printf("%s: ", label);
+    for (size_t i = 0; i < len; i++)
+    {
+        printf("%u ", arr[i]);
+    }
+    printf("\n");
 }
 
 // Mock sensor data (replace with actual sensor reads)
@@ -162,6 +231,6 @@ float readTemperature() { return 25.4; }
 int readHeartRate() { return 72; }
 void readGps(float *lat, float *lon)
 {
-    *lat = 12.34;
-    *lon = 56.78;
+    *lat = 7.25448;
+    *lon = 80.59145;
 }

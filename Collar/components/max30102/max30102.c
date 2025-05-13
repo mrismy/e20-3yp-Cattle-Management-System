@@ -49,11 +49,11 @@ esp_err_t max30102_init(max30102_t *this, i2c_port_t i2c_num)
     if(ret != ESP_OK) return ret;
     ret = max30102_write_register(this,MAX30102_MODE_CONFIG, 0x03);
     if(ret != ESP_OK) return ret;
-    ret = max30102_set_sampling_rate(this, MAX30102_SAMPLING_RATE_100HZ);
+    ret = max30102_set_sampling_rate(this, MAX30102_SAMPLING_RATE_400HZ);
     if(ret != ESP_OK) return ret;
-    ret = max30102_set_high_res(this, MAX30102_ADC_RANGE_2048);
+    ret = max30102_set_high_res(this, MAX30102_ADC_RANGE_4096);
     if(ret != ESP_OK) return ret;
-    ret = max30102_set_led_current(this, MAX30102_LED_CURRENT_24MA, MAX30102_LED_CURRENT_24MA);
+    ret = max30102_set_led_current(this, MAX30102_LED_CURRENT_4_4MA, MAX30102_LED_CURRENT_7_6MA);
     if(ret != ESP_OK) return ret;
 
     return ret;

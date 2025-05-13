@@ -4,9 +4,9 @@
  * Initiallize 
  * @param pin GPIO PIN Number of DS18B20
  */
-void ds18b20_init_sensor(gpio_num_t pin);
+void ds18b20_init_sensor();
 
 /**
  * Read the temperature (wait for 800 ms)
  */
-float getTemperature();
+void getTemperature(float *);
