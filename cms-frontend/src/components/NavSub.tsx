@@ -1,11 +1,13 @@
 import { useState } from 'react';
 
 interface NavSubProps {
-  options: String[];
+  options: string[];
+  selectedOption: string;
+  onSelect: (option: string) => void;
 }
 
-const NavSub = ({ options }: NavSubProps) => {
-  const [selectedOption, setSelectedOption] = useState(options[0]);
+const NavSub = ({ options, selectedOption, onSelect }: NavSubProps) => {
+  // const [selectedOption, setSelectedOption] = useState(options[0]);
 
   return (
     <nav>
@@ -19,7 +21,7 @@ const NavSub = ({ options }: NavSubProps) => {
                   ? 'text-green-700 border-b-green-700'
                   : 'text-gray-600'
               }`}
-            onClick={() => setSelectedOption(option)}>
+            onClick={() => onSelect(option)}>
             {option.toUpperCase()}
           </li>
         ))}

@@ -11,7 +11,7 @@ import {
 } from 'react-router-dom';
 import ContextWrapper from './context/ContextWrapper';
 import AddCattleForm from './components/AddCattleForm';
-import MapMenu from './components/MapMenu';
+import MapMenu from './components/MapPage';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import RequireAuth from './components/RequireAuth';
