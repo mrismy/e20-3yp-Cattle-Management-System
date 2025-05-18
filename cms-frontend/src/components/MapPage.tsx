@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import LiveLocation from './LiveLocation';
 import NavSub from './NavSub';
+import GeoFence from './GeoFence';
 
 const MapMenu = () => {
   const mapOptions = ['live location', 'geo fence'];
@@ -16,7 +17,9 @@ const MapMenu = () => {
           onSelect={setSelectedOption}
         />
       </div>
+      <hr className="text-gray-300 w-full mb-8" />
       {selectedOption === 'live location' && <LiveLocation />}
+      {selectedOption === 'geo fence' && <GeoFence />}
     </div>
   );
 };

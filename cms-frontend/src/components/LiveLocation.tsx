@@ -23,7 +23,6 @@ const LiveLocation = () => {
 
   return (
     <div>
-      <hr className="text-gray-300 w-full mb-8" />
       <div className="h-[450px] border border-gray-400 w-full">
         <Map />
       </div>
