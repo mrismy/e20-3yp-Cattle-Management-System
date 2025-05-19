@@ -1,10 +1,17 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import Axios from '../services/Axios';
 
 interface GeoFenceMapInterface {
   newLocation: boolean;
   onLocationSelect: (lat: number, lng: number) => void;
+  radius: number;
+}
+
+interface geoFenceInterface {
+  latitude: number;
+  longitude: number;
   radius: number;
 }
 
@@ -20,6 +27,27 @@ const GeoFenceMap = ({
     lat: number;
     lng: number;
   } | null>(null);
+
+  const fetchAllGeoFence = async () => {
+    try {
+      const response = await Axios.get('/geo-fence/');
+      const geofences = response.data;
+
+      geofences.forEach((geoFence: geoFenceInterface) => {
+        const { latitude, longitude, radius } = geoFence;
+        const circle = L.circle([latitude, longitude], {
+          radius,
+          color: 'purple',
+          fillColor: '#CF9FFF',
+          fillOpacity: 0.3,
+        }).addTo(mapRef.current!);
+
+        circle.bindPopup(`<b>${'Geofence'}</b><br>Radius: ${radius}m`);
+      });
+    } catch (error) {
+      console.log('Error in fetching data');
+    }
+  };
 
   useEffect(() => {
     // Initialize the map
@@ -84,6 +112,9 @@ const GeoFenceMap = ({
         });
       })
       .catch((error) => console.error('Error fetching GPS data:', error));
+
+    fetchAllGeoFence();
+
     return () => {
       map.remove();
     };
