@@ -2,7 +2,7 @@
 #include "lora.h"
 #include "max30102_sensor.h"
 #include "ds18b20_sensor.h"
-
+#include "esp_sleep.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "esp_log.h"
@@ -11,8 +11,10 @@
 #include <freertos/projdefs.h>
 #include "heartRate.h"
 #include "esp_timer.h"
+#include <sys/time.h>
 
-int counter = 0;
+int settimeofday(const struct timeval *tv, const struct timezone *tz);
+#define DEVICE_ID 10;
 // Data structure for sensor readings
 typedef struct
 {
@@ -24,6 +26,35 @@ sensor_data_t shared_data;
 sensor_data_t copy;
 SemaphoreHandle_t data_mutex;
 
+// STATE machines
+typedef enum
+{
+    RX_MODE,          // LoRa in RX_MODE
+    READ_SENSOR_MODE, // Request sensor data
+    TX_MODE,          // LoRa in TX_MODE
+    SETUP_MODE,       // Setup next wakeup time before sleep
+    SLEEP
+} app_mode_t;
+
+typedef enum
+{
+    EVENT_START,
+    EVENT_GLOBAL_TIMEOUT,
+    EVENT_SYNC_TIME,
+    EVENT_DATA_REQ,
+    EVENT_READ_SENSORS_SUCCESS,
+    EVENT_TX_COMPLETE,
+    EVENT_ACK,
+    EVENT_ACK_TIMEOUT,
+    EVENT_ALLOC_TIMEOUT
+} app_event_t;
+
+typedef struct
+{
+    uint32_t unix;
+    uint8_t alloc_time;
+} sync_time_config_t;
+
 // Functions
 float readTemperature(void);
 int readHeartRate(void);
@@ -33,72 +64,157 @@ void print_uint16_array(const uint16_t *, size_t, const char *);
 void read_heartrate_task(void *);
 void lora_send_task(void *);
 void read_temp_task(void *);
+void lora_receive_task(void *);
+void setupTime();
+void configSyncTime(void *);
 
-void read_heartrate_task(void *pvParameters) {
+void configSyncTime(void *pvParam)
+{
+    while (true)
+    {
+        sync_time_config_t config_sync = *(sync_time_config_t *)pvParam;
+        setupTime(config_sync.unix);
+
+        int allocated_time = config_sync.alloc_time * DEVICE_ID;
+        ESP_LOGI("TIME CONFIG","current time: %d, allocated time: %d",(int)config_sync.unix,(int)allocated_time);
+
+        esp_sleep_enable_timer_wakeup(allocated_time * 1000000);
+        esp_deep_sleep_start();
+    }
+}
+
+void setupTime(uint32_t time_stamp)
+{
+
+    time_t seconds = (time_t)time_stamp;
+    long microseconds = 0;
+
+    struct timeval tv = {
+        tv.tv_sec = seconds,
+        tv.tv_usec = microseconds};
+
+    settimeofday(&tv, NULL);
+    time_t now;
+    time(&now);
+    ESP_LOGI("TIME", "System time set to: %s", ctime(&now));
+}
+
+void read_heartrate_task(void *pvParameters)
+{
     max30102Sensor_init();
-    
+
     // Config
-    const uint8_t RATE_SIZE = 4;       // Moving average window
+    const uint8_t RATE_SIZE = 4;          // Moving average window
     const uint16_t SAMPLES_PER_READ = 15; // FIFO size
     uint8_t rates[RATE_SIZE];
     uint8_t rateSpot = 0;
     int64_t lastBeat = 0;
     int beatAvg = 0, last_beatAvg = 0;
-    
+
     // Buffers
     uint16_t red[SAMPLES_PER_READ], ir[SAMPLES_PER_READ];
     int64_t sample_times[SAMPLES_PER_READ];
 
-    while (1) {
+    while (1)
+    {
         // 1. Read FIFO (15 samples @ 400Hz = 37.5ms of data)
         readRaw(red, ir);
         int64_t batch_start = esp_timer_get_time(); // us (micro)
-        
+
         // 2. Process each sample with timestamp
-        for (size_t i = 0; i < SAMPLES_PER_READ; i++) {
+        for (size_t i = 0; i < SAMPLES_PER_READ; i++)
+        {
             sample_times[i] = batch_start + (i * 2500); // 2.5ms spacing (100Hz)
-            
-            if (checkForBeat(ir[i])) {
+
+            if (checkForBeat(ir[i]))
+            {
                 int64_t delta = (sample_times[i] - lastBeat) / 1000; // ms
                 lastBeat = sample_times[i];
-                
-                if (delta > 0) {  // Prevent division by zero
-                    float bpm = 60000.0 / delta;  // Correct BPM calculation
-                    if (bpm > 20 && bpm < 255) {
+
+                if (delta > 0)
+                {                                // Prevent division by zero
+                    float bpm = 60000.0 / delta; // Correct BPM calculation
+                    if (bpm > 20 && bpm < 255)
+                    {
                         rates[rateSpot++] = (uint8_t)bpm;
                         rateSpot %= RATE_SIZE;
-                        
+
                         // Update average
                         beatAvg = 0;
-                        for (uint8_t x = 0; x < RATE_SIZE; x++) beatAvg += rates[x];
+                        for (uint8_t x = 0; x < RATE_SIZE; x++)
+                            beatAvg += rates[x];
                         beatAvg /= RATE_SIZE;
                     }
                 }
             }
 
-            if (ir[i]<500)
+            if (ir[i] < 500)
             {
                 beatAvg = 0;
             }
-            
         }
-        
+
         // 3. Thread-safe data update (only if changed)
-        if (beatAvg != last_beatAvg) {
+        if (beatAvg != last_beatAvg)
+        {
             xSemaphoreTake(data_mutex, portMAX_DELAY);
             shared_data.heart_rate = beatAvg;
             xSemaphoreGive(data_mutex);
             last_beatAvg = beatAvg;
         }
-        printf("Heart Rate: %d Temp: %.2f\n",shared_data.heart_rate,shared_data.temperature);
+        printf("Heart Rate: %d Temp: %.2f\n", shared_data.heart_rate, shared_data.temperature);
 
         // 4. Delay until next batch (adjust for your actual FIFO refill rate)
         vTaskDelay(37.5 / portTICK_PERIOD_MS); // ~100Hz effective
     }
 }
 
+void lora_receive_task(void *pvParameters)
+{
+    // Initialize Lora
+    ESP_LOGI("LORA", "Initializing LoRa...");
+
+    if (!lora_init())
+    {
+        ESP_LOGE("LORA", "Failed to initialize LoRa!");
+        return;
+    }
+    lora_set_frequency(433E6); // Set frequency to 433 MHz (or 868E6 / 915E6 based on your module)
+    lora_explicit_header_mode();
+    lora_set_spreading_factor(7);
+    lora_enable_crc();
+    lora_receive();
+
+    while (1)
+    {
+        uint8_t rx_buffer[256];
+        uint32_t unix;
+        uint8_t alloc_time;
+
+        // Receive packet with timeout (non-blocking alternative available)
+        int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer)); // Leave space for null terminator
+        if (bytes_received > 0)
+        {
+            // ESP_LOG_BUFFER_HEXDUMP("RX", rx_buffer, bytes_received, ESP_LOG_INFO);
+            memcpy(&unix, rx_buffer, 4);
+            memcpy(&alloc_time, rx_buffer + 32, 1);
+
+            sync_time_config_t config_sync = {
+                config_sync.unix = unix,
+                config_sync.alloc_time = 1};
+            
+            xTaskCreate(configSyncTime, "config_time_setup", 2048, (void *)&config_sync, 24, NULL);
+
+            vTaskDelete(NULL);
+        }
+
+        lora_receive();
+        vTaskDelay(pdMS_TO_TICKS(10)); // Small delay to prevent CPU hogging
+    }
+}
+
 void lora_send_task(void *pvParameters)
-{   
+{
     // Initialize Lora
     ESP_LOGI("LORA", "Initializing LoRa...");
 
@@ -135,25 +251,24 @@ void lora_send_task(void *pvParameters)
     }
 }
 
-void read_temp_task(void *pvParameter){
+void read_temp_task(void *pvParameter)
+{
     // Initialize the temperature sensor
     ds18b20_init_sensor();
     float temperature = 0;
     shared_data.temperature = 0;
     while (true)
-    {   
+    {
         float temp;
         getTemperature(&temp);
         if (temp != temperature)
         {
-            xSemaphoreTake(data_mutex,portMAX_DELAY);
+            xSemaphoreTake(data_mutex, portMAX_DELAY);
             shared_data.temperature = temp;
             xSemaphoreGive(data_mutex);
             temperature = temp;
         }
-        
     }
-    
 }
 
 void app_main(void *pvParamaters)
@@ -165,9 +280,10 @@ void app_main(void *pvParamaters)
         ESP_LOGE("MAIN", "Failed to create mutex!");
         return;
     }
-    xTaskCreate(read_temp_task, "ds18b20_task", 4096, NULL, 2, NULL);
-    xTaskCreatePinnedToCore(read_heartrate_task, "HeartRate_Task", 4096, NULL, 2, NULL, 0);
-    xTaskCreatePinnedToCore(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL, 1);
+    // xTaskCreate(read_temp_task, "ds18b20_task", 4096, NULL, 2, NULL);
+    // xTaskCreatePinnedToCore(read_heartrate_task, "HeartRate_Task", 4096, NULL, 2, NULL, 0);
+    // xTaskCreatePinnedToCore(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL, 1);
+    xTaskCreate(lora_receive_task, "lora_rx", 4096, NULL, 24, NULL);
 
     ESP_LOGI("ESP32", "Tasks created, system running");
 }
@@ -177,7 +293,7 @@ void createJsonDoc(char **jsonStr)
 {
     // Read the sensor data
     xSemaphoreTake(data_mutex, portMAX_DELAY);
-    int id = counter;
+    int id = DEVICE_ID;
     float temp = shared_data.temperature;
     int hr = shared_data.heart_rate;
     float lat, lon;
@@ -207,13 +323,6 @@ void createJsonDoc(char **jsonStr)
 
     // Clean up
     cJSON_Delete(doc);
-
-    // MOCKING DIFFERENT 10 DEVICES
-    counter++;
-    if (counter > 10)
-    {
-        counter = 0;
-    }
 }
 
 void print_uint16_array(const uint16_t *arr, size_t len, const char *label)
