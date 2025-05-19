@@ -1,5 +1,8 @@
 import { useState } from 'react';
 import GeoFenceMap from './GeoFenceMap';
+import { toast } from 'react-toastify';
+import Axios, { axiosPrivate } from '../services/Axios';
+import axios from 'axios';
 
 const GeoFense = () => {
   const [newLocation, setNewLocation] = useState(true);
@@ -15,7 +18,25 @@ const GeoFense = () => {
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = Number(e.target.value);
     setRadius(value);
-    console.log(radius);
+  };
+
+  const handleSave = async () => {
+    // if (!selectedLocation) {
+    //   toast.warn('Please select a location before saving.');
+    // }
+    const locationData = {
+      latitude: selectedLocation?.lat,
+      longitude: selectedLocation?.lng,
+      radius: radius,
+    };
+    console.log(locationData);
+    const response = Axios.post('/geo-fence/new', locationData, {
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    });
+    const data = (await response).data;
+    console.log(data);
   };
 
   return (
@@ -41,6 +62,7 @@ const GeoFense = () => {
               step={50}
               value={radius}
               onChange={handleChange}
+              disabled={!selectedLocation}
               className="w-full"
             />
 
@@ -52,6 +74,7 @@ const GeoFense = () => {
               step={50}
               value={radius}
               onChange={handleChange}
+              disabled={!selectedLocation}
               className="w-full border rounded-md px-2 py-1 text-sm"
             />
 
@@ -61,7 +84,10 @@ const GeoFense = () => {
           </div>
         </div>
 
-        <button className="w-full p-2 bg-green-700 text-white text-md rounded-sm hover:scale-105">
+        <button
+          onClick={handleSave}
+          disabled={!selectedLocation}
+          className="w-full p-2 bg-green-700 text-white text-md rounded-sm hover:scale-105">
           Save
         </button>
       </div>
