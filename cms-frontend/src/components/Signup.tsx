@@ -1,17 +1,17 @@
-import { set, SubmitHandler, useForm } from 'react-hook-form';
+import { SubmitHandler, useForm } from 'react-hook-form';
 import CattleGrazing from '../assets/images/CattleLogin3.jpg';
-import { Link, Navigate, useNavigate } from 'react-router-dom';
-import { login } from '../services/AuthServices';
+import { useNavigate } from 'react-router-dom';
+import { signup } from '../services/AuthServices';
 import axios from 'axios';
-import GlobalContext from '../context/GlobalContext';
-import { useContext } from 'react';
 
 type FormFields = {
+  firstName: string;
+  lastName: string;
   email: string;
   password: string;
 };
 
-const Login = () => {
+const Signup = () => {
   const navigate = useNavigate();
   const {
     register,
@@ -19,58 +19,75 @@ const Login = () => {
     setError,
     formState: { errors, isSubmitting },
   } = useForm<FormFields>();
-  const { setAuth } = useContext(GlobalContext);
 
   const onSubmit: SubmitHandler<FormFields> = async (data) => {
     try {
-      const respone = await login(data);
-      const accessToken = respone.data.accessToken;
-      console.log(accessToken);
-      setAuth({
-        email: data.email,
-        password: data.password,
-        accessToken: accessToken,
-      });
-      console.log('Login successful', respone.data.accessToken);
-      navigate('/dashboard');
+      await signup(data);
+      console.log(data);
+      navigate('/login');
     } catch (error) {
       console.error('Error during signup:', error);
       if (axios.isAxiosError(error)) {
-        console.log('Axios error:', error.response?.data);
         if (error.response?.data?.errors.email) {
           setError('email', {
             message: error.response?.data?.errors.email,
           });
-        } else if (error.response?.data?.errors.password) {
-          setError('password', {
-            message: error.response?.data?.errors.password,
-          });
         } else {
           setError('root', {
-            message:
-              error.response?.data.message || 'An unknown error occurred.',
+            message: error.message,
           });
         }
-      } else {
-        setError('root', {
-          message: 'An unknown error occurred.',
-        });
       }
     }
   };
 
   return (
     <div className="flex w-full h-screen">
-      {/* login form */}
+      {/* Signup form */}
       <div className="flex items-center justify-center bg-lime-100 w-full lg:w-1/2">
         <form
           onSubmit={handleSubmit(onSubmit)}
           className="bg-white w-xl px-10 py-12 rounded-3xl border-2 border-gray-100">
-          <h1 className="text-5xl font-semibold">Log in to CMS now</h1>
-          <p className="font-medium text-lg text-gray-500 mt-4">
-            Welcome back! Please enter your details
-          </p>
+          <h1 className="text-5xl font-semibold">Sign up to CMS now</h1>
           <div className="mt-8">
+            <div className="mt-3">
+              <label className="text-lg font-medium">First name</label>
+              <input
+                {...register('firstName', {
+                  required: 'First name is required',
+                  minLength: {
+                    value: 2,
+                    message: 'First name must be at least 2 characters',
+                  },
+                })}
+                className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
+                placeholder="Enter your first name"
+              />
+              {errors.firstName && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.firstName.message}
+                </p>
+              )}
+            </div>
+            <div className="mt-3">
+              <label className="text-lg font-medium">Last name</label>
+              <input
+                {...register('lastName', {
+                  required: 'Last name is required',
+                  minLength: {
+                    value: 2,
+                    message: 'Last name must be at least 2 characters',
+                  },
+                })}
+                className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
+                placeholder="Enter your last name"
+              />
+              {errors.lastName && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.lastName.message}
+                </p>
+              )}
+            </div>
             <div>
               <label className="text-lg font-medium">Email</label>
               <input
@@ -81,7 +98,6 @@ const Login = () => {
                     message: 'Invalid email address',
                   },
                 })}
-                type="email"
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your email"
               />
@@ -96,6 +112,10 @@ const Login = () => {
               <input
                 {...register('password', {
                   required: 'Password is required',
+                  minLength: {
+                    value: 8,
+                    message: 'Password must be at least 8 characters',
+                  },
                 })}
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your password"
@@ -107,12 +127,9 @@ const Login = () => {
                 </p>
               )}
             </div>
-            <button className="mt-2 ml-1 font-medium text-base text-violet-400">
-              Forgot Pasword
-            </button>
             <div className="mt-5 flex flex-col">
               <button className="hover:scale-[1.01] ease-in-out transition-all py-3 rounded-xl bg-violet-500 text-white text-lg font-bold">
-                {isSubmitting ? 'Logging in...' : 'Log in'}
+                {isSubmitting ? 'Signing up...' : 'Sign up'}
               </button>
               {errors.root && (
                 <p className="text-red-500 text-md mt-1.5 ml-1">
@@ -121,15 +138,12 @@ const Login = () => {
               )}
             </div>
             <div className="flex flex-row mt-3 ml-1 items-center space-x-4">
-              <p className="text-md text-gray-500">
-                Don't you have an account?
-              </p>
+              <p className="text-md text-gray-500">Already have an account?</p>
               <button
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate('/login')}
                 className="text-md text-violet-400 hover:text-violet-700 hover:scale-[1.02]">
-                Sign up here
+                Log in here
               </button>
-              <Link to="/signup"></Link>
             </div>
             {/* <div className="mt-5">
               <Divider>Or</Divider>
@@ -146,4 +160,4 @@ const Login = () => {
   );
 };
 
-export default Login;
+export default Signup;

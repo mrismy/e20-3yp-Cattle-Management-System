@@ -53,7 +53,9 @@ const Dashboard = () => {
           </div>
         </div>
         {/* Map */}
-        <Map />
+        <div className="h-full flex w-5xl">
+          <Map />
+        </div>
       </div>
     </>
   );

@@ -8,6 +8,8 @@ import dayjs from 'dayjs';
 import { MdDeleteOutline } from 'react-icons/md';
 import { MdOutlineEdit } from 'react-icons/md';
 import CattleCard from './CattleCard';
+import NavSub from './NavSub';
+import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
 
 const CattleList = () => {
   const {
@@ -16,7 +18,7 @@ const CattleList = () => {
     showCattleCard,
     setShowCattleCard,
   } = useContext(GlobalContext);
-  const [cattleStatus, setCattleStatus] = useState('all livestocks');
+  const cattleStatus = ['all livestocks', 'safe', 'unsafe'];
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
   const [selectedCattleData, setSelectedCattleData] =
     useState<CattleData | null>(null);
@@ -31,10 +33,11 @@ const CattleList = () => {
     console.log(showCattleAddForm);
   };
 
+  const axiosPrivate = UseAxiosPrivate();
   // Fetch all cattle data
   const fetchAllCattle = async () => {
     try {
-      const response = await getAllCattle();
+      const response = await axiosPrivate.get('/api/sensor/latestWithCattle');
       const data = response.data;
       console.log('Response:', data);
       setAllCattleData(data);
@@ -51,23 +54,7 @@ const CattleList = () => {
     <div className="mt-12 overflow-x-auto px-5">
       <div className="flex items-start justify-between mb">
         {/* Navigation to display the livestocks with different status */}
-        <nav>
-          <ul className="flex items-center justify-start">
-            {['all livestocks', 'safe', 'unsafe'].map((status) => (
-              <li
-                key={status}
-                className={`p-2 text-sm font-medium text-gray-600 hover:text-green-700 hover:border-b-green-700 border-2 border-transparent cursor-pointer
-                    ${
-                      cattleStatus === status
-                        ? 'text-green-700 border-b-green-700'
-                        : 'text-gray-600'
-                    }`}
-                onClick={() => setCattleStatus(status)}>
-                {status.toUpperCase()}
-              </li>
-            ))}
-          </ul>
-        </nav>
+        <NavSub options={cattleStatus} />
 
         {/* Add livestock button */}
         <button
