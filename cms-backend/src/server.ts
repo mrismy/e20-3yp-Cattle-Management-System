@@ -56,8 +56,10 @@ mongoose
   .catch((err: any) => {
     console.log('Connection failed ', err);
   });
-// mqttClient.subscribe('zone/1/+/data');
+mqttClient.subscribe('zone/1/+/data');
 // const jsonString = '{"message": "Hello from Node.js!"}';
 // const jsonObject = JSON.parse(jsonString);
 //mqttClient.publish('iot/cattle', JSON.stringify(jsonObject));
 // mqttClient.subscribe('iot/cattle');
+//mqttClient.subscribe('iot/cattle');
+

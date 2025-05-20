@@ -29,7 +29,7 @@ class MqttHandler {
 
     private constructor() {
 
-        this.client = mqtt.connect(MQTT_BROKER);
+        //this.client = mqtt.connect(MQTT_BROKER);
 
         // try {
         //     this.client = awsIot.device({
@@ -57,7 +57,7 @@ class MqttHandler {
             rejectUnauthorized: true
         };
 
-        //this.client = mqtt.connect(options);
+        this.client = mqtt.connect(options);
 
         this.client.on('connect', () => {
             this.isConnected = true;
@@ -81,11 +81,27 @@ class MqttHandler {
         // Ensure only ONE message listener is attached globally
         this.client.on('message', async (receivedTopic, message) => {
             try {
-                const data = JSON.parse(message.toString());
-                console.log(`Received message on topic ${receivedTopic}:`, data);
-                const receivedMsg: SensorDataInterface = data;
-                const {deviceId, heartRate, temperature, gpsLocation}= receivedMsg;
                 
+                //const data = JSON.parse(message.toString());
+                //const receivedMsg: SensorDataInterface = data;
+                //const {deviceId, heartRate, temperature, gpsLocation}= receivedMsg;
+                
+                const raw = JSON.parse(message.toString());
+                console.log(`Received message on topic ${receivedTopic}:`, raw);
+
+                // Map and transform raw fields
+                const receivedMsg: SensorDataInterface = {
+                    deviceId: parseInt(raw.i),
+                    temperature: parseFloat(raw.t),
+                    heartRate: parseInt(raw.h),
+                    gpsLocation: (raw.la && raw.lo) ? {
+                        latitude: parseFloat(raw.la),
+                        longitude: parseFloat(raw.lo),
+                    } : undefined
+                };
+
+                const { deviceId, heartRate, temperature, gpsLocation } = receivedMsg;
+
                 if (deviceId) {
                     this.latestupdate[deviceId] = {
                         heartRate,
