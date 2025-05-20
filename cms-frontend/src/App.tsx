@@ -1,20 +1,21 @@
-import Dashboard from './components/Dashboard';
-import CattleList from './components/CattleList';
-import Nav from './components/Nav';
-import TopNav from './components/TopNav';
+import Dashboard from "./components/Dashboard";
+import CattleList from "./components/CattleList";
+import Nav from "./components/Nav";
+import TopNav from "./components/TopNav";
 import {
   BrowserRouter,
   Navigate,
   Outlet,
   Route,
   Routes,
-} from 'react-router-dom';
-import ContextWrapper from './context/ContextWrapper';
-import AddCattleForm from './components/AddCattleForm';
-import MapMenu from './components/MapMenu';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import RequireAuth from './components/RequireAuth';
+} from "react-router-dom";
+import ContextWrapper from "./context/ContextWrapper";
+import AddCattleForm from "./components/AddCattleForm";
+import MapMenu from "./components/MapMenu";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import RequireAuth from "./components/RequireAuth";
+import Profile from "./components/Profile";
 
 function App() {
   return (
@@ -39,12 +40,14 @@ function App() {
                     </div>
                   </div>
                 </>
-              }>
+              }
+            >
               <Route element={<RequireAuth />}>
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/livestock" element={<CattleList />} />
                 <Route path="/map" element={<MapMenu />} />
                 <Route path="/add-cattle" element={<AddCattleForm />} />
+                <Route path="/profile" element={<Profile />} />
               </Route>
             </Route>
 

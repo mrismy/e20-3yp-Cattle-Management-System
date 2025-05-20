@@ -2,7 +2,7 @@ const express = require('express');
 import mongoose from 'mongoose';
 import { cattleRouter } from './routes/api/cattleRoutes';
 import { sensorDataRouter } from './routes/api/sensorDataRoutes';
-import { authRouter } from './routes/api/authRoutes';
+import authRouter from "./routes/api/authRoutes";
 import { mqttClient } from './services/mqttClient';
 const cors = require('cors');
 require('dotenv').config();
@@ -36,10 +36,11 @@ app.get('/', (req: any, res: any) => {
 });
 
 // Register the routes
-app.use(authRouter);
-app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
-app.use('/api/cattle', cattleRouter);
-app.use('/api/sensor', sensorDataRouter);
+app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
+
+// Protected routes
+app.use('/api/cattle', verifyJWT, cattleRouter);
+app.use('/api/sensor', verifyJWT, sensorDataRouter);
 
 mongoose
   .connect(DB_CONNECTION)
