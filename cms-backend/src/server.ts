@@ -7,6 +7,7 @@ import { mqttClient } from './services/mqttClient';
 const cors = require('cors');
 require('dotenv').config();
 import verifyJWT from './middlewear/verifyJWT';
+import { geoFenceRouter } from './routes/api/geoFenceRoutes';
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT || 5000;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
@@ -37,7 +38,8 @@ app.get('/', (req: any, res: any) => {
 
 // Register the routes
 app.use(authRouter);
-app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
+// app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
+app.use('/geo-fence', geoFenceRouter);
 app.use('/api/cattle', cattleRouter);
 app.use('/api/sensor', sensorDataRouter);
 
