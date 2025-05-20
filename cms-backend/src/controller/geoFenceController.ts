@@ -13,12 +13,14 @@ module.exports.getAll = async (req: any, res: any) => {
 };
 
 module.exports.new = async (req: any, res: any) => {
-  const { latitude, longitude, radius } = req.body;
+  const { latitude, longitude, radius, zoneType, zoneName } = req.body;
   try {
     const geoFence = new geoFenceModel({
       latitude,
       longitude,
       radius,
+      zoneType,
+      zoneName,
     });
     await geoFence.save();
     res.status(201).json({ message: 'Geofence created successfully' });

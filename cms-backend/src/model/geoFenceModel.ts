@@ -1,5 +1,10 @@
 import mongoose from 'mongoose';
 
+export enum ZoneType {
+  SAFE = 'safe',
+  DANGER = 'danger',
+}
+
 const geoFenceSchema = new mongoose.Schema({
   latitude: {
     type: Number,
@@ -11,6 +16,15 @@ const geoFenceSchema = new mongoose.Schema({
   },
   radius: {
     type: Number,
+    required: true,
+  },
+  zoneType: {
+    type: String,
+    enum: Object.values(ZoneType),
+    required: true,
+  },
+  zoneName: {
+    type: String,
     required: true,
   },
 });
