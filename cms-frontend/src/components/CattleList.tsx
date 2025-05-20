@@ -103,7 +103,8 @@ const CattleList = () => {
         </thead>
 
         <tbody className="divide-y divide-white">
-          {allCattleData.map((cattleData: CattleData) => (
+          {allCattleData.sort((a, b) => Number(a.cattleId) - Number(b.cattleId))
+          .map((cattleData: CattleData) => (
             <tr
               key={cattleData.cattleId}
               onClick={() => displayCattleCard(cattleData)}
