@@ -43,7 +43,7 @@ export class CattleSensorData {
       cattleData.heartRate > this.boundaries.heartRate.max
     ) {
       action.push(2);
-      status: 'unsafe';
+      status = 'unsafe';
     }
 
     if (
@@ -51,7 +51,7 @@ export class CattleSensorData {
       cattleData.temperature > this.boundaries.temperature.max
     ) {
       action.push(3);
-      status: 'unsafe';
+      status = 'unsafe';
     }
 
     if (cattleData.gpsLocation) {
@@ -64,18 +64,9 @@ export class CattleSensorData {
         await this.isCattleInSafeZone(latitude, longitude)
       ) {
         action.push(4);
-        status: 'unsafe';
+        status = 'unsafe';
       }
     }
-
-    private static boundaries = {
-        heartRate: { min: 40, max: 100 }, 
-        temperature: { min: 30.5, max: 39.5 }, 
-        gpsGeofence: { 
-            minLatitude: 6.772591, maxLatitude: 6.972591,
-            minLongitude: 80.697847, maxLongitude: 80.897847
-        }
-    };
 
     if (action.length === 0) {
       return {
