@@ -1,7 +1,7 @@
-import { error } from 'console';
+import { Request, Response } from 'express';
 import User from '../model/UserModel';
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
+import bcrypt from 'bcrypt';
+import jwt from 'jsonwebtoken';
 
 interface UserInterface {
   firstName: string;
@@ -10,112 +10,155 @@ interface UserInterface {
   password: string;
 }
 
-// handle errors
-const handleErrors = (err: any) => {
+// Error handling utility
+const handleErrors = (err: any): Partial<UserInterface> => {
   console.log(err.message, err.code);
-  let errors: UserInterface = {
-    firstName: '',
-    lastName: '',
-    email: '',
-    password: '',
-  };
+  const errors: Partial<UserInterface> = {};
 
-  // duplicate error code
+  // Duplicate email error
   if (err.code === 11000) {
     errors.email = 'Email already registered';
     return errors;
   }
 
-  // validation of errors
+  // Validation errors 
   if (err.message.includes('User validation failed')) {
-    Object.values(err.errors).forEach((properties: any) => {
-      const path = properties.path as keyof UserInterface;
-      errors[path] = properties.message;
+    Object.values(err.errors).forEach(({ properties }: any) => {
+      errors[properties.path as keyof UserInterface] = properties.message;
     });
   }
+
   return errors;
 };
 
-module.exports.login = async (req: any, res: any) => {
+// Login user
+export const login = async (req: Request, res: Response, next: unknown) => {
+  console.log('Login attempt:', req.body);
+  console.log('Environment variables:', {
+    accessTokenSecret: process.env.ACCESS_TOKEN_SECRET ? 'Set' : 'Not Set',
+    refreshTokenSecret: process.env.REFRESH_TOKEN_SECRET ? 'Set' : 'Not Set'
+  });
+
   const { email, password } = req.body;
+
   try {
-    // check if user exists
+    if (!process.env.ACCESS_TOKEN_SECRET || !process.env.REFRESH_TOKEN_SECRET) {
+      throw new Error('JWT secrets are not configured');
+    }
+
     const user = await User.findOne({ email });
-    if (!user) {
-      return res.status(400).json({ message: 'User not found' });
-    }
-    // check if password is correct
-    const auth = await bcrypt.compare(password, user.password);
-    if (!auth) {
-      return res.status(400).json({ message: 'Invalid credentials' });
-    }
+    console.log('User found:', user ? 'Yes' : 'No');
+    
+    if (!user) return res.status(400).json({ message: 'User not found' });
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password valid:', isPasswordValid);
+    
+    if (!isPasswordValid) return res.status(400).json({ message: 'Invalid credentials' });
+
+    // Generate tokens
     const accessToken = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.ACCESS_TOKEN_SECRET,
-      { expiresIn: '30s' }
+      { expiresIn: '30m' }
     );
+
     const refreshToken = jwt.sign(
       { userId: user._id, email: user.email },
       process.env.REFRESH_TOKEN_SECRET,
-      { expiresIn: '1d' }
+      { expiresIn: '7d' }
     );
-    // save refresh token with current user
+
+    // Save refreshToken in DB
     user.refreshToken = refreshToken;
     await user.save();
+    console.log('Tokens generated and saved');
 
     res.cookie('jwt', refreshToken, {
       httpOnly: true,
-      sameSite: 'None',
-      maxAge: 24 * 60 * 60 * 1000,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 7 * 24 * 60 * 60 * 1000,
     });
+
     return res.status(200).json({ accessToken });
-  } catch (error: any) {
+  } catch (error) {
+    console.error('Login error:', error);
     const errors = handleErrors(error);
     res.status(500).json({ errors });
   }
 };
 
-module.exports.signup = async (req: any, res: any) => {
+// Register new user
+export const signup = async (req: Request, res: Response) => {
   const { firstName, lastName, email, password } = req.body;
+
   try {
-    // Hash the password
-    const salt = await bcrypt.genSalt();
-    const handledPassword = await bcrypt.hash(password, salt);
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
     const newUser = new User({
       firstName,
       lastName,
       email,
-      password: handledPassword,
+      password: hashedPassword,
     });
+
     await newUser.save();
-    res
-      .status(201)
-      .json({ message: 'User created successfully', user: newUser });
-  } catch (error: any) {
+    res.status(201).json({ message: 'User created successfully', user: newUser });
+  } catch (error) {
     const errors = handleErrors(error);
     res.status(400).json({ errors });
   }
 };
 
-module.exports.logout = async (req: any, res: any) => {
-  // On client, also delete the access token
-  const cookie = req.cookies;
-  if (!cookie?.jwt) {
-    return res.sendStatus(204);
-  }
-  const refreshToken = cookie.jwt;
+// Logout user
+export const logout = async (req: Request, res: Response) => {
+  const cookies = req.cookies;
+  if (!cookies?.jwt) return res.sendStatus(204); 
 
-  // check if refresh token is in db
+  const refreshToken = cookies.jwt;
+
+  // Clear token from DB
   const user = await User.findOne({ refreshToken }).exec();
-  console.log('User', user);
-  if (!user) {
-    res.clearCookie('jwt', { httpOnly: true });
-    return res.sendStatus(204);
-  }
-
-  // delete refresh token in db
+  if (user) {
   user.refreshToken = '';
   await user.save();
-  res.clearCookie('jwt', { httpOnly: true });
+  }
+
+  // Clear HTTP-only cookie
+  res.clearCookie('jwt', {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+  });
+
   res.sendStatus(204);
+};
+
+// Change password
+export const changePassword = async (req: Request, res: Response) => {
+  const { currentPassword, newPassword } = req.body;
+  const userId = req.user?.userId; // From JWT middleware
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    // Verify current password
+    const isPasswordValid = await bcrypt.compare(currentPassword, user.password);
+    if (!isPasswordValid) {
+      return res.status(400).json({ message: 'Current password is incorrect' });
+    }
+
+    // Hash and update new password
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
 };

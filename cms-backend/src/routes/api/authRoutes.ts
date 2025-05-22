@@ -1,12 +1,20 @@
-const { Router } = require('express');
-const authController = require('../../controller/authController');
-const refreshTokenController = require('../../controller/RefreshTokenController');
+import { Router, RequestHandler } from 'express';
+import {
+  login,
+  signup,
+  logout,
+  changePassword
+} from '../../controller/authController';
+import { handleRefreshToken } from '../../controller/refreshTokenController';
+import verifyJWT from '../../middlewear/verifyJWT';
 
 const router = Router();
 
-router.post('/login', authController.login);
-router.post('/signup', authController.signup);
-router.get('/refresh', refreshTokenController.handleRefreshToken);
-router.get('/logout', authController.logout);
+// Auth routes
+router.post('/login', login as RequestHandler);
+router.post('/signup', signup as RequestHandler);
+router.post('/change-password', verifyJWT as RequestHandler, changePassword as RequestHandler);
+router.get('/refresh', handleRefreshToken as RequestHandler);
+router.get('/logout', logout as RequestHandler);
 
-export { router as authRouter };
+export default router;
