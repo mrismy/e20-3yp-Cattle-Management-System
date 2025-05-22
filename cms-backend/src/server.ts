@@ -63,3 +63,5 @@ mqttClient.subscribe('zone/1/+/data');
 // const jsonObject = JSON.parse(jsonString);
 //mqttClient.publish('iot/cattle', JSON.stringify(jsonObject));
 // mqttClient.subscribe('iot/cattle');
+//mqttClient.subscribe('iot/cattle');
+

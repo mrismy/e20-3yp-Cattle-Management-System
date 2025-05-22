@@ -80,6 +80,10 @@ class MqttHandler {
     // Ensure only ONE message listener is attached globally
     this.client.on('message', async (receivedTopic, message) => {
       try {
+        //const data = JSON.parse(message.toString());
+        //const receivedMsg: SensorDataInterface = data;
+        //const {deviceId, heartRate, temperature, gpsLocation}= receivedMsg;
+
         const raw = JSON.parse(message.toString());
         console.log(`Received message on topic ${receivedTopic}:`, raw);
 
@@ -96,6 +100,7 @@ class MqttHandler {
                 }
               : undefined,
         };
+
         const { deviceId, heartRate, temperature, gpsLocation } = receivedMsg;
 
         if (deviceId) {

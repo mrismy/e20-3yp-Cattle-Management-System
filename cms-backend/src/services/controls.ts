@@ -9,6 +9,7 @@ import geoFenceModel from '../model/geoFenceModel';
 // }
 
 export class CattleSensorData {
+
   private static boundaries = {
     heartRate: { min: 60, max: 80 },
     temperature: { min: 37.5, max: 39.5 },
@@ -66,6 +67,15 @@ export class CattleSensorData {
         status: 'unsafe';
       }
     }
+
+    private static boundaries = {
+        heartRate: { min: 40, max: 100 }, 
+        temperature: { min: 30.5, max: 39.5 }, 
+        gpsGeofence: { 
+            minLatitude: 6.772591, maxLatitude: 6.972591,
+            minLongitude: 80.697847, maxLongitude: 80.897847
+        }
+    };
 
     if (action.length === 0) {
       return {
