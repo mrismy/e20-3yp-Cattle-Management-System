@@ -1,7 +1,7 @@
-import Dashboard from './components/Dashboard';
-import CattleList from './components/CattleList';
-import Nav from './components/Nav';
-import TopNav from './components/TopNav';
+import Dashboard from "./components/Dashboard";
+import CattleList from "./components/CattleList";
+import Nav from "./components/Nav";
+import TopNav from "./components/TopNav";
 import {
   BrowserRouter,
   Navigate,
@@ -18,6 +18,7 @@ import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
 import MapPage from './components/MapPage';
 import GeoFencePage from './components/GeoFence/GeoFencePage';
+
 
 function App() {
   return (
@@ -42,6 +43,7 @@ function App() {
                         <Outlet />
                       </div>
                     </div>
+
                   </>
                 }>
                 <Route element={<RequireAuth />}>
