@@ -90,38 +90,41 @@ const CattleList = () => {
         </thead>
 
         <tbody className="divide-y divide-white">
-          {allCattleData.sort((a, b) => Number(a.cattleId) - Number(b.cattleId))
-          .map((cattleData: CattleData) => (
-            <tr
-              key={cattleData.cattleId}
-              onClick={() => displayCattleCard(cattleData)}
-              className="bg-green-50 hover:bg-green-100 items-center justify-center">
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                {cattleData.cattleId}
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                {cattleData.cattleName}
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                {dayjs(cattleData.createdAt).format('DD/MM/YYYY HH:mm')}
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                <div
-                  className={`${
-                    cattleData.status === 'safe' ? 'bg-green-200' : 'bg-red-200'
-                  } rounded-md`}>
-                  {cattleData.status}
-                </div>
-              </td>
-              <td className="px-5 py-2 text-sm text-gray-700 text-center">
-                {dayjs(cattleData.updatedAt).format('DD/MM/YYYY HH:mm')}
-              </td>
-              <td className="flex justify-center space-x-3 px-5 py-2 text-lg text-gray-700 text-center">
-                <MdDeleteOutline />
-                <MdOutlineEdit />
-              </td>
-            </tr>
-          ))}
+          {allCattleData
+            .sort((a, b) => Number(a.cattleId) - Number(b.cattleId))
+            .map((cattleData: CattleData) => (
+              <tr
+                key={cattleData.cattleId}
+                onClick={() => displayCattleCard(cattleData)}
+                className="bg-green-50 hover:bg-green-100 items-center justify-center">
+                <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                  {cattleData.cattleId}
+                </td>
+                <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                  {cattleData.cattleName}
+                </td>
+                <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                  {dayjs(cattleData.createdAt).format('DD/MM/YYYY HH:mm')}
+                </td>
+                <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                  <div
+                    className={`${
+                      cattleData.status === 'safe'
+                        ? 'bg-green-200'
+                        : 'bg-red-200'
+                    } rounded-md`}>
+                    {cattleData.status}
+                  </div>
+                </td>
+                <td className="px-5 py-2 text-sm text-gray-700 text-center">
+                  {dayjs(cattleData.updatedAt).format('DD/MM/YYYY HH:mm')}
+                </td>
+                <td className="flex justify-center space-x-3 px-5 py-2 text-lg text-gray-700 text-center">
+                  <MdDeleteOutline />
+                  <MdOutlineEdit />
+                </td>
+              </tr>
+            ))}
         </tbody>
       </table>
 

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import Axios from '../services/Axios';
+import Axios from '../../services/Axios';
 
 interface GeoFenceMapInterface {
   newLocation: boolean;

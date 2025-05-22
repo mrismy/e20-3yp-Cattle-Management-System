@@ -1,0 +1,28 @@
+import { useState } from 'react';
+import NavSub from '../NavSub';
+import AddGeoFence from './AddGeoFence';
+
+const GeoFencePage = () => {
+  const geoFenceOptions = [
+    'view geo fence',
+    'add geo fence',
+    'delete geo fence',
+  ];
+  const [selectedOption, setSelectedOption] = useState('view geo fence');
+  return (
+    <div className="mt-12 overflow-x-auto px-5">
+      <div className="flex items-center justify-between mb">
+        {/* Navigation to display the different map options */}
+        <NavSub
+          options={geoFenceOptions}
+          selectedOption={selectedOption}
+          onSelect={setSelectedOption}
+        />
+      </div>
+      <hr className="text-gray-300 w-full mb-8" />
+      {selectedOption === 'add geo fence' && <AddGeoFence />}
+    </div>
+  );
+};
+
+export default GeoFencePage;

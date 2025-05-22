@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import LiveLocation from './LiveLocation';
 import NavSub from './NavSub';
-import GeoFence from './GeoFence';
+import GeoFence from './GeoFence/AddGeoFence';
 
-const MapMenu = () => {
+const MapPage = () => {
   const mapOptions = ['live location', 'geo fence'];
   const [selectedOption, setSelectedOption] = useState('live location');
 
@@ -24,4 +24,4 @@ const MapMenu = () => {
   );
 };
 
-export default MapMenu;
+export default MapPage;

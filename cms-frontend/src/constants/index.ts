@@ -1,6 +1,7 @@
 import { MdDashboard } from 'react-icons/md';
 import { PiCowFill } from 'react-icons/pi';
 import { PiMapPinAreaFill } from 'react-icons/pi';
+import { LuFence } from 'react-icons/lu';
 
 import { MdAccountCircle } from 'react-icons/md';
 import { IoIosNotifications } from 'react-icons/io';
@@ -11,6 +12,7 @@ export const menuLinks = [
   { label: 'Dashboard', href: '/dashboard', symbol: MdDashboard },
   { label: 'Livestock', href: '/livestock', symbol: PiCowFill },
   { label: 'Map', href: '/map', symbol: PiMapPinAreaFill },
+  { label: 'GeoFence', href: '/geo-fence', symbol: LuFence },
 ];
 
 export const accountLinks = [
