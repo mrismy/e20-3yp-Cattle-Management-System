@@ -9,7 +9,6 @@ import geoFenceModel from '../model/geoFenceModel';
 // }
 
 export class CattleSensorData {
-
   private static boundaries = {
     heartRate: { min: 60, max: 80 },
     temperature: { min: 37.5, max: 39.5 },
