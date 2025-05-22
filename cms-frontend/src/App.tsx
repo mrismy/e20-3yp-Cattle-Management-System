@@ -8,17 +8,17 @@ import {
   Outlet,
   Route,
   Routes,
-} from 'react-router-dom';
-import ContextWrapper from './context/ContextWrapper';
-import AddCattleForm from './components/AddCattleForm';
-import Login from './components/Login';
-import Signup from './components/Signup';
-import RequireAuth from './components/RequireAuth';
-import { ToastContainer } from 'react-toastify';
-import 'react-toastify/dist/ReactToastify.css';
-import MapPage from './components/MapPage';
-import GeoFencePage from './components/GeoFence/GeoFencePage';
-
+} from "react-router-dom";
+import ContextWrapper from "./context/ContextWrapper";
+import AddCattleForm from "./components/AddCattleForm";
+import Login from "./components/Login";
+import Signup from "./components/Signup";
+import RequireAuth from "./components/RequireAuth";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import MapPage from "./components/MapPage";
+import GeoFencePage from "./components/GeoFence/GeoFencePage";
+import Profile from "./components/Profile";
 
 function App() {
   return (
@@ -43,15 +43,16 @@ function App() {
                         <Outlet />
                       </div>
                     </div>
-
                   </>
-                }>
+                }
+              >
                 <Route element={<RequireAuth />}>
                   <Route path="/dashboard" element={<Dashboard />} />
                   <Route path="/livestock" element={<CattleList />} />
                   <Route path="/map" element={<MapPage />} />
                   <Route path="/geo-fence" element={<GeoFencePage />} />
                   <Route path="/add-cattle" element={<AddCattleForm />} />
+                  <Route path="/profile" element={<Profile />} />
                 </Route>
               </Route>
 

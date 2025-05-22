@@ -42,7 +42,7 @@ export class CattleSensorData {
       cattleData.heartRate > this.boundaries.heartRate.max
     ) {
       action.push(2);
-      status: 'unsafe';
+      status = 'unsafe';
     }
 
     if (
@@ -50,7 +50,7 @@ export class CattleSensorData {
       cattleData.temperature > this.boundaries.temperature.max
     ) {
       action.push(3);
-      status: 'unsafe';
+      status = 'unsafe';
     }
 
     if (cattleData.gpsLocation) {
