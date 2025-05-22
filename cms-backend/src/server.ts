@@ -7,6 +7,7 @@ import { mqttClient } from './services/mqttClient';
 const cors = require('cors');
 require('dotenv').config();
 import verifyJWT from './middlewear/verifyJWT';
+import { geoFenceRouter } from './routes/api/geoFenceRoutes';
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT || 5000;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
@@ -36,11 +37,14 @@ app.get('/', (req: any, res: any) => {
 });
 
 // Register the routes
+
+app.use(authRouter);
+// app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
+app.use('/geo-fence', geoFenceRouter);
+app.use('/api/cattle', cattleRouter);
+app.use('/api/sensor', sensorDataRouter);
 app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
 
-// Protected routes
-app.use('/api/cattle', verifyJWT, cattleRouter);
-app.use('/api/sensor', verifyJWT, sensorDataRouter);
 
 mongoose
   .connect(DB_CONNECTION)
@@ -57,8 +61,10 @@ mongoose
   .catch((err: any) => {
     console.log('Connection failed ', err);
   });
-// mqttClient.subscribe('zone/1/+/data');
+mqttClient.subscribe('zone/1/+/data');
 // const jsonString = '{"message": "Hello from Node.js!"}';
 // const jsonObject = JSON.parse(jsonString);
 //mqttClient.publish('iot/cattle', JSON.stringify(jsonObject));
 // mqttClient.subscribe('iot/cattle');
+//mqttClient.subscribe('iot/cattle');
+
