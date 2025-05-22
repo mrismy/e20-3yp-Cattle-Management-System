@@ -13,6 +13,8 @@ interface geoFenceInterface {
   latitude: number;
   longitude: number;
   radius: number;
+  zoneType: string;
+  zoneName: string;
 }
 
 const GeoFenceMap = ({
@@ -34,15 +36,25 @@ const GeoFenceMap = ({
       const geofences = response.data;
 
       geofences.forEach((geoFence: geoFenceInterface) => {
-        const { latitude, longitude, radius } = geoFence;
-        const circle = L.circle([latitude, longitude], {
-          radius,
-          color: 'purple',
-          fillColor: '#CF9FFF',
-          fillOpacity: 0.3,
-        }).addTo(mapRef.current!);
-
-        circle.bindPopup(`<b>${'Geofence'}</b><br>Radius: ${radius}m`);
+        const { latitude, longitude, radius, zoneType } = geoFence;
+        if (zoneType === 'safe') {
+          const circle = L.circle([latitude, longitude], {
+            radius,
+            color: '#1F7D53',
+            fillColor: '#DDF6D2',
+            fillOpacity: 0.3,
+          }).addTo(mapRef.current!);
+          circle.bindPopup;
+          // circle.bindPopup(`<b>${zoneName}</b><br>Radius: ${radius} m`);
+        } else {
+          const circle = L.circle([latitude, longitude], {
+            radius,
+            color: '#E83F25',
+            fillColor: '#FFAAAA',
+            fillOpacity: 0.3,
+          }).addTo(mapRef.current!);
+          circle.bindPopup('Cannot add Geo-fence inside danger zone');
+        }
       });
     } catch (error) {
       console.log('Error in fetching data');
