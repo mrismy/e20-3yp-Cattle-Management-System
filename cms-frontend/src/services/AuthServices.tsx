@@ -18,7 +18,7 @@ type ChangePasswordFields = {
 };
 
 // Base URL for the API
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "http://localhost:5010";
 
 // End points
 const SIGN_UP = `${BASE_URL}/api/auth/signup`;
