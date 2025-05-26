@@ -168,14 +168,14 @@ int isr_io_config()
     gpio_config(&io_conf);
 
     // enable interrupt on falling (1->0) edge for button pin
-    gpio_set_intr_type(CONFIG_INT_PIN, GPIO_INTR_NEGEDGE);
+    // gpio_set_intr_type(CONFIG_INT_PIN, GPIO_INTR_NEGEDGE);
 
-    gpio_pullup_en(CONFIG_INT_PIN);
+    // gpio_pullup_en(CONFIG_INT_PIN);
     // install gpio isr service
-    gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
+    // gpio_install_isr_service(ESP_INTR_FLAG_DEFAULT);
     // hook isr handler for specific gpio pin
 
-    gpio_isr_handler_add(CONFIG_INT_PIN, INT_isr_handler, (void *)CONFIG_INT_PIN);
+    // gpio_isr_handler_add(CONFIG_INT_PIN, INT_isr_handler, (void *)CONFIG_INT_PIN);
     return 0;
 }
 
