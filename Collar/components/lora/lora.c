@@ -482,6 +482,35 @@ lora_receive_packet(uint8_t *buf, int size)
 }
 
 /**
+ * Peek byte without consuming
+ */
+bool lora_peek_header(uint8_t* header, size_t header_len) {
+    // 1. Save current FIFO state
+    uint8_t fifo_addr = lora_read_reg(REG_FIFO_ADDR_PTR);
+    uint8_t current_rx_addr = lora_read_reg(REG_FIFO_RX_CURRENT_ADDR);  
+
+    // 2. Check if enough bytes are available
+    uint8_t rx_nb_bytes = lora_read_reg(REG_RX_NB_BYTES);
+    if (rx_nb_bytes < header_len) {
+        return false;
+    }
+
+    // 3. Set FIFO pointer to start of received packet
+    lora_write_reg(REG_FIFO_ADDR_PTR, current_rx_addr);
+
+    // 4. Read header bytes sequentially
+    for (size_t i = 0; i < header_len; i++) {
+        header[i] = lora_read_reg(REG_FIFO);
+    }
+
+    // 5. Restore original pointer
+    lora_write_reg(REG_FIFO_ADDR_PTR, fifo_addr);
+
+    return true;
+}
+
+
+/**
  * Returns non-zero if there is data to read (packet received).
  */
 int

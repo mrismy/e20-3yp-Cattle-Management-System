@@ -22,6 +22,7 @@ void lora_disable_crc(void);
 int lora_init(void);
 void lora_send_packet(uint8_t *buf, int size);
 int lora_receive_packet(uint8_t *buf, int size);
+bool lora_peek_header(uint8_t* header, size_t header_len);
 int lora_received(void);
 int lora_packet_rssi(void);
 float lora_packet_snr(void);
