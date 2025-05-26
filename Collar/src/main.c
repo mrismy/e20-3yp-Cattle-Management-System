@@ -14,7 +14,7 @@
 #include <sys/time.h>
 
 int settimeofday(const struct timeval *tv, const struct timezone *tz);
-#define DEVICE_ID 10;
+#define DEVICE_ID 88
 // Data structure for sensor readings
 typedef struct
 {
@@ -55,6 +55,18 @@ typedef struct
     uint8_t alloc_time;
 } sync_time_config_t;
 
+typedef struct
+{
+    TaskHandle_t heart_rate_handle;
+    TaskHandle_t temp_handle;
+    TaskHandle_t gps_handle;
+} tasks_handle_t;
+
+static tasks_handle_t tasks_handle = {
+    .heart_rate_handle = NULL,
+    .temp_handle = NULL,
+    .gps_handle = NULL};
+
 // Functions
 float readTemperature(void);
 int readHeartRate(void);
@@ -67,20 +79,107 @@ void read_temp_task(void *);
 void lora_receive_task(void *);
 void setupTime();
 void configSyncTime(void *);
+void lora_peek_device_id(uint16_t *);
+
+bool sync_status = false;
 
 void configSyncTime(void *pvParam)
 {
-    while (true)
+    uint8_t rx_buffer[256];
+    uint32_t unix;
+    uint16_t alloc_time;
+    uint8_t retry_count;
+    uint8_t *sync_status_mask;
+    uint8_t mode;
+
+    while (1)
     {
-        sync_time_config_t config_sync = *(sync_time_config_t *)pvParam;
-        setupTime(config_sync.unix);
+        lora_peek_header(&mode, 1);
+        if (mode != 0xA0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(20));
+            lora_receive(); // Listen to next packet
+            continue;
+        }
 
-        int allocated_time = config_sync.alloc_time * DEVICE_ID;
-        ESP_LOGI("TIME CONFIG","current time: %d, allocated time: %d",(int)config_sync.unix,(int)allocated_time);
+        // Receive packet with timeout (non-blocking alternative available)
+        int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer)); // Leave space for null terminator
 
-        esp_sleep_enable_timer_wakeup(allocated_time * 1000000);
-        esp_deep_sleep_start();
+        ESP_LOGI("TIME_CONFIG", "Received buffer size: %d", bytes_received);
+        ESP_LOG_BUFFER_HEXDUMP("RX", rx_buffer, bytes_received, ESP_LOG_INFO);
+        // memcpy(&unix, rx_buffer, 4);
+        unix = rx_buffer[1] | (rx_buffer[2] << 8) | (rx_buffer[3] << 16) | (rx_buffer[4] << 24);
+        alloc_time = rx_buffer[9] | (rx_buffer[10] << 8);
+        retry_count = rx_buffer[11];
+        sync_status_mask = &rx_buffer[12];
+
+        ESP_LOGI("TIME_CONFIG", "UNIX: %d ALLOC_TIME: %d RETRY: %d", (int)unix, (int)alloc_time, (int)retry_count);
+
+        // If device is not synced
+        if (!sync_status)
+        {
+            ESP_LOGI("TIME CONFIG", "current time: %d, allocated time: %d", (int)unix, (int)alloc_time * DEVICE_ID);
+
+            uint8_t byteMask = DEVICE_ID / 8;
+            uint8_t bitMask = DEVICE_ID % 8;
+
+            sync_status = ((sync_status_mask[byteMask] & (1 << bitMask)) != 0);
+            ESP_LOGI("SYNC", "sync_status_mask[1] = %x", sync_status_mask[byteMask]);
+            ESP_LOGI("SYNC", "Device %d status: %s",
+                     DEVICE_ID,
+                     sync_status ? "SYNCED" : "UNSYNCED");
+            if (unix > 0)
+            {
+                setupTime(unix);
+                uint16_t ack = (0xAA << 8) | DEVICE_ID;
+                vTaskDelay(pdMS_TO_TICKS(10 * DEVICE_ID)); // Send Ack After 1 sec
+                lora_send_packet((uint8_t *)&ack, sizeof(ack));
+                ESP_LOGI("TIME_CONFIG", "Ack sent");
+            }
+
+            vTaskDelay(pdMS_TO_TICKS(200));
+            lora_peek_header(&mode, 1);
+        }
+        else
+        {
+            ESP_LOGI("TIME_CONFIG", "Already Acked");
+            ESP_LOGI("TIME_CONFIG", "Going to deep sleep");
+            esp_sleep_enable_timer_wakeup(alloc_time * DEVICE_ID * 1000000);
+            esp_deep_sleep_start();
+        }
+        lora_receive(); // Listen to next packet
     }
+}
+
+void read_sensors_task(void *pvParam)
+{
+    uint8_t rx_buffer[256];
+    uint16_t device_Id;
+
+    xTaskCreate(read_heartrate_task, "heart_rate", 4096, NULL, 23, &tasks_handle.heart_rate_handle);
+    xTaskCreate(read_temp_task, "temp", 2048, NULL, 23, &tasks_handle.temp_handle);
+
+    int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
+    device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
+    ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
+
+    vTaskDelay(pdMS_TO_TICKS(10000)); // Let the sensor get the reading for 10 secs
+
+    do
+    {
+        lora_receive();
+        bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
+        device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
+        vTaskDelay(pdMS_TO_TICKS(10));
+    } while (device_Id < DEVICE_ID);
+
+    ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
+    ESP_LOGI("SENSOR_MODE", "Heart Rate: %d Temperature: %.2f", shared_data.heart_rate, shared_data.temperature);
+
+    xTaskCreate(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL);
+
+    vTaskDelete(tasks_handle.heart_rate_handle);
+    vTaskDelete(tasks_handle.temp_handle);
 }
 
 void setupTime(uint32_t time_stamp)
@@ -103,6 +202,7 @@ void read_heartrate_task(void *pvParameters)
 {
     max30102Sensor_init();
 
+    ESP_LOGI("SENSOR_MODE", "Reading Heart Rate");
     // Config
     const uint8_t RATE_SIZE = 4;          // Moving average window
     const uint16_t SAMPLES_PER_READ = 15; // FIFO size
@@ -162,7 +262,7 @@ void read_heartrate_task(void *pvParameters)
             xSemaphoreGive(data_mutex);
             last_beatAvg = beatAvg;
         }
-        printf("Heart Rate: %d Temp: %.2f\n", shared_data.heart_rate, shared_data.temperature);
+        // printf("Heart Rate: %d Temp: %.2f\n", shared_data.heart_rate, shared_data.temperature);
 
         // 4. Delay until next batch (adjust for your actual FIFO refill rate)
         vTaskDelay(37.5 / portTICK_PERIOD_MS); // ~100Hz effective
@@ -171,41 +271,37 @@ void read_heartrate_task(void *pvParameters)
 
 void lora_receive_task(void *pvParameters)
 {
-    // Initialize Lora
-    ESP_LOGI("LORA", "Initializing LoRa...");
-
-    if (!lora_init())
-    {
-        ESP_LOGE("LORA", "Failed to initialize LoRa!");
-        return;
-    }
-    lora_set_frequency(433E6); // Set frequency to 433 MHz (or 868E6 / 915E6 based on your module)
-    lora_explicit_header_mode();
-    lora_set_spreading_factor(7);
-    lora_enable_crc();
     lora_receive();
 
     while (1)
     {
-        uint8_t rx_buffer[256];
-        uint32_t unix;
-        uint8_t alloc_time;
+        uint8_t mode;
+        uint16_t deviceId;
 
-        // Receive packet with timeout (non-blocking alternative available)
-        int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer)); // Leave space for null terminator
-        if (bytes_received > 0)
+        if (lora_peek_header(&mode, 1))
         {
-            // ESP_LOG_BUFFER_HEXDUMP("RX", rx_buffer, bytes_received, ESP_LOG_INFO);
-            memcpy(&unix, rx_buffer, 4);
-            memcpy(&alloc_time, rx_buffer + 32, 1);
+            ESP_LOGI("RX", "Header: 0x%X", mode);
+            lora_peek_device_id(&deviceId);
+            ESP_LOGI("LORA PEEK ID", "0x%02X", (int)deviceId);
+            switch (mode)
+            {
+            case 0xA0: // Time configuration
+                xTaskCreate(configSyncTime, "config_time_setup", 4096, NULL, 24, NULL);
+                ESP_LOGI("RX_MODE", "Deleting lora receive task!");
+                vTaskDelete(NULL);
+                break;
 
-            sync_time_config_t config_sync = {
-                config_sync.unix = unix,
-                config_sync.alloc_time = 1};
-            
-            xTaskCreate(configSyncTime, "config_time_setup", 2048, (void *)&config_sync, 24, NULL);
-
-            vTaskDelete(NULL);
+            case 0xB0: // Read sensor task
+                if ((int)deviceId == DEVICE_ID - 1)
+                {
+                    xTaskCreate(read_sensors_task, "read_sensor", 4096, NULL, 24, NULL);
+                    ESP_LOGI("RX_MODE", "Deleting lora receive task!");
+                    vTaskDelete(NULL);
+                }
+                break;
+            default:
+                break;
+            }
         }
 
         lora_receive();
@@ -216,38 +312,34 @@ void lora_receive_task(void *pvParameters)
 void lora_send_task(void *pvParameters)
 {
     // Initialize Lora
-    ESP_LOGI("LORA", "Initializing LoRa...");
+    // ESP_LOGI("LORA", "Initializing LoRa...");
 
-    if (!lora_init())
+    // if (!lora_init())
+    // {
+    //     ESP_LOGE("LORA", "Failed to initialize LoRa!");
+    //     return;
+    // }
+    // lora_set_frequency(433E6); // Set frequency to 433 MHz (or 868E6 / 915E6 based on your module)
+    // lora_explicit_header_mode();
+    // lora_set_spreading_factor(7);
+    // lora_enable_crc();
+    ESP_LOGI("LORA_TX_MODE","Preparing to send data....");
+    char *msg;
+    createJsonDoc(&msg);
+    if (msg != NULL)
     {
-        ESP_LOGE("LORA", "Failed to initialize LoRa!");
-        return;
-    }
-    lora_set_frequency(433E6); // Set frequency to 433 MHz (or 868E6 / 915E6 based on your module)
-    lora_explicit_header_mode();
-    lora_set_spreading_factor(7);
-    lora_enable_crc();
-
-    while (true)
-    {
-        char *msg;
-        createJsonDoc(&msg);
-        if (msg != NULL)
+        // Check LoRa packet size limit (e.g., 255 bytes)
+        if (strlen(msg) <= 255)
         {
-            // Check LoRa packet size limit (e.g., 255 bytes)
-            if (strlen(msg) <= 255)
-            {
-                lora_send_packet((uint8_t *)msg, strlen(msg));
-                ESP_LOGI("LORA", "Sent: %s (len=%d)", msg, strlen(msg));
-            }
-            else
-            {
-                ESP_LOGE("LORA", "JSON too large!");
-            }
-
-            free(msg); // Free allocated memory!
+            lora_send_packet((uint8_t *)msg, strlen(msg));
+            ESP_LOGI("LORA", "Sent: %s (len=%d)", msg, strlen(msg));
         }
-        vTaskDelay(pdMS_TO_TICKS(3000)); // Give some time before sending
+        else
+        {
+            ESP_LOGE("LORA", "JSON too large!");
+        }
+
+        free(msg); // Free allocated memory!
     }
 }
 
@@ -255,6 +347,7 @@ void read_temp_task(void *pvParameter)
 {
     // Initialize the temperature sensor
     ds18b20_init_sensor();
+    ESP_LOGI("SENSOR_MODE", "Reading Temperature sensor");
     float temperature = 0;
     shared_data.temperature = 0;
     while (true)
@@ -271,6 +364,14 @@ void read_temp_task(void *pvParameter)
     }
 }
 
+void lora_peek_device_id(uint16_t *deviceId)
+{
+    uint32_t payload;
+    lora_peek_header((uint8_t *)&payload, 3); // read the first 3 bytes without consuming
+    *deviceId = (payload >> 8) & 0xFFFF;
+    ;
+}
+
 void app_main(void *pvParamaters)
 {
     init_uart();
@@ -280,9 +381,23 @@ void app_main(void *pvParamaters)
         ESP_LOGE("MAIN", "Failed to create mutex!");
         return;
     }
+
+    // Initialize Lora
+    ESP_LOGI("LORA", "Initializing LoRa...");
+
+    if (!lora_init())
+    {
+        ESP_LOGE("LORA", "Failed to initialize LoRa!");
+        return;
+    }
+    lora_set_frequency(433E6); // Set frequency to 433 MHz (or 868E6 / 915E6 based on your module)
+    lora_explicit_header_mode();
+    lora_set_spreading_factor(7);
+    lora_enable_crc();
+
     // xTaskCreate(read_temp_task, "ds18b20_task", 4096, NULL, 2, NULL);
-    // xTaskCreatePinnedToCore(read_heartrate_task, "HeartRate_Task", 4096, NULL, 2, NULL, 0);
-    // xTaskCreatePinnedToCore(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL, 1);
+    // xTaskCreate(read_heartrate_task, "HeartRate_Task", 4096, NULL, 2, NULL);
+    // xTaskCreate(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL);
     xTaskCreate(lora_receive_task, "lora_rx", 4096, NULL, 24, NULL);
 
     ESP_LOGI("ESP32", "Tasks created, system running");
