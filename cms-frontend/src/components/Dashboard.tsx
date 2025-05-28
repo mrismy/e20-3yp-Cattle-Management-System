@@ -2,7 +2,7 @@ import { GiCow } from 'react-icons/gi';
 import { IoBatteryHalf } from 'react-icons/io5';
 import { AiFillSafetyCertificate } from 'react-icons/ai';
 import { MdDangerous } from 'react-icons/md';
-import Map from './Map';
+import Map from './Map/Map';
 
 const Dashboard = () => {
   return (

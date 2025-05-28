@@ -3,7 +3,6 @@ import { useEffect, useRef, useState } from 'react';
 import Axios from '../../services/Axios';
 import { MdDeleteForever } from 'react-icons/md';
 import { FiAlertTriangle } from 'react-icons/fi';
-import { set } from 'react-hook-form';
 
 interface geoFenceInterface {
   latitude: number;
@@ -41,7 +40,7 @@ const DeleteGeoFence = () => {
     }
 
     const { latitude, longitude, radius } = geoFence;
-    const highlightCircle = L.circle([latitude, longitude], {
+    L.circle([latitude, longitude], {
       radius,
       color: '#7965C1',
       fillColor: '#8F87F1',
@@ -149,8 +148,7 @@ const DeleteGeoFence = () => {
                 <tbody className="bg-white">
                   {geoFences.map((geoFence: geoFenceInterface) => {
                     const isSelected =
-                      geoFence.zoneName === selectedGeoFence?.zoneName &&
-                      geoFence.latitude === selectedGeoFence.latitude;
+                      geoFence.zoneName === selectedGeoFence?.zoneName;
                     return (
                       <tr
                         onClick={() => handleRowClick(geoFence)}

@@ -5,7 +5,7 @@ import DeleteGeoFence from './DeleteGeoFence';
 
 const GeoFencePage = () => {
   const geoFenceOptions = ['add geo fence', 'delete geo fence'];
-  const [selectedOption, setSelectedOption] = useState('delete geo fence');
+  const [selectedOption, setSelectedOption] = useState('add geo fence');
   return (
     <div className="mt-12 overflow-x-auto px-5">
       <div className="flex items-center justify-between mb">
