@@ -1,7 +1,8 @@
+import { Request, Response } from 'express';
 import User from '../model/UserModel';
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
-module.exports.handleRefreshToken = async (req: any, res: any) => {
+export const handleRefreshToken = async (req: Request, res: Response) => {
   const cookie = req.cookies;
   if (!cookie?.jwt) {
     return res.sendStatus(401);
@@ -13,6 +14,9 @@ module.exports.handleRefreshToken = async (req: any, res: any) => {
     return res.status(403);
   }
 
+  if (!process.env.REFRESH_TOKEN_SECRET) {
+    return res.status(500).json({ message: 'Refresh token secret not set' });
+  }
   jwt.verify(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
@@ -22,7 +26,7 @@ module.exports.handleRefreshToken = async (req: any, res: any) => {
       }
       const accessToken = jwt.sign(
         { userId: decoded.userId, email: decoded.email },
-        process.env.ACCESS_TOKEN_SECRET,
+        process.env.ACCESS_TOKEN_SECRET!,
         { expiresIn: '30s' }
       );
       return res.status(200).json({ accessToken });

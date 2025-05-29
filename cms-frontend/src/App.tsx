@@ -16,8 +16,9 @@ import Signup from './components/Signup';
 import RequireAuth from './components/RequireAuth';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-import MapPage from './components/MapPage';
+import MapPage from './components/Map/MapPage';
 import GeoFencePage from './components/GeoFence/GeoFencePage';
+import Profile from './components/Profile';
 
 function App() {
   return (
@@ -50,6 +51,7 @@ function App() {
                   <Route path="/map" element={<MapPage />} />
                   <Route path="/geo-fence" element={<GeoFencePage />} />
                   <Route path="/add-cattle" element={<AddCattleForm />} />
+                  <Route path="/profile" element={<Profile />} />
                 </Route>
               </Route>
 

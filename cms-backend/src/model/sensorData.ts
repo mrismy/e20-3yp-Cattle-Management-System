@@ -1,5 +1,4 @@
 import mongoose from "mongoose";
-import moment from "moment-timezone";
 
 const gpsLocation = new mongoose.Schema({
     

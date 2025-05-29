@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
-import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
+import { CattleData } from '../Interface';
 import Map from './Map';
-import { CattleData } from './Interface';
 
 const LiveLocation = () => {
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);

@@ -1,6 +1,6 @@
-import { ReactNode, useEffect, useState } from 'react';
-import GlobalContext from './GlobalContext';
-import axios from 'axios';
+import { ReactNode, useEffect, useState } from "react";
+import GlobalContext from "./GlobalContext";
+import axios from "axios";
 
 interface ContextWrapperProps {
   children: ReactNode;
@@ -15,11 +15,22 @@ type AuthType = {
 const ContextWrapper = ({ children }: ContextWrapperProps) => {
   const [showCattleAddForm, setShowCattleAddForm] = useState(false);
   const [showCattleCard, setShowCattleCard] = useState(false);
-  const [auth, setAuth] = useState<AuthType>({
-    email: '',
-    password: '',
-    accessToken: '',
+  const [auth, setAuth] = useState<AuthType>(() => {
+    // Initialize auth state from localStorage if available
+    const savedAuth = localStorage.getItem("auth");
+    return savedAuth
+      ? JSON.parse(savedAuth)
+      : {
+          email: "",
+          password: "",
+          accessToken: "",
+        };
   });
+
+  // Save auth state to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem("auth", JSON.stringify(auth));
+  }, [auth]);
 
   return (
     <GlobalContext.Provider
@@ -30,7 +41,8 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
         setShowCattleCard,
         auth,
         setAuth,
-      }}>
+      }}
+    >
       {children}
     </GlobalContext.Provider>
   );
