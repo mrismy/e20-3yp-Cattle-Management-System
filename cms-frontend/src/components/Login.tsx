@@ -28,6 +28,8 @@ const Login = () => {
       email: "",
       password: "",
       accessToken: "",
+      firstName: "",
+      lastName: "",
     });
   };
 
@@ -40,6 +42,8 @@ const Login = () => {
         email: data.email,
         password: data.password,
         accessToken: accessToken,
+        firstName: "",
+        lastName: "",
       });
       console.log("Login successful", respone.data.accessToken);
       navigate("/dashboard");

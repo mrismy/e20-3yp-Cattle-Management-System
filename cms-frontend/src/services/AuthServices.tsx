@@ -24,6 +24,7 @@ const BASE_URL = "http://localhost:5010";
 const SIGN_UP = `${BASE_URL}/api/auth/signup`;
 const LOGIN = `${BASE_URL}/api/auth/login`;
 const CHANGE_PASSWORD = `${BASE_URL}/api/auth/change-password`;
+const GET_USER_DETAILS = `${BASE_URL}/api/auth/user-details`;
 
 export const signup = (data: SignUpFormFields) =>
   axios.post(SIGN_UP, data, {
@@ -41,6 +42,14 @@ export const login = (data: LoginFormFields) =>
 
 export const changePassword = (data: ChangePasswordFields, token: string) =>
   axios.post(CHANGE_PASSWORD, data, {
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${token}`,
+    },
+  });
+
+export const getUserDetails = (token: string) =>
+  axios.get(GET_USER_DETAILS, {
     headers: {
       "Content-Type": "application/json",
       Authorization: `Bearer ${token}`,

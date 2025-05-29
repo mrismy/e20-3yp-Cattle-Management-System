@@ -1,10 +1,13 @@
-import React from 'react';
-import { Dispatch, SetStateAction } from 'react';
+import React from "react";
+import { Dispatch, SetStateAction } from "react";
 
 type AuthType = {
   email: string;
   password: string;
   accessToken: string;
+  firstName: string;
+  lastName: string;
+  address: string;
 };
 
 interface GlobalContextType {
@@ -22,9 +25,12 @@ const GlobalContext = React.createContext<GlobalContextType>({
   showCattleCard: false,
   setShowCattleCard: () => {},
   auth: {
-    email: '',
-    password: '',
-    accessToken: '',
+    email: "",
+    password: "",
+    accessToken: "",
+    firstName: "",
+    lastName: "",
+    address: "",
   },
   setAuth: () => {},
 });

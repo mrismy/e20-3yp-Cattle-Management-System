@@ -10,6 +10,8 @@ type AuthType = {
   email: string;
   password: string;
   accessToken: string;
+  firstName: string;
+  lastName: string;
 };
 
 const ContextWrapper = ({ children }: ContextWrapperProps) => {
@@ -24,6 +26,8 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
           email: "",
           password: "",
           accessToken: "",
+          firstName: "",
+          lastName: "",
         };
   });
 

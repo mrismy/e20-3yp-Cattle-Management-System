@@ -8,6 +8,7 @@ interface UserInterface {
   email: string;
   password: string;
   refreshToken: string;
+  address: string;
 }
 
 interface UserModelInterface extends mongoose.Model<UserInterface> {
@@ -36,6 +37,10 @@ const userSchema = new mongoose.Schema<UserInterface, UserModelInterface>({
   },
   refreshToken: {
     type: String,
+  },
+  address: {
+    type: String,
+    required: [true, 'Please enter your address'],
   },
 });
 
