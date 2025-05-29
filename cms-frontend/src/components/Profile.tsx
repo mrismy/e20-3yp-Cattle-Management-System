@@ -1,6 +1,10 @@
 import { SubmitHandler, useForm } from "react-hook-form";
 import { useContext, useState, useEffect } from "react";
-import { changePassword, getUserDetails } from "../services/AuthServices";
+import {
+  changePassword,
+  getUserDetails,
+  updateUserDetails,
+} from "../services/AuthServices";
 import GlobalContext from "../context/GlobalContext";
 import axios from "axios";
 import {
@@ -147,11 +151,13 @@ const Profile = () => {
 
   const onDetailsSubmit: SubmitHandler<UserDetailsFields> = async (data) => {
     try {
+      await updateUserDetails(data, auth.accessToken);
       setAuth({
         ...auth,
         firstName: data.firstName,
         lastName: data.lastName,
         email: data.email,
+        address: data.address,
       });
       setMessage({ type: "success", text: "Profile updated successfully!" });
       setIsEditing(false);

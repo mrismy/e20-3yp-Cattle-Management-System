@@ -181,3 +181,36 @@ export const getUserDetails = async (req: Request, res: Response) => {
     res.status(500).json({ errors });
   }
 };
+
+// Update user details
+export const updateUserDetails = async (req: Request, res: Response) => {
+  const userId = req.user?.userId; // From JWT middleware
+  const { firstName, lastName, email, address } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if email is being changed and if it's already in use
+    if (email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    // Update user details
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.email = email;
+    user.address = address;
+
+    await user.save();
+    res.status(200).json({ message: 'User details updated successfully', user });
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
