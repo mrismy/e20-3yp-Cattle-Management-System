@@ -1,6 +1,6 @@
-import { ReactNode, useEffect, useState } from "react";
-import GlobalContext from "./GlobalContext";
-import axios from "axios";
+import { ReactNode, useEffect, useState } from 'react';
+import GlobalContext from './GlobalContext';
+import axios from 'axios';
 
 interface ContextWrapperProps {
   children: ReactNode;
@@ -17,19 +17,21 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
   const [showCattleCard, setShowCattleCard] = useState(false);
   const [auth, setAuth] = useState<AuthType>(() => {
     // Initialize auth state from localStorage if available
-    const savedAuth = localStorage.getItem("auth");
+    const savedAuth = localStorage.getItem('auth');
     return savedAuth
       ? JSON.parse(savedAuth)
       : {
-          email: "",
-          password: "",
-          accessToken: "",
+          email: '',
+          password: '',
+          accessToken: '',
         };
   });
+  const [cattleList_selectedOption, setCattlelist_selectedOption] =
+    useState('all cattle');
 
   // Save auth state to localStorage whenever it changes
   useEffect(() => {
-    localStorage.setItem("auth", JSON.stringify(auth));
+    localStorage.setItem('auth', JSON.stringify(auth));
   }, [auth]);
 
   return (
@@ -41,8 +43,9 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
         setShowCattleCard,
         auth,
         setAuth,
-      }}
-    >
+        cattleList_selectedOption,
+        setCattlelist_selectedOption,
+      }}>
       {children}
     </GlobalContext.Provider>
   );

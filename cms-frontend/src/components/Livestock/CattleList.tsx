@@ -16,10 +16,10 @@ const CattleList = () => {
     setShowCattleAddForm,
     showCattleCard,
     setShowCattleCard,
+    cattleList_selectedOption,
+    setCattlelist_selectedOption,
   } = useContext(GlobalContext);
   const cattleStatus = ['all cattle', 'safe', 'alert', 'unsafe'];
-  const [selectedOption, setSelectedOption] = useState('all cattle');
-  const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
   const [selectedCattleData, setSelectedCattleData] =
     useState<CattleData | null>(null);
   const [filteredCattleData, setFilteredCattleData] = useState<CattleData[]>(
@@ -38,36 +38,31 @@ const CattleList = () => {
 
   const axiosPrivate = UseAxiosPrivate();
 
-  // Fetch all cattle data
-  const fetchAllCattle = async () => {
+  // Fetch and filter all cattle data
+  const fetchAndFilter = async () => {
     try {
       const response = await axiosPrivate.get('/api/sensor/latestWithCattle');
       const data = response.data;
       console.log('Response:', data);
-      setAllCattleData(data);
+      if (cattleList_selectedOption === 'all cattle') {
+        setFilteredCattleData(data);
+      } else {
+        setFilteredCattleData(
+          data.filter(
+            (cattle: CattleData) =>
+              cattle.status.toLowerCase() === cattleList_selectedOption
+          )
+        );
+      }
     } catch (error) {
       console.error('Error fetching cattle data:', error);
-      setAllCattleData([]);
-    }
-  };
-
-  // Filter cattle based on active filter
-  const filterCattle = () => {
-    if (selectedOption === 'all cattle') {
-      setFilteredCattleData(allCattleData);
-    } else {
-      setFilteredCattleData(
-        allCattleData.filter(
-          (cattle) => cattle.status.toLowerCase() === selectedOption
-        )
-      );
+      setFilteredCattleData([]);
     }
   };
 
   useEffect(() => {
-    fetchAllCattle();
-    filterCattle();
-  }, [selectedOption]);
+    fetchAndFilter();
+  }, [cattleList_selectedOption]);
 
   return (
     <div className="mt-12 overflow-x-auto px-5">
@@ -75,8 +70,8 @@ const CattleList = () => {
         {/* Navigation to display the livestocks with different status */}
         <NavSub
           options={cattleStatus}
-          selectedOption={selectedOption}
-          onSelect={setSelectedOption}
+          selectedOption={cattleList_selectedOption}
+          onSelect={setCattlelist_selectedOption}
         />
 
         {/* Add livestock button */}
@@ -95,11 +90,11 @@ const CattleList = () => {
       <table className="w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-md">
         <thead
           className={`${
-            selectedOption === 'all cattle'
+            cattleList_selectedOption === 'all cattle'
               ? 'bg-gray-700'
-              : selectedOption === 'safe'
+              : cattleList_selectedOption === 'safe'
               ? 'bg-green-700'
-              : selectedOption === 'alert'
+              : cattleList_selectedOption === 'alert'
               ? 'bg-amber-700'
               : 'bg-red-700'
           }`}>
@@ -177,7 +172,8 @@ const CattleList = () => {
               <td
                 colSpan={6}
                 className="px-6 py-3 text-center text-sm text-gray-500">
-                No cattle are in {selectedOption.toUpperCase()} region
+                No cattle are in {cattleList_selectedOption.toUpperCase()}{' '}
+                region
               </td>
             </tr>
           )}

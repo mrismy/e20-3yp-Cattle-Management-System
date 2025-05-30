@@ -14,6 +14,8 @@ interface GlobalContextType {
   setShowCattleCard: Dispatch<SetStateAction<boolean>>;
   auth: AuthType;
   setAuth: Dispatch<SetStateAction<AuthType>>;
+  cattleList_selectedOption: string;
+  setCattlelist_selectedOption: Dispatch<SetStateAction<string>>;
 }
 
 const GlobalContext = React.createContext<GlobalContextType>({
@@ -27,6 +29,8 @@ const GlobalContext = React.createContext<GlobalContextType>({
     accessToken: '',
   },
   setAuth: () => {},
+  cattleList_selectedOption: '',
+  setCattlelist_selectedOption: () => {},
 });
 
 export default GlobalContext;
