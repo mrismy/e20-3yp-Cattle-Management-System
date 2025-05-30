@@ -1,14 +1,14 @@
 import { useContext, useEffect, useState } from 'react';
 import { RiAddCircleLine } from 'react-icons/ri';
-import GlobalContext from '../context/GlobalContext';
-import AddCattleForm from './AddCattleForm';
-import { CattleData } from './Interface';
+import GlobalContext from '../../context/GlobalContext';
+import { CattleData } from '../Interface';
 import dayjs from 'dayjs';
 import { MdDeleteOutline } from 'react-icons/md';
 import { MdOutlineEdit } from 'react-icons/md';
 import CattleCard from './CattleCard';
-import NavSub from './NavSub';
-import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
+import NavSub from '../NavSub';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
+import AddCattleForm from './AddCattleForm';
 
 const CattleList = () => {
   const {
