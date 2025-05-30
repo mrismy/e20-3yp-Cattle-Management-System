@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
 import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { CattleData } from '../Interface';
-import Map from './Map';
+import Axios from '../../services/Axios';
+import LiveLocationMap from './LiveLocationMap';
 
 const LiveLocation = () => {
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
   const axiosPrivate = UseAxiosPrivate();
   const fetchAllCattle = async () => {
     try {
-      const response = await axiosPrivate.get('/api/sensor/latestWithCattle');
+      const response = await axiosPrivate.get('/map');
       const data = response.data;
       console.log('Response:', data);
       setAllCattleData(data);
@@ -24,91 +25,148 @@ const LiveLocation = () => {
   return (
     <div>
       <div className="h-[450px] border border-gray-400 w-full">
-        <Map />
+        <LiveLocationMap cattleData={allCattleData} />
       </div>
-      <div className="flex justify-evenly space-x-4 mt-4">
+      <div className="flex justify-evenly space-x-3 mt-3">
         {/* Table for safe cattle */}
-        <div className="relative h-[250px] w-full overflow-hidden shadow-xl rounded-md">
-          <table className="w-full">
-            <thead className="bg-green-700 text-white sticky top-0">
-              <tr>
-                <th className="px-5 py-3 text-start font-bold uppercase">
-                  Safe Cattle
-                </th>
-                <th className="px-5 py-3 text-end font-bold uppercase">
-                  Location
-                </th>
-              </tr>
-            </thead>
-          </table>
+        <div className="relative h-[250px] w-full overflow-hidden bg-white shadow-md rounded-lg">
+          <div className="bg-green-600 px-4 py-3">
+            <h3 className="text-white text-sm font-semibold flex items-center uppercase">
+              Cattle in Safe Zone
+              <span className="ml-auto bg-green-700 px-2 py-1 rounded-full text-xs">
+                {allCattleData.filter((c) => c.cattleStatus === 'SAFE').length}
+              </span>
+            </h3>
+          </div>
           <div className="overflow-y-auto h-full">
-            <table className="w-full border border-gray-200">
-              <tbody className="bg-white">
+            <table className="w-full">
+              <tbody className="divide-y divide-gray-100">
                 {allCattleData
-                  .filter((cattle) => cattle.status === 'safe')
+                  .filter((cattle) => cattle.cattleStatus === 'SAFE')
                   .map((cattle) => (
                     <tr
                       key={cattle.cattleId}
-                      className="border-b border-gray-200">
-                      <td className="text-gray-700 text-md font-medium text-start py-2 px-5">
-                        Cow + {cattle.cattleId}
+                      className="hover:bg-green-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        <div className="flex items-center">
+                          <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                          {cattle.cattleId}
+                        </div>
                       </td>
-                      <td className="text-gray-700 text-sm text-end py-2 px-5">
-                        {
-                          (cattle.gpsLocation.latitude,
-                          cattle.gpsLocation.longitude)
-                        }
+                      <td className="px-4 py-3 text-right text-sm text-gray-500">
+                        ({cattle.gpsLocation.latitude.toFixed(4)},{' '}
+                        {cattle.gpsLocation.longitude.toFixed(4)})
                       </td>
                     </tr>
                   ))}
+                {allCattleData.filter((c) => c.cattleStatus === 'SAFE')
+                  .length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="px-4 py-6 text-center text-gray-500">
+                      No cattle in safe zone
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
         </div>
-        {/* Table for unsafe cattle */}
-        <div className="relative h-[250px] w-full overflow-hidden shadow-xl rounded-md">
-          <table className="w-full">
-            <thead className="bg-red-700 text-white sticky top-0">
-              <tr>
-                <th className="px-5 py-3 text-start font-bold uppercase">
-                  Unsafe Cattle
-                </th>
-                <th className="px-5 py-3 text-end font-bold uppercase">
-                  Location
-                </th>
-              </tr>
-            </thead>
-          </table>
+
+        {/* Table for warning cattle */}
+        <div className="relative h-[250px] w-full overflow-hidden bg-white shadow-md rounded-lg">
+          <div className="bg-yellow-600 px-4 py-3">
+            <h3 className="text-white text-sm font-semibold flex items-center uppercase">
+              Cattle in Warning Zone
+              <span className="ml-auto bg-yellow-700 px-2 py-1 rounded-full text-xs">
+                {
+                  allCattleData.filter((c) => c.cattleStatus === 'WARNING')
+                    .length
+                }
+              </span>
+            </h3>
+          </div>
           <div className="overflow-y-auto h-full">
-            <table className="w-full border border-gray-200">
-              <tbody className="bg-white">
-                {/* {allCattleData
-                  .filter((cattle) => cattle.status === 'unsafe')
+            <table className="w-full">
+              <tbody className="divide-y divide-gray-100">
+                {allCattleData
+                  .filter((cattle) => cattle.cattleStatus === 'WARNING')
                   .map((cattle) => (
                     <tr
                       key={cattle.cattleId}
-                      className="border-b border-gray-200">
-                      <td className="text-gray-700 text-md font-medium text-start py-2 px-5">
-                        Cow + {cattle.cattleId}
+                      className="hover:bg-yellow-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        <div className="flex items-center">
+                          <span className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></span>
+                          {cattle.cattleId}
+                        </div>
                       </td>
-                      <td className="text-gray-700 text-sm text-end py-2 px-5">
-                        {
-                          (cattle.gpsLocation.latitude,
-                          cattle.gpsLocation.longitude)
-                        }
+                      <td className="px-4 py-3 text-right text-sm text-gray-500">
+                        ({cattle.gpsLocation.latitude.toFixed(4)},{' '}
+                        {cattle.gpsLocation.longitude.toFixed(4)})
                       </td>
                     </tr>
-                  ))} */}
-                {[...Array(20)].map((_, i) => (
-                  <tr key={i}>
-                    <td className="text-gray-700 text-md text-start py-2 px-5">
-                      Cow {i + 1}
-                    </td>
-                    <td className="text-gray-700 text-md text-end py-2 px-5">
-                      (423, 42)
+                  ))}
+                {allCattleData.filter((c) => c.cattleStatus === 'WARNING')
+                  .length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="px-4 py-6 text-center text-gray-500">
+                      No cattle in warning zone
                     </td>
                   </tr>
-                ))}
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Table for danger cattle */}
+        <div className="relative h-[250px] w-full overflow-hidden bg-white shadow-md rounded-lg">
+          <div className="bg-red-600 px-4 py-3">
+            <h3 className="text-white text-sm font-semibold flex items-center uppercase">
+              Cattle in Danger Zone
+              <span className="ml-auto bg-red-700 px-2 py-1 rounded-full text-xs">
+                {
+                  allCattleData.filter((c) => c.cattleStatus === 'DANGER')
+                    .length
+                }
+              </span>
+            </h3>
+          </div>
+          <div className="overflow-y-auto h-full">
+            <table className="w-full">
+              <tbody className="divide-y divide-gray-100">
+                {allCattleData
+                  .filter((cattle) => cattle.cattleStatus === 'DANGER')
+                  .map((cattle) => (
+                    <tr
+                      key={cattle.cattleId}
+                      className="hover:bg-red-50 transition-colors">
+                      <td className="px-4 py-3 font-medium text-gray-800">
+                        <div className="flex items-center">
+                          <span className="w-2 h-2 bg-red-500 rounded-full mr-2"></span>
+                          {cattle.cattleId}
+                        </div>
+                      </td>
+                      <td className="px-4 py-3 text-right text-sm text-gray-500">
+                        ({cattle.gpsLocation.latitude.toFixed(4)},{' '}
+                        {cattle.gpsLocation.longitude.toFixed(4)})
+                      </td>
+                    </tr>
+                  ))}
+                {allCattleData.filter((c) => c.cattleStatus === 'DANGER')
+                  .length === 0 && (
+                  <tr>
+                    <td
+                      colSpan={2}
+                      className="px-4 py-6 text-center text-gray-500">
+                      No cattle in danger zone
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

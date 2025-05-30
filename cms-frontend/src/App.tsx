@@ -1,5 +1,5 @@
 import Dashboard from './components/Dashboard';
-import CattleList from './components/CattleList';
+import CattleList from './components/Livestock/CattleList';
 import Nav from './components/Nav';
 import TopNav from './components/TopNav';
 import {
@@ -10,7 +10,6 @@ import {
   Routes,
 } from 'react-router-dom';
 import ContextWrapper from './context/ContextWrapper';
-import AddCattleForm from './components/AddCattleForm';
 import Login from './components/Login';
 import Signup from './components/Signup';
 import RequireAuth from './components/RequireAuth';
@@ -19,6 +18,7 @@ import 'react-toastify/dist/ReactToastify.css';
 import MapPage from './components/Map/MapPage';
 import GeoFencePage from './components/GeoFence/GeoFencePage';
 import Profile from './components/Profile';
+import AddCattleForm from './components/Livestock/AddCattleForm';
 
 function App() {
   return (
