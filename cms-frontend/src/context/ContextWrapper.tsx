@@ -10,6 +10,8 @@ type AuthType = {
   email: string;
   password: string;
   accessToken: string;
+  firstName: string;
+  lastName: string;
 };
 
 const ContextWrapper = ({ children }: ContextWrapperProps) => {
@@ -21,9 +23,11 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
     return savedAuth
       ? JSON.parse(savedAuth)
       : {
-          email: '',
-          password: '',
-          accessToken: '',
+          email: "",
+          password: "",
+          accessToken: "",
+          firstName: "",
+          lastName: "",
         };
   });
   const [cattleList_selectedOption, setCattlelist_selectedOption] =

@@ -8,6 +8,7 @@ interface UserInterface {
   lastName: string;
   email: string;
   password: string;
+  address: string;
 }
 
 // Error handling utility
@@ -91,7 +92,7 @@ export const login = async (req: Request, res: Response, next: unknown) => {
 
 // Register new user
 export const signup = async (req: Request, res: Response) => {
-  const { firstName, lastName, email, password } = req.body;
+  const { firstName, lastName, email, password, address } = req.body;
 
   try {
     const salt = await bcrypt.genSalt(10);
@@ -102,6 +103,7 @@ export const signup = async (req: Request, res: Response) => {
       lastName,
       email,
       password: hashedPassword,
+      address,
     });
 
     await newUser.save();
@@ -157,6 +159,56 @@ export const changePassword = async (req: Request, res: Response) => {
     await user.save();
 
     res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
+
+// Get user details
+export const getUserDetails = async (req: Request, res: Response) => {
+  const userId = req.user?.userId; // From JWT middleware
+
+  try {
+    const user = await User.findById(userId).select('-password -refreshToken');
+    //console.log(req.user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
+
+// Update user details
+export const updateUserDetails = async (req: Request, res: Response) => {
+  const userId = req.user?.userId; // From JWT middleware
+  const { firstName, lastName, email, address } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if email is being changed and if it's already in use
+    if (email !== user.email) {
+      const existingUser = await User.findOne({ email });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    // Update user details
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.email = email;
+    user.address = address;
+
+    await user.save();
+    res.status(200).json({ message: 'User details updated successfully', user });
   } catch (error) {
     const errors = handleErrors(error);
     res.status(500).json({ errors });

@@ -1,3 +1,4 @@
+
 import { useContext, useState } from 'react';
 import NotificationIcon from './NotificationIcon';
 import NotificationDropDown from './NotificationDropDown';
@@ -17,7 +18,8 @@ const TopNav = () => {
         <div
           className="relative p-2 rounded-2xl"
           onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}>
+          onMouseLeave={() => setIsHovered(false)}
+        >
           <NotificationIcon count={120} />
           {isHovered && <NotificationDropDown />}
         </div>

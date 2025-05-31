@@ -1,8 +1,19 @@
 import { SubmitHandler, useForm } from "react-hook-form";
-import { useContext, useState } from "react";
-import { changePassword } from "../services/AuthServices";
+import { useContext, useState, useEffect } from "react";
+import {
+  changePassword,
+  getUserDetails,
+  updateUserDetails,
+} from "../services/AuthServices";
 import GlobalContext from "../context/GlobalContext";
 import axios from "axios";
+import {
+  FaEdit,
+  FaUser,
+  FaLock,
+  FaEnvelope,
+  FaMapMarkerAlt,
+} from "react-icons/fa";
 
 type ChangePasswordFields = {
   currentPassword: string;
@@ -10,25 +21,106 @@ type ChangePasswordFields = {
   confirmPassword: string;
 };
 
+type UserDetailsFields = {
+  firstName: string;
+  lastName: string;
+  email: string;
+  address: string;
+};
+
 const Profile = () => {
-  const { auth } = useContext(GlobalContext);
+  const { auth, setAuth } = useContext(GlobalContext);
+  const [isEditing, setIsEditing] = useState(false);
+  const [activeTab, setActiveTab] = useState<"details" | "password">("details");
   const [message, setMessage] = useState<{
     type: "success" | "error";
     text: string;
   } | null>(null);
+  const [showEditOptions, setShowEditOptions] = useState(false);
 
   const {
-    register,
-    handleSubmit,
-    setError,
-    formState: { errors, isSubmitting },
-    reset,
+    register: registerPassword,
+    handleSubmit: handlePasswordSubmit,
+    setError: setPasswordError,
+    formState: { errors: passwordErrors, isSubmitting: isPasswordSubmitting },
+    reset: resetPassword,
   } = useForm<ChangePasswordFields>();
 
-  const onSubmit: SubmitHandler<ChangePasswordFields> = async (data) => {
+  const {
+    register: registerDetails,
+    handleSubmit: handleDetailsSubmit,
+    formState: { errors: detailsErrors, isSubmitting: isDetailsSubmitting },
+    reset: resetDetails,
+    setValue,
+  } = useForm<UserDetailsFields>();
+
+  // Auto-dismiss message after 2 seconds
+  useEffect(() => {
+    if (message) {
+      const timer = setTimeout(() => {
+        setMessage(null);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [message]);
+
+  // Reset password form when switching tabs
+  useEffect(() => {
+    if (activeTab === "password") {
+      resetPassword();
+    }
+  }, [activeTab, resetPassword]);
+
+  // Reset form and hide edit options when canceling
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    setShowEditOptions(false);
+    resetDetails();
+    resetPassword();
+  };
+
+  // Set initial values from auth context
+  useEffect(() => {
+    if (auth) {
+      setValue("email", auth.email);
+      setValue("firstName", auth.firstName);
+      setValue("lastName", auth.lastName);
+    }
+  }, [auth, setValue]);
+
+  // Fetch user details when component mounts
+  useEffect(() => {
+    const fetchUserDetails = async () => {
+      try {
+        const response = await getUserDetails(auth.accessToken);
+        const userData = response.data;
+        setAuth({
+          ...auth,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          email: userData.email,
+          address: userData.address,
+        });
+      } catch (error) {
+        console.error("Error fetching user details:", error);
+        setMessage({
+          type: "error",
+          text: "Failed to fetch user details",
+        });
+      }
+    };
+
+    if (auth.accessToken) {
+      fetchUserDetails();
+    }
+  }, [auth.accessToken]);
+
+  const onPasswordSubmit: SubmitHandler<ChangePasswordFields> = async (
+    data
+  ) => {
     try {
       if (data.newPassword !== data.confirmPassword) {
-        setError("confirmPassword", {
+        setPasswordError("confirmPassword", {
           message: "Passwords do not match",
         });
         return;
@@ -43,7 +135,9 @@ const Profile = () => {
       );
 
       setMessage({ type: "success", text: "Password changed successfully!" });
-      reset();
+      resetPassword();
+      setIsEditing(false);
+      setShowEditOptions(false);
     } catch (error) {
       console.error("Error changing password:", error);
       if (axios.isAxiosError(error)) {
@@ -55,92 +149,335 @@ const Profile = () => {
     }
   };
 
+  const onDetailsSubmit: SubmitHandler<UserDetailsFields> = async (data) => {
+    try {
+      await updateUserDetails(data, auth.accessToken);
+      setAuth({
+        ...auth,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        email: data.email,
+        address: data.address,
+      });
+      setMessage({ type: "success", text: "Profile updated successfully!" });
+      setIsEditing(false);
+      setShowEditOptions(false);
+    } catch (error) {
+      console.error("Error updating profile:", error);
+      if (axios.isAxiosError(error)) {
+        setMessage({
+          type: "error",
+          text: error.response?.data?.message || "Failed to update profile",
+        });
+      }
+    }
+  };
+
   return (
-    <div className="p-8">
-      <h1 className="text-3xl font-bold mb-8">Profile Settings</h1>
+    <div className="mt-12 px-4">
+      <div className="max-w-2xl mx-auto">
+        <div className="bg-white rounded-lg shadow-md p-4">
+          {message && (
+            <div
+              className={`p-4 mb-6 rounded-md transition-opacity duration-300 ${
+                message.type === "success"
+                  ? "bg-green-100 text-green-700"
+                  : "bg-red-100 text-red-700"
+              }`}
+            >
+              {message.text}
+            </div>
+          )}
 
-      <div className="bg-white rounded-lg shadow-md p-6 max-w-md">
-        <h2 className="text-xl font-semibold mb-4">Change Password</h2>
-
-        {message && (
-          <div
-            className={`p-4 mb-4 rounded-md ${
-              message.type === "success"
-                ? "bg-green-100 text-green-700"
-                : "bg-red-100 text-red-700"
-            }`}
-          >
-            {message.text}
-          </div>
-        )}
-
-        <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Current Password
-            </label>
-            <input
-              {...register("currentPassword", {
-                required: "Current password is required",
-              })}
-              type="password"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
-            />
-            {errors.currentPassword && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.currentPassword.message}
-              </p>
+          <div className="flex justify-between items-center mb-6">
+            <div className="flex space-x-4">
+              <button
+                onClick={() => {
+                  setActiveTab("details");
+                  setShowEditOptions(false);
+                  setIsEditing(false);
+                  resetDetails();
+                  resetPassword();
+                }}
+                className={`flex items-center space-x-2 px-4 py-2 rounded-md transition-colors ${
+                  activeTab === "details"
+                    ? "bg-green-700 text-white"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <FaUser />
+                <span>Personal Details</span>
+              </button>
+            </div>
+            {!isEditing && !showEditOptions && (
+              <button
+                onClick={() => setShowEditOptions(true)}
+                className="flex items-center gap-2 px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 transition-colors"
+              >
+                <FaEdit />
+                Edit Profile
+              </button>
+            )}
+            {showEditOptions && !isEditing && (
+              <div className="flex space-x-2">
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setActiveTab("details");
+                  }}
+                  className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 transition-colors"
+                >
+                  Edit Personal Details
+                </button>
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setActiveTab("password");
+                  }}
+                  className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 transition-colors"
+                >
+                  Change Password
+                </button>
+              </div>
             )}
           </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              New Password
-            </label>
-            <input
-              {...register("newPassword", {
-                required: "New password is required",
-                minLength: {
-                  value: 8,
-                  message: "Password must be at least 8 characters",
-                },
-              })}
-              type="password"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
-            />
-            {errors.newPassword && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.newPassword.message}
-              </p>
-            )}
-          </div>
+          {activeTab === "details" ? (
+            <form onSubmit={handleDetailsSubmit(onDetailsSubmit)}>
+              <div className="space-y-6">
+                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <FaUser className="w-6 h-6 text-green-700" />
+                  </div>
+                  <div className="flex-grow">
+                    <label className="block text-sm font-medium text-gray-700">
+                      First Name
+                    </label>
+                    {isEditing ? (
+                      <input
+                        {...registerDetails("firstName", {
+                          required: "First name is required",
+                        })}
+                        type="text"
+                        className="mt-1 block w-96 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 focus:outline-none transition-colors"
+                      />
+                    ) : (
+                      <p className="mt-1 text-gray-900">
+                        {auth.firstName || "Not set"}
+                      </p>
+                    )}
+                    {isEditing && detailsErrors.firstName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {detailsErrors.firstName.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700">
-              Confirm New Password
-            </label>
-            <input
-              {...register("confirmPassword", {
-                required: "Please confirm your new password",
-              })}
-              type="password"
-              className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-violet-500 focus:ring-violet-500"
-            />
-            {errors.confirmPassword && (
-              <p className="mt-1 text-sm text-red-600">
-                {errors.confirmPassword.message}
-              </p>
-            )}
-          </div>
+                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <FaUser className="w-6 h-6 text-green-700" />
+                  </div>
+                  <div className="flex-grow">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Last Name
+                    </label>
+                    {isEditing ? (
+                      <input
+                        {...registerDetails("lastName", {
+                          required: "Last name is required",
+                        })}
+                        type="text"
+                        className="mt-1 block w-96 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 focus:outline-none transition-colors"
+                      />
+                    ) : (
+                      <p className="mt-1 text-gray-900">
+                        {auth.lastName || "Not set"}
+                      </p>
+                    )}
+                    {isEditing && detailsErrors.lastName && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {detailsErrors.lastName.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
 
-          <button
-            type="submit"
-            disabled={isSubmitting}
-            className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-violet-600 hover:bg-violet-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-violet-500 disabled:opacity-50"
-          >
-            {isSubmitting ? "Changing Password..." : "Change Password"}
-          </button>
-        </form>
+                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <FaEnvelope className="w-6 h-6 text-green-700" />
+                  </div>
+                  <div className="flex-grow">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Email
+                    </label>
+                    {isEditing ? (
+                      <input
+                        {...registerDetails("email", {
+                          required: "Email is required",
+                          pattern: {
+                            value: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i,
+                            message: "Invalid email address",
+                          },
+                        })}
+                        type="email"
+                        className="mt-1 block w-96 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 focus:outline-none transition-colors"
+                      />
+                    ) : (
+                      <p className="mt-1 text-gray-900">{auth.email}</p>
+                    )}
+                    {isEditing && detailsErrors.email && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {detailsErrors.email.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center space-x-4 p-4 bg-gray-50 rounded-lg">
+                  <div className="flex-shrink-0">
+                    <FaMapMarkerAlt className="w-6 h-6 text-green-700" />
+                  </div>
+                  <div className="flex-grow">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Address
+                    </label>
+                    {isEditing ? (
+                      <input
+                        {...registerDetails("address", {
+                          required: "Address is required",
+                        })}
+                        type="text"
+                        className="mt-1 block w-96 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 focus:outline-none transition-colors"
+                      />
+                    ) : (
+                      <p className="mt-1 text-gray-900">
+                        {auth.address || "Not set"}
+                      </p>
+                    )}
+                    {isEditing && detailsErrors.address && (
+                      <p className="mt-1 text-sm text-red-600">
+                        {detailsErrors.address.message}
+                      </p>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {isEditing && (
+                <div className="flex justify-end space-x-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCancelEdit();
+                      setShowEditOptions(false);
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isDetailsSubmitting}
+                    className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 transition-colors disabled:opacity-50"
+                  >
+                    {isDetailsSubmitting ? "Saving..." : "Save Changes"}
+                  </button>
+                </div>
+              )}
+            </form>
+          ) : (
+            <form
+              onSubmit={handlePasswordSubmit(onPasswordSubmit)}
+              className="space-y-6"
+            >
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Current Password
+                  </label>
+                  <input
+                    {...registerPassword("currentPassword", {
+                      required: "Current password is required",
+                    })}
+                    type="password"
+                    className="mt-1 block w-96 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 focus:outline-none transition-colors"
+                  />
+                  {isEditing && passwordErrors.currentPassword && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {passwordErrors.currentPassword.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    New Password
+                  </label>
+                  <input
+                    {...registerPassword("newPassword", {
+                      required: "New password is required",
+                      minLength: {
+                        value: 8,
+                        message: "Password must be at least 8 characters",
+                      },
+                    })}
+                    type="password"
+                    className="mt-1 block w-96 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 focus:outline-none transition-colors"
+                  />
+                  {isEditing && passwordErrors.newPassword && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {passwordErrors.newPassword.message}
+                    </p>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">
+                    Confirm New Password
+                  </label>
+                  <input
+                    {...registerPassword("confirmPassword", {
+                      required: "Please confirm your new password",
+                    })}
+                    type="password"
+                    className="mt-1 block w-96 rounded-md border-gray-300 shadow-sm focus:border-green-500 focus:ring-green-500 focus:outline-none transition-colors"
+                  />
+                  {isEditing && passwordErrors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600">
+                      {passwordErrors.confirmPassword.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+
+              {isEditing && (
+                <div className="flex justify-end space-x-4 mt-6">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleCancelEdit();
+                      setShowEditOptions(false);
+                      setActiveTab("details");
+                    }}
+                    className="px-4 py-2 bg-gray-500 text-white rounded-md hover:bg-gray-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={isPasswordSubmitting}
+                    className="px-4 py-2 bg-green-700 text-white rounded-md hover:bg-green-800 transition-colors disabled:opacity-50"
+                  >
+                    {isPasswordSubmitting
+                      ? "Changing Password..."
+                      : "Change Password"}
+                  </button>
+                </div>
+              )}
+            </form>
+          )}
+        </div>
       </div>
     </div>
   );
