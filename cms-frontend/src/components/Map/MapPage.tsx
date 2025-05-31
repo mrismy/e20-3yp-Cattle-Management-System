@@ -7,7 +7,7 @@ const MapPage = () => {
   const [selectedOption, setSelectedOption] = useState('live location');
 
   return (
-    <div className="mt-12 overflow-x-auto px-5">
+    <div className="mt-10 overflow-x-auto px-5">
       <div className="flex items-center justify-between mb">
         {/* Navigation to display the different map options */}
         <NavSub

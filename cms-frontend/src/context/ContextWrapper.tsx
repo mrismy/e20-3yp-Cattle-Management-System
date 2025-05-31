@@ -28,11 +28,18 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
   });
   const [cattleList_selectedOption, setCattlelist_selectedOption] =
     useState('all cattle');
+  const [selectedMenu, setSelectedMenu] = useState(() => {
+    return localStorage.getItem('selectedMenu') || 'Dashboard';
+  });
 
   // Save auth state to localStorage whenever it changes
   useEffect(() => {
     localStorage.setItem('auth', JSON.stringify(auth));
   }, [auth]);
+
+  useEffect(() => {
+    localStorage.setItem('selectedMenu', selectedMenu);
+  }, [selectedMenu]);
 
   return (
     <GlobalContext.Provider
@@ -45,6 +52,8 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
         setAuth,
         cattleList_selectedOption,
         setCattlelist_selectedOption,
+        selectedMenu,
+        setSelectedMenu,
       }}>
       {children}
     </GlobalContext.Provider>

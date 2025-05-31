@@ -38,15 +38,15 @@ const Dashboard = () => {
           Welcome to CMS
         </h1>
       </div>
-      <div className="relative z-10 flex h-4/5 justify-evenly mt-28">
+      <div className="px-6 relative z-10 flex h-4/5 justify-evenly mt-28 space-x-6">
         {/* Cattle details summary card */}
-        <div className="grid grid-row-4 gap-5 w-80">
+        <div className="grid grid-row-4 gap-5 w-2/9">
           <div
             onClick={() => {
               navigate('/livestock');
               setCattlelist_selectedOption('all cattle');
             }}
-            className="flex bg-white p-5 rounded-3xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
+            className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
             <div className="flex flex-col">
               <p className="text-gray-500 text-sm font-medium">Total Cattle</p>
               <h3 className="text-3xl font-bold text-gray-800 mt-1">
@@ -58,7 +58,7 @@ const Dashboard = () => {
             </div>
           </div>
           {/* TODO: Active collars must be get from backend */}
-          <div className="flex bg-white p-5 rounded-3xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
+          <div className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
             <div className="flex flex-col">
               <p className="text-gray-500 text-sm font-medium">
                 Active Collars
@@ -74,7 +74,7 @@ const Dashboard = () => {
               navigate('/livestock');
               setCattlelist_selectedOption('safe');
             }}
-            className="flex bg-white p-5 rounded-3xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
+            className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
             <div className="flex flex-col">
               <p className="text-gray-500 text-sm font-medium">Safe State</p>
               <h3 className="text-3xl font-bold text-gray-800 mt-1">
@@ -93,7 +93,7 @@ const Dashboard = () => {
               navigate('/livestock');
               setCattlelist_selectedOption('alert');
             }}
-            className="flex bg-white p-5 rounded-3xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
+            className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
             <div className="flex flex-col">
               <p className="text-gray-500 text-sm font-medium">Alert State</p>
               <h3 className="text-3xl font-bold text-gray-800 mt-1">
@@ -112,7 +112,7 @@ const Dashboard = () => {
               navigate('/livestock');
               setCattlelist_selectedOption('unsafe');
             }}
-            className="flex bg-white p-5 rounded-3xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
+            className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
             <div className="flex flex-col">
               <p className="text-gray-500 text-sm font-medium">Unsafe State</p>
               <h3 className="text-3xl font-bold text-gray-800 mt-1">
@@ -132,7 +132,7 @@ const Dashboard = () => {
           onClick={() => {
             navigate('/map');
           }}
-          className="h-full flex w-5xl">
+          className="h-full flex w-7/9">
           <Map />
         </div>
       </div>

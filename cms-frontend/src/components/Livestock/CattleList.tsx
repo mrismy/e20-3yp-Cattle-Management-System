@@ -65,7 +65,7 @@ const CattleList = () => {
   }, [cattleList_selectedOption]);
 
   return (
-    <div className="mt-12 overflow-x-auto px-5">
+    <div className="mt-10 overflow-x-auto px-5">
       <div className="flex items-start justify-between mb">
         {/* Navigation to display the livestocks with different status */}
         <NavSub

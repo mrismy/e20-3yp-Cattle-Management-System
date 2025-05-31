@@ -37,9 +37,9 @@ function App() {
                 element={
                   <>
                     <Nav />
-                    <div className="flex flex-col w-5/6 bg-gray-100">
+                    <div className="flex flex-col w-6/7 bg-gray-100">
                       <TopNav />
-                      <div className="h-9/10 relative">
+                      <div className="h-11/12 relative">
                         <Outlet />
                       </div>
                     </div>
