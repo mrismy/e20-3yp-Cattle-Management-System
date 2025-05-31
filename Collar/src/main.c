@@ -12,14 +12,27 @@
 #include "heartRate.h"
 #include "esp_timer.h"
 #include <sys/time.h>
+#include "tinygps.h"
+
+// GPS Configuration
+#define GPS_UART_NUM UART_NUM_2
+#define GPS_TXD_PIN GPIO_NUM_17
+#define GPS_RXD_PIN GPIO_NUM_16
+#define GPS_UART_BAUD_RATE 9600 // Standard GPS baud rate
+#define BUF_SIZE (1024)
+
+// FreeRTOS task handles
+TaskHandle_t gps_task_handle = NULL;
 
 int settimeofday(const struct timeval *tv, const struct timezone *tz);
-#define DEVICE_ID 88
+#define DEVICE_ID 3
 // Data structure for sensor readings
 typedef struct
 {
     int heart_rate;
     float temperature;
+    float lon;
+    float lat;
 } sensor_data_t;
 
 sensor_data_t shared_data;
@@ -60,12 +73,14 @@ typedef struct
     TaskHandle_t heart_rate_handle;
     TaskHandle_t temp_handle;
     TaskHandle_t gps_handle;
+    TaskHandle_t read_sensor_handle;
 } tasks_handle_t;
 
 static tasks_handle_t tasks_handle = {
     .heart_rate_handle = NULL,
     .temp_handle = NULL,
-    .gps_handle = NULL};
+    .gps_handle = NULL,
+    .read_sensor_handle = NULL};
 
 // Functions
 float readTemperature(void);
@@ -80,6 +95,7 @@ void lora_receive_task(void *);
 void setupTime();
 void configSyncTime(void *);
 void lora_peek_device_id(uint16_t *);
+void gps_task(void *);
 
 bool sync_status = false;
 
@@ -144,7 +160,7 @@ void configSyncTime(void *pvParam)
         {
             ESP_LOGI("TIME_CONFIG", "Already Acked");
             ESP_LOGI("TIME_CONFIG", "Going to deep sleep");
-            esp_sleep_enable_timer_wakeup(alloc_time * DEVICE_ID * 1000000);
+            esp_sleep_enable_timer_wakeup(alloc_time * (DEVICE_ID - 2) * 1000000);
             esp_deep_sleep_start();
         }
         lora_receive(); // Listen to next packet
@@ -153,33 +169,87 @@ void configSyncTime(void *pvParam)
 
 void read_sensors_task(void *pvParam)
 {
-    uint8_t rx_buffer[256];
-    uint16_t device_Id;
-
-    xTaskCreate(read_heartrate_task, "heart_rate", 4096, NULL, 23, &tasks_handle.heart_rate_handle);
-    xTaskCreate(read_temp_task, "temp", 2048, NULL, 23, &tasks_handle.temp_handle);
-
-    int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
-    device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
-    ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
-
-    vTaskDelay(pdMS_TO_TICKS(10000)); // Let the sensor get the reading for 10 secs
-
-    do
+    while (1)
     {
-        lora_receive();
-        bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
+        uint8_t rx_buffer[256];
+        uint16_t device_Id;
+        uint8_t *ack_status_mask;
+
+        int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
         device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
-        vTaskDelay(pdMS_TO_TICKS(10));
-    } while (device_Id < DEVICE_ID);
+        ack_status_mask = &rx_buffer[3];
 
-    ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
-    ESP_LOGI("SENSOR_MODE", "Heart Rate: %d Temperature: %.2f", shared_data.heart_rate, shared_data.temperature);
+        uint8_t byteMask = DEVICE_ID / 8;
+        uint8_t bitMask = DEVICE_ID % 8;
 
-    xTaskCreate(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL);
+        if (device_Id == DEVICE_ID)
+        {
+            if ((ack_status_mask[byteMask] & (1 << bitMask)) != 0)
+            {
+                ESP_LOGI("SENSOR_MODE", "Device data is already Acked by RX Station");
+                ESP_LOGI("TIME_CONFIG", "Going to deep sleep");
+                esp_sleep_enable_timer_wakeup((180 * 1000000) - (36 * (DEVICE_ID) * 1000000));
+                esp_deep_sleep_start();
+                vTaskSuspend(NULL);
+            }
+            else
+            {
+                ESP_LOGI("SENSOR_MODE", "Device data is not Acked.");
+                xTaskCreate(lora_send_task, "LoRa_Task", 4 * 1024, NULL, 24, NULL);
+                vTaskSuspend(NULL);
+            }
+        }
 
-    vTaskDelete(tasks_handle.heart_rate_handle);
-    vTaskDelete(tasks_handle.temp_handle);
+        ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
+
+        if (tasks_handle.heart_rate_handle != NULL)
+        {
+            vTaskResume(tasks_handle.heart_rate_handle);
+        }
+        else
+        {
+            xTaskCreate(read_heartrate_task, "heart_rate", 4096, NULL, 24, &tasks_handle.heart_rate_handle);
+        }
+
+        if (tasks_handle.temp_handle != NULL)
+        {
+            vTaskResume(tasks_handle.temp_handle);
+        }
+        else
+        {
+            xTaskCreate(read_temp_task, "temp", 2048, NULL, 24, &tasks_handle.temp_handle);
+        }
+        if (tasks_handle.gps_handle != NULL)
+        {
+            vTaskResume(tasks_handle.gps_handle);
+        } else
+        {
+            xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, &gps_task_handle);
+        }
+        
+        
+        vTaskDelay(pdMS_TO_TICKS(5000)); // Let the sensor get the reading for 10 secs
+
+        do
+        {
+            lora_receive();
+            bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
+            device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
+            vTaskDelay(pdMS_TO_TICKS(10));
+        } while (device_Id < DEVICE_ID);
+
+        ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
+        ESP_LOGI("SENSOR_MODE", "Heart Rate: %d Temperature: %.2f", shared_data.heart_rate, shared_data.temperature);
+
+        xTaskCreate(lora_send_task, "LoRa_Task", 4 * 1024, NULL, 24, NULL);
+
+        xTaskNotifyGive(tasks_handle.temp_handle);
+        xTaskNotifyGive(tasks_handle.heart_rate_handle);
+        xTaskNotifyGive(tasks_handle.gps_handle);
+
+        vTaskDelay(pdMS_TO_TICKS(20));
+        vTaskSuspend(NULL);
+    }
 }
 
 void setupTime(uint32_t time_stamp)
@@ -196,6 +266,67 @@ void setupTime(uint32_t time_stamp)
     time_t now;
     time(&now);
     ESP_LOGI("TIME", "System time set to: %s", ctime(&now));
+}
+
+void gps_task(void *pvParameters)
+{
+    // Configure UART parameters
+    uart_config_t uart_config = {
+        .baud_rate = GPS_UART_BAUD_RATE,
+        .data_bits = UART_DATA_8_BITS,
+        .parity = UART_PARITY_DISABLE,
+        .stop_bits = UART_STOP_BITS_1,
+        .flow_ctrl = UART_HW_FLOWCTRL_DISABLE,
+        .source_clk = UART_SCLK_APB,
+    };
+
+    // Install UART driver
+    ESP_ERROR_CHECK(uart_driver_install(GPS_UART_NUM, BUF_SIZE * 2, 0, 0, NULL, 0));
+    ESP_ERROR_CHECK(uart_param_config(GPS_UART_NUM, &uart_config));
+    ESP_ERROR_CHECK(uart_set_pin(GPS_UART_NUM, GPS_TXD_PIN, GPS_RXD_PIN, UART_PIN_NO_CHANGE, UART_PIN_NO_CHANGE));
+
+    // Set a pattern to detect the end of a GPS sentence ('\n')
+    uart_enable_pattern_det_baud_intr(GPS_UART_NUM, '\n', 1, 9, 0, 0);
+
+    uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
+    int newdata = 0;
+
+    while (1)
+    {
+        if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100)))
+        {
+            // ESP_LOGI("SENSOR_MODE", "Suspend Heart Rate Sensor");
+            vTaskSuspend(NULL);
+        }
+        // Read data from UART
+        int len = uart_read_bytes(GPS_UART_NUM, data, BUF_SIZE, 20 / portTICK_PERIOD_MS);
+        if (len > 0)
+        {
+            for (int i = 0; i < len; i++) // for all chars in string
+            {
+                // printf("%c", buf[i]);
+                if (gps_encode(data[i]))
+                    newdata = 1;
+            }
+
+            if (newdata)
+            {
+                float flat, flon;
+                unsigned long age;
+                gps_f_get_position(&flat, &flon, &age);
+                xSemaphoreTake(data_mutex,portMAX_DELAY);
+                shared_data.lon = flon;
+                shared_data.lat = flat;
+                xSemaphoreGive(data_mutex);
+                newdata = 0;
+            }
+        }
+
+        vTaskDelay(100 / portTICK_PERIOD_MS);
+    }
+
+    free(data);
+    vTaskDelete(NULL);
 }
 
 void read_heartrate_task(void *pvParameters)
@@ -217,6 +348,11 @@ void read_heartrate_task(void *pvParameters)
 
     while (1)
     {
+        if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100)))
+        {
+            // ESP_LOGI("SENSOR_MODE", "Suspend Heart Rate Sensor");
+            vTaskSuspend(NULL);
+        }
         // 1. Read FIFO (15 samples @ 400Hz = 37.5ms of data)
         readRaw(red, ir);
         int64_t batch_start = esp_timer_get_time(); // us (micro)
@@ -257,7 +393,7 @@ void read_heartrate_task(void *pvParameters)
         // 3. Thread-safe data update (only if changed)
         if (beatAvg != last_beatAvg)
         {
-            xSemaphoreTake(data_mutex, portMAX_DELAY);
+            xSemaphoreTake(data_mutex, pdMS_TO_TICKS(10));
             shared_data.heart_rate = beatAvg;
             xSemaphoreGive(data_mutex);
             last_beatAvg = beatAvg;
@@ -271,6 +407,7 @@ void read_heartrate_task(void *pvParameters)
 
 void lora_receive_task(void *pvParameters)
 {
+    ESP_LOGI("RX_MODE", "Lora Ready to Receive messages...");
     lora_receive();
 
     while (1)
@@ -280,9 +417,9 @@ void lora_receive_task(void *pvParameters)
 
         if (lora_peek_header(&mode, 1))
         {
-            ESP_LOGI("RX", "Header: 0x%X", mode);
+            // ESP_LOGI("RX", "Header: 0x%X", mode);
             lora_peek_device_id(&deviceId);
-            ESP_LOGI("LORA PEEK ID", "0x%02X", (int)deviceId);
+            // ESP_LOGI("LORA PEEK ID", "0x%02X", (int)deviceId);
             switch (mode)
             {
             case 0xA0: // Time configuration
@@ -292,10 +429,17 @@ void lora_receive_task(void *pvParameters)
                 break;
 
             case 0xB0: // Read sensor task
-                if ((int)deviceId == DEVICE_ID - 1)
+                if (((int)deviceId == DEVICE_ID - 1) || ((int)deviceId == DEVICE_ID))
                 {
-                    xTaskCreate(read_sensors_task, "read_sensor", 4096, NULL, 24, NULL);
-                    ESP_LOGI("RX_MODE", "Deleting lora receive task!");
+                    if (tasks_handle.read_sensor_handle != NULL)
+                    {
+                        vTaskResume(tasks_handle.read_sensor_handle);
+                    }
+                    else
+                    {
+                        xTaskCreate(read_sensors_task, "read_sensor", 4096, NULL, 24, &tasks_handle.read_sensor_handle);
+                    }
+                    ESP_LOGI("RX_MODE", "Changing to Sensor read mode....");
                     vTaskDelete(NULL);
                 }
                 break;
@@ -311,20 +455,8 @@ void lora_receive_task(void *pvParameters)
 
 void lora_send_task(void *pvParameters)
 {
-    // Initialize Lora
-    // ESP_LOGI("LORA", "Initializing LoRa...");
-
-    // if (!lora_init())
-    // {
-    //     ESP_LOGE("LORA", "Failed to initialize LoRa!");
-    //     return;
-    // }
-    // lora_set_frequency(433E6); // Set frequency to 433 MHz (or 868E6 / 915E6 based on your module)
-    // lora_explicit_header_mode();
-    // lora_set_spreading_factor(7);
-    // lora_enable_crc();
-    ESP_LOGI("LORA_TX_MODE","Preparing to send data....");
-    char *msg;
+    ESP_LOGI("LORA_TX_MODE", "Preparing to send data....");
+    char *msg = NULL;
     createJsonDoc(&msg);
     if (msg != NULL)
     {
@@ -332,15 +464,22 @@ void lora_send_task(void *pvParameters)
         if (strlen(msg) <= 255)
         {
             lora_send_packet((uint8_t *)msg, strlen(msg));
-            ESP_LOGI("LORA", "Sent: %s (len=%d)", msg, strlen(msg));
+            ESP_LOGI("LORA_TX_MODE", "Sent: %s (len=%d)", msg, strlen(msg));
         }
         else
         {
-            ESP_LOGE("LORA", "JSON too large!");
+            ESP_LOGE("LORA_TX_MODE", "JSON too large!");
         }
 
         free(msg); // Free allocated memory!
     }
+    else
+    {
+        ESP_LOGE("LORA", "JSON creation failed!");
+    }
+
+    xTaskCreate(lora_receive_task, "lora_rx", 4096, NULL, 24, NULL);
+    vTaskDelete(NULL);
 }
 
 void read_temp_task(void *pvParameter)
@@ -352,6 +491,11 @@ void read_temp_task(void *pvParameter)
     shared_data.temperature = 0;
     while (true)
     {
+        if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100)))
+        {
+            // ESP_LOGI("SENSOR_MODE","Suspend from Temperature sensor");
+            vTaskSuspend(NULL);
+        }
         float temp;
         getTemperature(&temp);
         if (temp != temperature)
@@ -361,6 +505,7 @@ void read_temp_task(void *pvParameter)
             xSemaphoreGive(data_mutex);
             temperature = temp;
         }
+        vTaskDelay(pdMS_TO_TICKS(10));
     }
 }
 
@@ -374,7 +519,7 @@ void lora_peek_device_id(uint16_t *deviceId)
 
 void app_main(void *pvParamaters)
 {
-    init_uart();
+    // init_uart();
     data_mutex = xSemaphoreCreateMutex();
     if (data_mutex == NULL)
     {
@@ -399,6 +544,7 @@ void app_main(void *pvParamaters)
     // xTaskCreate(read_heartrate_task, "HeartRate_Task", 4096, NULL, 2, NULL);
     // xTaskCreate(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL);
     xTaskCreate(lora_receive_task, "lora_rx", 4096, NULL, 24, NULL);
+    // xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, &gps_task_handle);
 
     ESP_LOGI("ESP32", "Tasks created, system running");
 }
@@ -407,14 +553,21 @@ void app_main(void *pvParamaters)
 void createJsonDoc(char **jsonStr)
 {
     // Read the sensor data
-    xSemaphoreTake(data_mutex, portMAX_DELAY);
+    ESP_LOGI("LORA_TX_MODE", "Preparing JSON Document...");
+
+    // ESP_LOGI("LORA_TX_MODE", "Free stack: %u", uxTaskGetStackHighWaterMark(NULL));
+
+    // ESP_LOGI("LORA_TX_MODE", "Mutex available: %d", uxSemaphoreGetCount(data_mutex));
+
     int id = DEVICE_ID;
+    xSemaphoreTake(data_mutex, portMAX_DELAY);
     float temp = shared_data.temperature;
     int hr = shared_data.heart_rate;
-    float lat, lon;
-    readGps(&lat, &lon);
+    float lat = shared_data.lat;
+    float lon = shared_data.lon;
     xSemaphoreGive(data_mutex);
 
+    ESP_LOGI("LORA_TX_MODE", "Heart Rate: %d Temp: %0.2f", hr, temp);
     // Prepare Json Doc
     char temp_str[10], lat_str[10], lon_str[10], hr_str[10], dev_id[5];
     cJSON *doc = cJSON_CreateObject();
