@@ -12,6 +12,7 @@ type AuthType = {
   accessToken: string;
   firstName: string;
   lastName: string;
+  address: string;
 };
 
 const ContextWrapper = ({ children }: ContextWrapperProps) => {
@@ -20,15 +21,29 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
   const [auth, setAuth] = useState<AuthType>(() => {
     // Initialize auth state from localStorage if available
     const savedAuth = localStorage.getItem('auth');
-    return savedAuth
-      ? JSON.parse(savedAuth)
-      : {
+    if (savedAuth) {
+      try {
+        return JSON.parse(savedAuth) as AuthType;
+      } catch {
+        // If parsing fails, return default
+        return {
           email: "",
           password: "",
           accessToken: "",
           firstName: "",
           lastName: "",
+          address: "",
         };
+      }
+    }
+    return {
+      email: "",
+      password: "",
+      accessToken: "",
+      firstName: "",
+      lastName: "",
+      address: "",
+    };
   });
   const [cattleList_selectedOption, setCattlelist_selectedOption] =
     useState('all cattle');

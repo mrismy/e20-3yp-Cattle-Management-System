@@ -30,6 +30,7 @@ const Login = () => {
       accessToken: "",
       firstName: "",
       lastName: "",
+      address: "",
     });
   };
 
@@ -44,6 +45,7 @@ const Login = () => {
         accessToken: accessToken,
         firstName: "",
         lastName: "",
+        address: "",
       });
       console.log("Login successful", respone.data.accessToken);
       navigate("/dashboard");

@@ -10,4 +10,5 @@ export interface CattleData {
     latitude: number;
     longitude: number;
   };
+  status:string;
 }
