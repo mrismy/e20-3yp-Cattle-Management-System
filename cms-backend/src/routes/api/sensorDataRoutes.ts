@@ -59,35 +59,34 @@ router.get('/withCattle', async (req: any, res: any) => {
 
 router.get('/latest', async (req: any, res: any) => {
     try {
-        const memoryData = mqttClient.getLatestUpdate();
+        const memoryData = mqttClient.getLatestUpdate(); // { deviceId1: {...}, deviceId2: {...}, ... }
 
-        // If in-memory MQTT data is available, return it
-        if (Object.keys(memoryData).length > 0) {
-            return res.status(200).json(memoryData);
-        }
-
-        // Else: fallback to getting the latest sensorData per deviceId from DB
+        // Step 1: Get the latest DB record per deviceId
         const latestFromDB = await sensorData.aggregate([
-            {
-                $sort: { createdAt: -1 }  // Sort by latest first
-            },
+            { $sort: { createdAt: -1 } },
             {
                 $group: {
                     _id: "$deviceId",
-                    doc: { $first: "$$ROOT" }  // Pick the most recent per deviceId
+                    doc: { $first: "$$ROOT" }
                 }
             },
-            {
-                $replaceRoot: { newRoot: "$doc" }
-            }
+            { $replaceRoot: { newRoot: "$doc" } }
         ]);
 
-        res.status(200).json(latestFromDB);
+        // Step 2: Replace DB entries with matching in-memory entries
+        const finalData = latestFromDB.map(dbDoc => {
+            const memDoc = memoryData[dbDoc.deviceId];
+            return memDoc ? memDoc : dbDoc;
+        });
+
+        res.status(200).json(finalData);
     } catch (error) {
-        console.error("Error fetching latest sensor data:", error);
+        console.error("Error fetching sensor data:", error);
         res.status(500).json({ message: 'Error fetching sensor data' });
     }
 });
+
+
 
 
 // router.get('/latest',async (req:any,res:any)=>{
@@ -101,48 +100,48 @@ router.get('/latest', async (req: any, res: any) => {
 
 router.get('/latestWithCattle', async (req: any, res: any) => {
     try {
-        let memoryData = mqttClient.getLatestUpdate();
-        let sensorDataList: any[] = [];
+        const memoryData = mqttClient.getLatestUpdate(); // { deviceId1: {...}, deviceId2: {...}, ... }
 
-        if (Object.keys(memoryData).length > 0) {
-            // Convert memoryData (object) to array
-            sensorDataList = Object.values(memoryData);
-        } else {
-            // Get the latest record per deviceId from DB
-            sensorDataList = await sensorData.aggregate([
-                {
-                    $sort: { createdAt: -1 } // sort by latest
-                },
-                {
-                    $group: {
-                        _id: "$deviceId",
-                        doc: { $first: "$$ROOT" } // get latest per device
-                    }
-                },
-                {
-                    $replaceRoot: { newRoot: "$doc" }
+        // Step 1: Get the latest sensor data per deviceId from the DB
+        let dbSensorData = await sensorData.aggregate([
+            { $sort: { createdAt: -1 } },
+            {
+                $group: {
+                    _id: "$deviceId",
+                    doc: { $first: "$$ROOT" }
                 }
-            ]);
-        }
+            },
+            { $replaceRoot: { newRoot: "$doc" } }
+        ]);
 
+        // Step 2: Replace DB entries with in-memory MQTT data if available
+        const mergedSensorData = dbSensorData.map(dbDoc => {
+            const memDoc = memoryData[dbDoc.deviceId];
+            return memDoc ? memDoc : dbDoc;
+        });
+
+        // Step 3: Get all cattle info and create a Map for fast lookup
         const cattleList = await cattle.find();
         const cattleMap = new Map(cattleList.map(c => [c.tagId, c]));
 
-        const result = await Promise.all(sensorDataList.map(async (sensor) => {
-            const deviceId = sensor.deviceId;
-            const cattleInfo = deviceId !== null && deviceId !== undefined ? cattleMap.get(deviceId) : undefined;
+        // Step 4: Enrich sensor data with cattle info and sensor status/action
+        const result = await Promise.all(
+            mergedSensorData.map(async (sensor) => {
+                const deviceId = sensor.deviceId;
+                const cattleInfo = cattleMap.get(deviceId);
 
-            const { status, action } = await CattleSensorData.checkSensors(deviceId);
+                const { status, action } = await CattleSensorData.checkSensors(deviceId);
 
-            return {
-                ...sensor,
-                cattleName: cattleInfo ? cattleInfo.name : null,
-                cattleId: cattleInfo ? cattleInfo.tagId : null,
-                cattleCreatedAt: cattleInfo ? cattleInfo.createdAt : null,
-                status,
-                action,
-            };
-        }));
+                return {
+                    ...sensor,
+                    cattleName: cattleInfo?.name || null,
+                    cattleId: cattleInfo?.tagId || null,
+                    cattleCreatedAt: cattleInfo?.createdAt || null,
+                    status,
+                    action,
+                };
+            })
+        );
 
         res.status(200).json(result);
     } catch (error) {
