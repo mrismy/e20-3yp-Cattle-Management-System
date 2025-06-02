@@ -1,31 +1,31 @@
 import { useState } from 'react';
-import { FieldValue, useForm, FieldValues } from 'react-hook-form';
-import dayjs from 'dayjs';
 import { CattleData } from '../Interface';
+import CattleStatusGraph from './CattleStatusGraph';
+import { GiCow } from 'react-icons/gi';
+import { TbHeartRateMonitor } from 'react-icons/tb';
+import { FaTemperatureFull } from 'react-icons/fa6';
+import { FaLocationDot } from 'react-icons/fa6';
+import dayjs from 'dayjs';
 
 interface CattleCardProps {
-  cattleData: CattleData | null;
+  cattleData: CattleData;
 }
 
 const CattleCard = (cattleData: CattleCardProps) => {
   const [currentMenu, setCurrentMenu] = useState('overview');
-  const {
-    register,
-    handleSubmit,
-    formState: { errors },
-  } = useForm();
+  const cattleData_ = cattleData.cattleData;
 
   return (
     <div className="absolute inset-0 bg-gray-50">
-      <div className="mt-12 overflow-x-auto px-5">
-        <h2 className="text-lg text-gray-700 font-semibold">
-          {cattleData.cattleData?.cattleName}
-        </h2>
+      <div className="mt-10 overflow-x-auto px-5">
+        {/* <h2 className="px-1 text-md text-gray-600 font-semibold mb-2">
+          Cattle {cattleData.cattleData?.cattleId}
+        </h2> */}
         <div className="flex items-start justify-between">
           {/* Navigation to display the livestocks with different status */}
           <nav>
             <ul className="flex items-center justify-start">
-              {['overview', 'health', 'location', 'alerts'].map((menu) => (
+              {['overview', 'alerts'].map((menu) => (
                 <li
                   key={menu}
                   className={`p-2 text-sm font-medium text-gray-600 hover:text-green-700 hover:border-b-green-700 border-2 border-transparent cursor-pointer
@@ -44,57 +44,97 @@ const CattleCard = (cattleData: CattleCardProps) => {
         {/* Cattle Information Section */}
         <hr className="border-gray-300 w-full mb-8" />
 
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-8 p-6">
+        <div className="flex flex-col md:flex-row justify-between space-x-4 space-y-6">
           {/* Cattle Info Card */}
-          <div className="w-full md:w-1/2 h-96 bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-            <h1 className="text-xl font-semibold text-gray-800 mb-4">
-              Cattle Information
-            </h1>
-            <div className="text-gray-700 text-md">
-              <p>
-                <span className="font-medium">Cattle ID:</span>{' '}
-                {cattleData.cattleData?.cattleId}
-              </p>
-              <p>
-                <span className="font-medium">Cattle Name:</span>{' '}
-                {cattleData.cattleData?.cattleName}
-              </p>
+          <div className="flex w-full h-24 bg-white rounded-lg shadow-sm p-3 border border-gray-100 items-center justify-center">
+            <div className="flex items-center justify-center space-x-8">
+              <GiCow className="p-3 w-14 h-14 text-blue-600 bg-blue-100 border border-blue-200 rounded-full" />
+              <div className="space-y-0.5 text-sm">
+                <h3 className="font-medium text-gray-800">Basic Information</h3>
+                <p>
+                  <span className="text-gray-500 text-xs">Cattle ID:</span>{' '}
+                  {cattleData_?.cattleId || '--'}
+                </p>
+                <p>
+                  <span className="text-gray-500 text-xs">Device ID:</span>{' '}
+                  {cattleData_?.cattleId || '--'}
+                </p>
+              </div>
             </div>
           </div>
 
-          {/* Cattle Status Card */}
-          <div className="w-full md:w-1/2 h-96 bg-white rounded-xl p-6 shadow-lg border border-gray-100">
-            <div className="flex justify-between items-center mb-4">
-              <h1 className="text-xl font-semibold text-gray-800">
-                Cattle Status
-              </h1>
-            </div>
-            <div className="text-gray-700 text-md space-y-2">
-              <p>
-                <span className="font-medium">Last update:</span>{' '}
-                {dayjs(cattleData.cattleData?.updatedAt).format(
-                  'DD/MM/YYYY HH:mm'
-                )}
-              </p>
-              <p>
-                <span className="font-medium">Status:</span>{' '}
-                {cattleData.cattleData?.status}
-              </p>
-              <p>
-                <span className="font-medium">Heart Rate:</span>{' '}
-                {cattleData.cattleData?.heartRate} bpm
-              </p>
-              <p>
-                <span className="font-medium">Temperature:</span>{' '}
-                {cattleData.cattleData?.temperature}°C
-              </p>
-              <p>
-                <span className="font-medium">Location:</span> (
-                {cattleData.cattleData?.gpsLocation.longitude},{' '}
-                {cattleData.cattleData?.gpsLocation.latitude})
-              </p>
+          {/* Heart rate Info Card */}
+          <div className="flex w-full h-24 bg-white rounded-lg shadow-sm p-3 border border-gray-100 items-center justify-center">
+            <div className="flex items-center justify-center space-x-8">
+              <TbHeartRateMonitor className="p-3 w-14 h-14 text-red-600 bg-red-100 border border-red-200 rounded-full" />
+              <div className="space-y-0 text-sm">
+                <h3 className="font-medium text-gray-600 text-md">
+                  Heart rate
+                </h3>
+                <p
+                  className={`${
+                    cattleData_?.heartRate > 80 || cattleData_?.heartRate < 55
+                      ? 'text-red-700'
+                      : 'text-green-700'
+                  } text-lg font-semibold`}>
+                  {cattleData_?.heartRate + ' bpm' || '--'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Last updated: {dayjs(cattleData_?.updatedAt).format('h:mm A')}
+                </p>
+              </div>
             </div>
           </div>
+
+          {/* Temperature Info Card */}
+          <div className="flex w-full h-24 bg-white rounded-lg shadow-sm p-3 border border-gray-100 items-center justify-center">
+            <div className="flex items-center justify-center space-x-8">
+              <FaTemperatureFull className="p-3 w-14 h-14 text-orange-600 bg-orange-100 border border-orange-200 rounded-full" />
+              <div className="space-y-0 text-sm">
+                <h3 className="font-medium text-gray-600 text-md">
+                  Temperature
+                </h3>
+                <p
+                  className={`${
+                    cattleData_?.temperature > 40 ||
+                    cattleData_?.temperature < 35
+                      ? 'text-red-700'
+                      : 'text-green-700'
+                  } text-lg font-semibold`}>
+                  {cattleData_?.temperature + ' C' || '--'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Last updated: {dayjs(cattleData_?.updatedAt).format('h:mm A')}
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Location Info Card */}
+          <div className="flex w-full h-24 bg-white rounded-lg shadow-sm p-3 border border-gray-100 items-center justify-center">
+            <div className="flex items-center justify-center space-x-8">
+              <FaLocationDot className="p-3 w-14 h-14 text-purple-600 bg-purple-100 border border-purple-200 rounded-full" />
+              <div className="space-y-0 text-sm">
+                <h3 className="font-medium text-gray-600 text-md">Location</h3>
+                <p
+                  className={`${
+                    cattleData_?.status === 'safe'
+                      ? 'text-green-700'
+                      : cattleData_?.status === 'warning'
+                      ? 'text-yellow-700'
+                      : 'text-red-700'
+                  } text-lg font-semibold`}>
+                  {cattleData_?.status || '--'}
+                </p>
+                <p className="text-xs text-gray-500">
+                  Last updated: {dayjs(cattleData_?.updatedAt).format('h:mm A')}
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div className="mb-4">
+          <CattleStatusGraph cattleId={cattleData?.cattleData?.cattleId} />
         </div>
       </div>
     </div>
