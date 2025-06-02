@@ -1,11 +1,12 @@
 import { useState } from 'react';
 import { CattleData } from '../Interface';
-import CattleStatusGraph from './CattleStatusGraph';
 import { GiCow } from 'react-icons/gi';
 import { TbHeartRateMonitor } from 'react-icons/tb';
 import { FaTemperatureFull } from 'react-icons/fa6';
 import { FaLocationDot } from 'react-icons/fa6';
 import dayjs from 'dayjs';
+import HeartRateGraph from './HeartRateGraph';
+import TemperatureGraph from './TemperatureGraph';
 
 interface CattleCardProps {
   cattleData: CattleData;
@@ -14,13 +15,11 @@ interface CattleCardProps {
 const CattleCard = (cattleData: CattleCardProps) => {
   const [currentMenu, setCurrentMenu] = useState('overview');
   const cattleData_ = cattleData.cattleData;
+  const [statusGraph, setStatusGraph] = useState('heartRate');
 
   return (
     <div className="absolute inset-0 bg-gray-50">
       <div className="mt-10 overflow-x-auto px-5">
-        {/* <h2 className="px-1 text-md text-gray-600 font-semibold mb-2">
-          Cattle {cattleData.cattleData?.cattleId}
-        </h2> */}
         <div className="flex items-start justify-between">
           {/* Navigation to display the livestocks with different status */}
           <nav>
@@ -101,7 +100,7 @@ const CattleCard = (cattleData: CattleCardProps) => {
                       ? 'text-red-700'
                       : 'text-green-700'
                   } text-lg font-semibold`}>
-                  {cattleData_?.temperature + ' C' || '--'}
+                  {cattleData_?.temperature + ' °C' || '--'}
                 </p>
                 <p className="text-xs text-gray-500">
                   Last updated: {dayjs(cattleData_?.updatedAt).format('h:mm A')}
@@ -133,8 +132,28 @@ const CattleCard = (cattleData: CattleCardProps) => {
             </div>
           </div>
         </div>
+        <div className="mt-8 mb-4 flex items-center justify-center space-x-1">
+          <button
+            onClick={() => setStatusGraph('heartRate')}
+            className={`py-1 px-2 w-38 border border-yellow-700 text-sm font-medium hover:bg-yellow-700 hover:text-white rounded-l-full hover:shadow-md ${
+              statusGraph === 'heartRate' ? 'bg-yellow-700 text-white' : ''
+            }`}>
+            Heart rate graph
+          </button>
+          <button
+            onClick={() => setStatusGraph('temperature')}
+            className={`py-1 px-2 w-38 border border-yellow-700 text-sm font-medium hover:bg-yellow-700 hover:text-white rounded-r-full hover:shadow-md ${
+              statusGraph === 'temperature' ? 'bg-yellow-700 text-white' : ''
+            }`}>
+            Temperature graph
+          </button>
+        </div>
         <div className="mb-4">
-          <CattleStatusGraph cattleId={cattleData?.cattleData?.cattleId} />
+          {statusGraph === 'heartRate' ? (
+            <HeartRateGraph cattleId={cattleData?.cattleData?.cattleId} />
+          ) : (
+            <TemperatureGraph cattleId={cattleData?.cattleData?.cattleId} />
+          )}
         </div>
       </div>
     </div>

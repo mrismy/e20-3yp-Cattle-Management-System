@@ -2,7 +2,6 @@ import dayjs from 'dayjs';
 import Axios from '../../services/Axios';
 import { useEffect, useState } from 'react';
 import { Line } from 'react-chartjs-2';
-import { IoCalendarNumber } from 'react-icons/io5';
 import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
@@ -27,21 +26,20 @@ ChartJS.register(
   Legend
 );
 
-interface CattleStatusGraphProps {
+interface HeartRateGraphProps {
   cattleId: number;
 }
 
 interface SensorData {
   hour: string;
   avgHeartRate: number | null;
-  avgTemperature: number | null;
-  cattleId: number;
-  cattleName: string;
 }
 
-const CattleStatusGraph = ({ cattleId }: CattleStatusGraphProps) => {
+const HeartRateGraph = ({ cattleId }: HeartRateGraphProps) => {
   const [sensorData, setSensorData] = useState<SensorData[]>([]);
-  const [selectedDate, setSelectedDate] = useState<Date | null>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const hours = Array.from({ length: 24 }, (_, i) =>
     dayjs().startOf('day').add(i, 'hour').format('h A')
   );
@@ -54,7 +52,8 @@ const CattleStatusGraph = ({ cattleId }: CattleStatusGraphProps) => {
 
   const fetchCattleDataDay = async (date: string) => {
     try {
-      console.log(cattleId);
+      setLoading(true);
+      setError(null);
       const formattedDate = dayjs(date).format('YYYY-MM-DD');
       const response = await Axios.get(
         `/api/sensor/withCattle/day/${formattedDate}/${cattleId}`
@@ -63,6 +62,9 @@ const CattleStatusGraph = ({ cattleId }: CattleStatusGraphProps) => {
       console.log('res', response.data);
     } catch (error) {
       console.error('Error fetching cattle data:', error);
+      setError('Failed to load temperature data');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -70,7 +72,7 @@ const CattleStatusGraph = ({ cattleId }: CattleStatusGraphProps) => {
     if (selectedDate) {
       fetchCattleDataDay(selectedDate.toISOString());
     }
-  }, [selectedDate]);
+  }, [selectedDate, cattleId]);
 
   if (sensorData.length === 0)
     return <div className="text-center py-4">No heart rate data available</div>;
@@ -139,6 +141,37 @@ const CattleStatusGraph = ({ cattleId }: CattleStatusGraphProps) => {
     },
   };
 
+  // Disable dates more than 7 days ago and future dates
+  const isDateDisabled = (date: Date) => {
+    return date > new Date() || date < dayjs().subtract(7, 'days').toDate();
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-80 bg-white rounded-lg shadow-sm p-4 border border-gray-100">
+        <div className="animate-pulse text-gray-500">
+          Loading heart rate data...
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-80 bg-white rounded-lg shadow-sm p-4 border border-gray-100 text-red-500">
+        {error}
+      </div>
+    );
+  }
+
+  if (sensorData.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-80 bg-white rounded-lg shadow-sm p-4 border border-gray-100 text-gray-500">
+        No heart rate data available for this date
+      </div>
+    );
+  }
+
   return (
     <div className="bg-white rounded-lg shadow-sm p-4 border border-gray-100">
       <div className="flex items-center justify-between mb-4">
@@ -146,16 +179,18 @@ const CattleStatusGraph = ({ cattleId }: CattleStatusGraphProps) => {
           Heart Rate Monitoring
         </h2>
         <div className="text-sm text-gray-500">
-          {/* <div className="flex items-center space-x-2"> */}
-          {/* <IoCalendarNumber className="text-lg text-gray-700" /> */}
           <DatePicker
             selected={selectedDate}
-            onChange={(date: Date | null) => setSelectedDate(date)}
+            onChange={(date: Date | null) => {
+              if (date) setSelectedDate(date);
+            }}
             dateFormat="dd MMMM yyyy"
-            className="top-0 left-0 text-sm w-28 border border-gray-200 rounded-sm px-2 py-1 items-center hover:bg-gray-50 hover:shadow-sm"
+            className="text-sm w-28 border border-gray-200 rounded-sm px-3 py-1 items-center hover:bg-gray-50 hover:shadow-sm"
             maxDate={new Date()}
+            minDate={dayjs().subtract(7, 'days').toDate()}
+            filterDate={(date) => !isDateDisabled(date)}
+            placeholderText="Select date"
           />
-          {/* </div> */}
         </div>
       </div>
 
@@ -177,4 +212,4 @@ const CattleStatusGraph = ({ cattleId }: CattleStatusGraphProps) => {
   );
 };
 
-export default CattleStatusGraph;
+export default HeartRateGraph;
