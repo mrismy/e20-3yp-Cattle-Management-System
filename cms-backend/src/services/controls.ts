@@ -2,17 +2,27 @@ import latestSensorData from '../model/latestSensorData';
 import geoFenceController = require('../controller/geoFenceController');
 import geoFenceModel from '../model/geoFenceModel';
 
-// interface sensorDataInterface {
-//   latitude: number;
-//   longitude: number;
-//   radius: number;
-// }
-
 export enum ZoneStatus {
   Safe = 'SAFE',
   Warning = 'WARNING',
   Danger = 'DANGER',
   Unknown = 'UNKNOWN',
+}
+
+export enum HealthStatus {
+  Safe = 'SAFE',
+  Danger = 'DANGER',
+}
+
+export enum TemperatureStatus {
+  Safe = 'SAFE',
+  Danger = 'DANGER',
+}
+
+interface CattleDataInterface {
+  heartRate: number;
+  temperature: number;
+  deviceId: number;
 }
 
 export class CattleSensorData {
@@ -112,6 +122,7 @@ export class CattleSensorData {
     return distance;
   };
 
+  // Check in which zone(Safe, warning, unsafe) a specific cattle is in
   public static isCattleInSafeZone = async (
     cattleId: number
   ): Promise<ZoneStatus> => {
@@ -134,7 +145,6 @@ export class CattleSensorData {
         geoFence.longitude
       );
       const geoFenceRadius = geoFence.radius;
-      // console.log(distance, geoFenceRadius);
 
       if (distance <= geoFenceRadius) {
         if (distance > geoFenceRadius - threshold) {
@@ -146,4 +156,9 @@ export class CattleSensorData {
 
     return ZoneStatus.Danger;
   };
+
+  // Check whether the cattle's heart rate is in the safe range or in the danger zone
+  // public static healthStatus = async (latestData: CattleDataInterface): Promise<HealthStatus> => {
+  //   if(latestData.heartRate)
+  // };
 }

@@ -9,6 +9,7 @@ require('dotenv').config();
 import verifyJWT from './middlewear/verifyJWT';
 import { geoFenceRouter } from './routes/api/geoFenceRoutes';
 import { mapRouter } from './routes/api/mapRoutes';
+import { notificationRouter } from './routes/api/notificationRoutes';
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT || 5000;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
@@ -45,6 +46,7 @@ app.use('/geo-fence', geoFenceRouter);
 app.use('/map', mapRouter);
 app.use('/api/cattle', cattleRouter);
 app.use('/api/sensor', sensorDataRouter);
+app.use('/notification', notificationRouter);
 app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
 
 mongoose
@@ -62,6 +64,7 @@ mongoose
   .catch((err: any) => {
     console.log('Connection failed ', err);
   });
+
 mqttClient.subscribe('zone/1/+/data');
 // const jsonString = '{"message": "Hello from Node.js!"}';
 // const jsonObject = JSON.parse(jsonString);
