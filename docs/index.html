@@ -230,6 +230,27 @@
       </div>
     </section>
 
+    <!-- Our Website -->
+    <section id="our-website" style="padding: 40px 0; text-align: center;">
+      <div class="container">
+        <h2>Our Website</h2>
+        <p>Here's a snapshot of our dashboard</p>
+        <img src="assets/images/dashboard.png" alt="Dashboard Image" style="max-width: 90%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+      </div>
+    </section>
+
+    <!-- 3D Design -->
+    <section id="design" style="padding: 40px 0; text-align: center;">
+      <div class="container">
+        <h2>3D Design</h2>
+        <p>Our 3D models for the system</p>
+        <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
+          <img src="assets/images/design11.png" alt="3D Design 1" style="max-width: 45%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+          <img src="assets/images/design2.png" alt="3D Design 2" style="max-width: 45%; height: auto; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);">
+        </div>
+      </div>
+    </section>
+
     <!-- HARDWARE AND SOFTWARE DESIGN -->
     <section id="h&s" class="section-padding border-top">
       <div class="container">
@@ -266,7 +287,6 @@
                     <li>
                       Temperature Sensor (MAX 30205) : Measure body temperature
                     </li>
-                    <li>Accelerometer(MPU 6050 ) : Detect the motion</li>
                     <li>Lora module(Ra-02 SX1278) : Transfer sensor data</li>
                   </ul>
                 </div>
@@ -283,7 +303,6 @@
                     <li>Mongo DB: Database management</li>
                     <li>MQTT Broker: To coordinate MQTT messages</li>
                     <li>AWS: For cloud management</li>
-                    <li>React Native: For mobile app development</li>
                   </ul>
                 </div>
               </div>
@@ -342,6 +361,19 @@
               </div>
             </div>
           </div>
+          <!-- TESTING IMAGES FLEX LAYOUT -->
+        <div class="testing-images">
+          <div class="image-row">
+            <img src="assets/images/testing1.png" alt="Testing Image 1">
+            <img src="assets/images/testing2.PNG" alt="Testing Image 2">
+          </div>
+          <div class="image-row">
+            <img src="assets/images/testing3.PNG" alt="Testing Image 3">
+            <img src="assets/images/testing44.PNG" alt="Testing Image 4">
+          </div>
+        </div>
+
+
         </div>
       </div>
     </section>
@@ -394,12 +426,6 @@
                     <td>1</td>
                     <td>2,600</td>
                     <td>2,600</td>
-                  </tr>
-                  <tr>
-                    <td>Accelerometer</td>
-                    <td>1</td>
-                    <td>595</td>
-                    <td>595</td>
                   </tr>
                   <tr>
                     <td>Lora Module</td>
@@ -508,7 +534,7 @@
                   <p>E/20/339</p>
                   <div class="social-icons">
                       <a href="https://www.thecn.com/ER732"><i class='ri-profile-fill'></i></a>
-                      <a href="https://www.linkedin.com/in/mohamad-rismy-229063288?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BI%2FsAD6tEQsCvB15Mi9SnpQ%3D%3D"><i class='ri-linkedin-box-fill'></i></a>
+                      <a href="https://www.linkedin.com/in/mohamad-rismy-745446369?lipi=urn%3Ali%3Apage%3Ad_flagship3_profile_view_base_contact_details%3BjOncE68lQCOyJ1KRYZDJ8A%3D%3D"><i class='ri-linkedin-box-fill'></i></a>
                       <a href="https://github.com/mrismy"><i class='ri-github-fill'></i></a>
                   </div>
               </div>
@@ -544,7 +570,35 @@
             </div>
           </div>
         </section>
-        
+
+      <!-- IMAGE MODAL -->
+      <div class="modal" id="imgModal">
+        <div class="modal-inner">
+          <img class="modal-content" id="modalImg">
+        </div>
+      </div>
+
+      <script>
+        const modal = document.getElementById("imgModal");
+        const modalImg = document.getElementById("modalImg");
+
+        document.querySelectorAll(".image-row img").forEach((img) => {
+          img.addEventListener("click", function () {
+            modal.style.display = "flex";
+            modalImg.src = this.src;
+          });
+        });
+
+        modal.addEventListener("click", function (e) {
+          if (e.target === modal) {
+            modal.style.display = "none";
+            modalImg.src = "";
+          }
+        });
+      </script>
+
+
+
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   </body>
 </html>
