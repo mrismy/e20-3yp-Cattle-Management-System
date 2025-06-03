@@ -28,8 +28,8 @@ interface CattleDataInterface {
 
 export class CattleSensorData {
   private static boundaries = {
-    heartRate: { min: 60, max: 80 },
-    temperature: { min: 37.5, max: 39.5 },
+    heartRate: { min: 10, max: 200 },
+    temperature: { min: 20, max: 40 },
     gpsGeofence: {
       minLatitude: 6.772591,
       maxLatitude: 6.972591,
@@ -45,8 +45,8 @@ export class CattleSensorData {
     let action: number[] = [];
 
     const latestData = await sensorData
-  .findOne({ deviceId: cattleId })
-  .sort({ createdAt: -1 }); 
+      .findOne({ deviceId: cattleId })
+      .sort({ createdAt: -1 });
 
     if (!latestData) {
       return {

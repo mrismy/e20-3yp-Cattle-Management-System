@@ -63,7 +63,7 @@ const GeoFenceMap = ({
 
   useEffect(() => {
     // Initialize the map
-    const map = L.map('map').setView([6.872591, 80.797847], 16); // Default view (Coordinate, zoom)
+    const map = L.map('map').setView([7.250823, 80.592517], 16); // Default view (Coordinate, zoom)
     mapRef.current = map;
 
     // Add OpenStreetMap tiles
@@ -109,7 +109,7 @@ const GeoFenceMap = ({
       });
 
     // Fetch GPS data from backend
-    fetch('http://localhost:5000/api/sensor/location')
+    fetch('http://localhost:5010/api/sensor/location')
       .then((response) => response.json())
       .then((data) => {
         Object.keys(data).forEach((key) => {

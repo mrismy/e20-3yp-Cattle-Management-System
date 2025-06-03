@@ -48,7 +48,7 @@ class MqttHandler {
 
     this.client.on('connect', () => {
       this.isConnected = true;
-      console.log('Connected to AWS IoT');
+      //console.log('Connected to AWS IoT');
     });
 
     this.client.on('error', (err) => {
@@ -62,7 +62,7 @@ class MqttHandler {
 
     this.client.on('close', () => {
       this.isConnected = false;
-      console.log('Disconnected from MQTT broker');
+      //console.log('Disconnected from MQTT broker');
     });
 
     // Ensure only ONE message listener is attached globally
@@ -152,7 +152,6 @@ class MqttHandler {
               timestamp: this.latestupdate[deviceId].timestamp,
             });
           }
-
 
           action.forEach((actionCode: number) => {
             if (actionCode === 0) {
