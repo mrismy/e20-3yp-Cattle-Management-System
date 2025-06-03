@@ -6,6 +6,7 @@ import sensorData from '../model/sensorData';
 import latestSensorData from '../model/latestSensorData';
 import path from 'path';
 import fs from 'fs';
+const { ioInstance } = require('../server');
 // const awsIot = require('aws-iot-device-sdk');
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
@@ -28,7 +29,7 @@ class MqttHandler {
   private latestupdate: Record<number, CattleData> = {};
 
   private constructor() {
-    //this.client = mqtt.connect(MQTT_BROKER);
+    this.client = mqtt.connect(MQTT_BROKER);
 
     const certsDir = path.join(__dirname, '..', '..', 'certs');
 
@@ -43,7 +44,7 @@ class MqttHandler {
       rejectUnauthorized: true,
     };
 
-    this.client = mqtt.connect(options);
+    //this.client = mqtt.connect(options);
 
     this.client.on('connect', () => {
       this.isConnected = true;
@@ -138,6 +139,18 @@ class MqttHandler {
           const { status, action } = await CattleSensorData.checkSensors(
             deviceId
           );
+
+          // Send real-time unsafe data to frontend
+          if (status.toLowerCase() === 'unsafe') {
+            ioInstance.emit('new_notification', {
+              deviceId,
+              heartRate,
+              temperature,
+              gpsLocation,
+              status,
+              timestamp: this.latestupdate[deviceId].timestamp,
+            });
+          }
 
           action.forEach((actionCode: number) => {
             if (actionCode === 0) {

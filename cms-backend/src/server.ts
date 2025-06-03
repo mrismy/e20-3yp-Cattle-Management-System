@@ -9,13 +9,30 @@ require('dotenv').config();
 import verifyJWT from './middlewear/verifyJWT';
 import { geoFenceRouter } from './routes/api/geoFenceRoutes';
 import { mapRouter } from './routes/api/mapRoutes';
-import { notificationRouter } from './routes/api/notificationRoutes';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT || 5000;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
 
 // Initilize server
 const app = express();
+
+const httpServer = createServer(app);
+const io = new Server(httpServer, {
+  cors: {
+    origin: 'http://localhost:5173',
+    methods: ['GET', 'POST'],
+  },
+});
+
+io.on('connection', (socket) => {
+  console.log('New client connected:', socket.id);
+
+  socket.on('disconnect', () => {
+    console.log('Client disconnected:', socket.id);
+  });
+});
 
 // CORS options to allow only specific domains
 const corsOptions = {
@@ -39,14 +56,13 @@ app.get('/', (req: any, res: any) => {
 });
 
 // Register the routes
-
 app.use(authRouter);
 // app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
 app.use('/geo-fence', geoFenceRouter);
 app.use('/map', mapRouter);
 app.use('/api/cattle', cattleRouter);
 app.use('/api/sensor', sensorDataRouter);
-app.use('/notification', notificationRouter);
+// app.use('/notification', notificationRouter);
 app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
 
 mongoose
@@ -55,7 +71,7 @@ mongoose
     console.log('Database Connection successful');
 
     // Running the server
-    app.listen(PORT, () => {
+    httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
 
@@ -66,6 +82,7 @@ mongoose
   });
 
 mqttClient.subscribe('zone/1/+/data');
+mqttClient.subscribe('iot/cattle');
 // const jsonString = '{"message": "Hello from Node.js!"}';
 // const jsonObject = JSON.parse(jsonString);
 //mqttClient.publish('iot/cattle', JSON.stringify(jsonObject));
