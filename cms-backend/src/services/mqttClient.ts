@@ -29,7 +29,7 @@ class MqttHandler {
   private latestupdate: Record<number, CattleData> = {};
 
   private constructor() {
-    this.client = mqtt.connect(MQTT_BROKER);
+    //this.client = mqtt.connect(MQTT_BROKER);
 
     const certsDir = path.join(__dirname, '..', '..', 'certs');
 
@@ -44,7 +44,7 @@ class MqttHandler {
       rejectUnauthorized: true,
     };
 
-    //this.client = mqtt.connect(options);
+    this.client = mqtt.connect(options);
 
     this.client.on('connect', () => {
       this.isConnected = true;

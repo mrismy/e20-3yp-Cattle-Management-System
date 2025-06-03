@@ -77,8 +77,8 @@ mongoose
     console.log('Connection failed ', err);
   });
 
-//mqttClient.subscribe('zone/1/+/data');
-mqttClient.subscribe('iot/cattle');
+mqttClient.subscribe('zone/1/+/data');
+//mqttClient.subscribe('iot/cattle');
 // const jsonString = '{"message": "Hello from Node.js!"}';
 // const jsonObject = JSON.parse(jsonString);
 //mqttClient.publish('iot/cattle', JSON.stringify(jsonObject));
