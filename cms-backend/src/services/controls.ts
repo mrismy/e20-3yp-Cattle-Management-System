@@ -1,6 +1,7 @@
-import latestSensorData from '../model/latestSensorData';
+import latestSensorData from '../model/sensorData';
 import geoFenceController = require('../controller/geoFenceController');
 import geoFenceModel from '../model/geoFenceModel';
+import sensorData from '../model/sensorData';
 
 export enum ZoneStatus {
   Safe = 'SAFE',
@@ -43,7 +44,9 @@ export class CattleSensorData {
     let status: string = 'safe';
     let action: number[] = [];
 
-    const latestData = await latestSensorData.findOne({ deviceId: cattleId });
+    const latestData = await sensorData
+  .findOne({ deviceId: cattleId })
+  .sort({ createdAt: -1 }); 
 
     if (!latestData) {
       return {
