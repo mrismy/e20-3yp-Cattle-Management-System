@@ -11,6 +11,7 @@ import { geoFenceRouter } from './routes/api/geoFenceRoutes';
 import { mapRouter } from './routes/api/mapRoutes';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
+import { setSocketIOInstance } from './socket';
 const cookieParser = require('cookie-parser');
 const PORT = process.env.PORT || 5000;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
@@ -20,18 +21,13 @@ const app = express();
 
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: {
-    origin: 'http://localhost:5173',
-    methods: ['GET', 'POST'],
-  },
+  cors: { origin: "*" }
 });
 
-io.on('connection', (socket) => {
-  console.log('New client connected:', socket.id);
+setSocketIOInstance(io);
 
-  socket.on('disconnect', () => {
-    console.log('Client disconnected:', socket.id);
-  });
+httpServer.listen(5010, () => {
+  console.log('Server is running on port 5010');
 });
 
 // CORS options to allow only specific domains
@@ -81,7 +77,7 @@ mongoose
     console.log('Connection failed ', err);
   });
 
-mqttClient.subscribe('zone/1/+/data');
+//mqttClient.subscribe('zone/1/+/data');
 mqttClient.subscribe('iot/cattle');
 // const jsonString = '{"message": "Hello from Node.js!"}';
 // const jsonObject = JSON.parse(jsonString);
