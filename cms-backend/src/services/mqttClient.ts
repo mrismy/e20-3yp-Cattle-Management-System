@@ -6,7 +6,7 @@ import sensorData from '../model/sensorData';
 import latestSensorData from '../model/latestSensorData';
 import path from 'path';
 import fs from 'fs';
-const { ioInstance } = require('../server');
+import { getSocketIOInstance } from '../socket';
 // const awsIot = require('aws-iot-device-sdk');
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
@@ -141,7 +141,8 @@ class MqttHandler {
           );
 
           // Send real-time unsafe data to frontend
-          if (status.toLowerCase() === 'unsafe') {
+          const ioInstance = getSocketIOInstance();
+          if (ioInstance && status.toLowerCase() === 'unsafe') {
             ioInstance.emit('new_notification', {
               deviceId,
               heartRate,
@@ -151,6 +152,7 @@ class MqttHandler {
               timestamp: this.latestupdate[deviceId].timestamp,
             });
           }
+
 
           action.forEach((actionCode: number) => {
             if (actionCode === 0) {
