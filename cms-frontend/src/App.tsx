@@ -19,6 +19,7 @@ import MapPage from './components/Map/MapPage';
 import GeoFencePage from './components/GeoFence/GeoFencePage';
 import Profile from './components/Profile';
 import AddCattleForm from './components/Livestock/AddCattleForm';
+import Settings from './components/Settings/Settings';
 
 function App() {
   return (
@@ -52,6 +53,7 @@ function App() {
                   <Route path="/geo-fence" element={<GeoFencePage />} />
                   <Route path="/add-cattle" element={<AddCattleForm />} />
                   <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
                 </Route>
               </Route>
 
