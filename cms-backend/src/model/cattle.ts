@@ -1,22 +1,25 @@
+import { spawn } from 'child_process';
 import mongoose from 'mongoose';
 
-const cattleSchema = new mongoose.Schema({
-    tagId:{
-        type: Number,
-        required: true,
-        unique: true
+const cattleSchema = new mongoose.Schema(
+  {
+    cattleId: {
+      type: Number,
+      required: true,
+      unique: true,
     },
 
-    name:{
-        type: String,
-        required: true
-    }
-},
-    {
-        timestamps: true
-    }
+    deviceId: {
+      type: Number,
+      required: false,
+      unique: true,
+      sparse: true,
+    },
+  },
+  {
+    timestamps: true,
+  }
 );
 
-
-const Cattle = mongoose.model('cattle',cattleSchema)
+const Cattle = mongoose.model('Cattle', cattleSchema);
 export default Cattle;

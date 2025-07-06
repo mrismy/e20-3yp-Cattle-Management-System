@@ -101,7 +101,7 @@ const CattleList = () => {
           <tr>
             {[
               'cattle id',
-              'livestock name',
+              'device id',
               'added on',
               'current state',
               'last update',
@@ -130,7 +130,7 @@ const CattleList = () => {
                   </td>
 
                   <td className="py-3 text-center text-sm text-gray-900">
-                    {cattleData.cattleName}
+                    {cattleData.deviceId || 'Device not assigned'}
                   </td>
 
                   <td className="py-3 text-center text-sm text-gray-500">

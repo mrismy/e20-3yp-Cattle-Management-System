@@ -10,7 +10,7 @@ export enum ZoneStatus {
   Unknown = 'UNKNOWN',
 }
 
-export enum HealthStatus {
+export enum HeartRateStatus {
   Safe = 'SAFE',
   Danger = 'DANGER',
 }
@@ -38,91 +38,49 @@ export class CattleSensorData {
     },
   };
 
-  public static async checkSensors(
+  public static saftyStatus = async (cattleId: number) => {
+    const cattleHeartRateStatus = await this.isHeartRateSafe(cattleId);
+    const cattleTemperatureStatus = await this.isTemperatureSafe(cattleId);
+    // const ZoneStatus = this.isCattleInSafeZone();
+    if (
+      cattleHeartRateStatus === HeartRateStatus.Safe &&
+      cattleTemperatureStatus === TemperatureStatus.Safe
+    ) {
+      return 'safe';
+    }
+    return 'unsafe';
+  };
+
+  // Check if the temperature is safe for a specific cattle
+  public static isTemperatureSafe = async (
     cattleId: number
-  ): Promise<{ status: string; action: number[] }> {
-    let status: string = 'safe';
-    let action: number[] = [];
-
-    const latestData = await sensorData
-      .findOne({ deviceId: cattleId })
-      .sort({ createdAt: -1 });
-
+  ): Promise<TemperatureStatus> => {
+    const latestData = await latestSensorData.findOne({ deviceId: cattleId });
     if (!latestData) {
-      return {
-        status: 'unsafe',
-        action: [0],
-      };
-    }
-
-    const cattleData = latestData.toObject();
-
-    if (
-      cattleData.heartRate < this.boundaries.heartRate.min ||
-      cattleData.heartRate > this.boundaries.heartRate.max
+      return TemperatureStatus.Danger;
+    } else if (
+      latestData.temperature >= this.boundaries.temperature.min &&
+      latestData.temperature <= this.boundaries.temperature.max
     ) {
-      action.push(2);
-      status = 'unsafe';
+      return TemperatureStatus.Safe;
     }
+    return TemperatureStatus.Danger;
+  };
 
-    if (
-      cattleData.temperature < this.boundaries.temperature.min ||
-      cattleData.temperature > this.boundaries.temperature.max
+  // Check if the heart rate is safe for a specific cattle
+  public static isHeartRateSafe = async (
+    cattleId: number
+  ): Promise<HeartRateStatus> => {
+    const latestData = await latestSensorData.findOne({ deviceId: cattleId });
+    if (!latestData) {
+      return HeartRateStatus.Danger;
+    } else if (
+      latestData.heartRate >= this.boundaries.heartRate.min &&
+      latestData.heartRate <= this.boundaries.heartRate.max
     ) {
-      action.push(3);
-      status = 'unsafe';
+      return HeartRateStatus.Safe;
     }
-
-    // if (cattleData.gpsLocation) {
-    //   const { latitude, longitude } = cattleData;
-    //   if (
-    //     // latitude < this.boundaries.gpsGeofence.minLatitude ||
-    //     // latitude > this.boundaries.gpsGeofence.maxLatitude ||
-    //     // longitude < this.boundaries.gpsGeofence.minLongitude ||
-    //     // longitude > this.boundaries.gpsGeofence.maxLongitude
-    //     await this.isCattleInSafeZone()
-    //   ) {
-    //     action.push(4);
-    //     status = 'unsafe';
-    //   }
-    // }
-
-    if (action.length === 0) {
-      return {
-        status: 'safe',
-        action: [1],
-      };
-    }
-
-    return {
-      status,
-      action,
-    };
-  }
-
-  // Find the distance between 2 points in sphere (Earth)
-  private static findDistance = (
-    lat1: number,
-    lat2: number,
-    lng1: number,
-    lng2: number
-  ) => {
-    const radiusOfEath = 6371e3;
-    const toRad = (value: number) => (value * Math.PI) / 180;
-
-    const dLat = toRad(lat2 - lat1);
-    const dLon = toRad(lng2 - lng1);
-
-    const a =
-      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = radiusOfEath * c;
-
-    return distance;
+    return HeartRateStatus.Danger;
   };
 
   // Check in which zone(Safe, warning, unsafe) a specific cattle is in
@@ -160,8 +118,28 @@ export class CattleSensorData {
     return ZoneStatus.Danger;
   };
 
-  // Check whether the cattle's heart rate is in the safe range or in the danger zone
-  // public static healthStatus = async (latestData: CattleDataInterface): Promise<HealthStatus> => {
-  //   if(latestData.heartRate)
-  // };
+  // Find the distance between 2 points in sphere (Earth)
+  private static findDistance = (
+    lat1: number,
+    lat2: number,
+    lng1: number,
+    lng2: number
+  ) => {
+    const radiusOfEath = 6371e3;
+    const toRad = (value: number) => (value * Math.PI) / 180;
+
+    const dLat = toRad(lat2 - lat1);
+    const dLon = toRad(lng2 - lng1);
+
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(toRad(lat1)) *
+        Math.cos(toRad(lat2)) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    const distance = radiusOfEath * c;
+
+    return distance;
+  };
 }

@@ -1,5 +1,6 @@
 export interface CattleData {
   cattleId: string;
+  deviceId: string | null;
   cattleName: string;
   createdAt: string;
   cattleStatus: string;
@@ -10,5 +11,5 @@ export interface CattleData {
     latitude: number;
     longitude: number;
   };
-  status:string;
+  status: string;
 }

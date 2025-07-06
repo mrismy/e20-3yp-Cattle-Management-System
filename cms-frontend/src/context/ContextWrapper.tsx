@@ -27,22 +27,22 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
       } catch {
         // If parsing fails, return default
         return {
-          email: "",
-          password: "",
-          accessToken: "",
-          firstName: "",
-          lastName: "",
-          address: "",
+          email: '',
+          password: '',
+          accessToken: '',
+          firstName: '',
+          lastName: '',
+          address: '',
         };
       }
     }
     return {
-      email: "",
-      password: "",
-      accessToken: "",
-      firstName: "",
-      lastName: "",
-      address: "",
+      email: '',
+      password: '',
+      accessToken: '',
+      firstName: '',
+      lastName: '',
+      address: '',
     };
   });
   const [cattleList_selectedOption, setCattlelist_selectedOption] =

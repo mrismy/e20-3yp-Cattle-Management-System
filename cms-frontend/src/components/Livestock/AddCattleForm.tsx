@@ -1,8 +1,9 @@
 import { useContext } from 'react';
-import { FieldValue, useForm, FieldValues } from 'react-hook-form';
+import { useForm, FieldValues } from 'react-hook-form';
 import { IoMdCloseCircleOutline } from 'react-icons/io';
 import GlobalContext from '../../context/GlobalContext';
 import { addCattle } from '../../services/CattleListService';
+import Axios from '../../services/Axios';
 
 const AddCattleForm = () => {
   const { setShowCattleAddForm } = useContext(GlobalContext);
@@ -25,8 +26,13 @@ const AddCattleForm = () => {
         addedOn: new Date().toISOString(),
       };
       console.log(formatedData);
-      const response = await addCattle(formatedData);
-      console.log('Cattle added successfully: ', response.data);
+      // const response = await addCattle(formatedData);
+      const response = Axios.post('/api/cattle', formatedData, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      console.log('Cattle added successfully: ', (await response).data);
       closeAddCattleForm();
     } catch (error) {
       console.error('Error adding cattle: ', error);
@@ -34,44 +40,81 @@ const AddCattleForm = () => {
   };
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)}>
-      <div className="absolute inset-0 flex justify-center items-center bg-opacity-100 backdrop-blur-lg">
-        {/* Add Cattle form */}
-        <div className="bg-green-600 w-96 p-7 shadow-2xl hover:scale-101 rounded-xl">
-          <header className="flex justify-between items-center border-b border-white pb-3">
-            <h1 className="text-xl font-semibold text-white">Add Cattle</h1>
+    <div className="absolute inset-0 flex justify-center items-center bg-opacity-100 backdrop-blur-lg">
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        className="relative bg-white rounded-xl shadow-2xl w-full max-w-md overflow-hidden">
+        {/* Form Header */}
+        <div className="bg-green-600 px-6 py-4">
+          <div className="flex justify-between items-center">
+            <h1 className="text-xl font-semibold text-white">Add New Cattle</h1>
             <button
               onClick={closeAddCattleForm}
-              className="text-white text-2xl hover:text-red-600 hover:bg-white rounded-full">
-              <IoMdCloseCircleOutline />
+              className="text-white hover:text-gray-300 transition-colors duration-200"
+              aria-label="Close form">
+              <IoMdCloseCircleOutline className="text-2xl" />
             </button>
-          </header>
+          </div>
+        </div>
 
+        {/* Form Body */}
+        <div className="p-6 space-y-4">
           {/* Cattle ID */}
-          <div className="space-x-2 mt-4">
-            <label className="text-lg text-white font-medium">Cattle ID</label>
+          <div>
+            <label
+              htmlFor="cattleId"
+              className="block text-sm font-medium text-gray-700 mb-1">
+              Cattle ID <span className="text-red-500">*</span>
+            </label>
             <input
               id="cattleId"
-              type="string"
-              {...register('cattleName')}
-              placeholder="Enter cattle name"
-              className="w-full border-2 bg-gray-50 border-gray-100 rounded-md p-2 mt-1 focus:ring-1 focus:ring-green-600"
+              type="text"
+              {...register('cattleId', { required: true })}
+              placeholder="Enter the cattle RFID"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
+                errors.cattleId
+                  ? 'border-red-500 focus:ring-red-200'
+                  : 'border-gray-300 focus:ring-green-200'
+              }`}
             />
             {errors.cattleId?.type === 'required' && (
-              <p className="text-red-600">Cattle ID field is required</p>
+              <p className="mt-1 text-sm text-red-600">Cattle ID is required</p>
             )}
           </div>
 
-          {/* Cattle Name */}
-          <div className="space-x-2 mt-4">
-            <label className="text-lg text-white font-medium">
-              Cattle Name
+          {/* Device ID */}
+          <div>
+            <label
+              htmlFor="deviceId"
+              className="block text-sm font-medium text-gray-700 mb-1">
+              Device ID
             </label>
-            <input className="w-full border-2 bg-gray-50 border-gray-100 rounded-md p-2 mt-1 focus:ring-1 focus:ring-green-600"></input>
+            <input
+              id="deviceId"
+              type="text"
+              {...register('deviceId')}
+              placeholder="Enter the device ID"
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-1 focus:ring-green-300"
+            />
           </div>
         </div>
-      </div>
-    </form>
+
+        {/* Form Footer */}
+        <div className="px-6 py-4 flex justify-end">
+          <button
+            type="button"
+            onClick={closeAddCattleForm}
+            className="mr-3 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500">
+            Cancel
+          </button>
+          <button
+            type="submit"
+            className="px-4 py-2 text-sm font-medium text-white bg-green-600 border border-transparent rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 transition-colors duration-200">
+            Add Cattle
+          </button>
+        </div>
+      </form>
+    </div>
   );
 };
 

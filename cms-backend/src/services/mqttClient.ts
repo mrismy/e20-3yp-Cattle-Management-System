@@ -136,9 +136,7 @@ class MqttHandler {
           // }
 
           // Check alerts and log them
-          const { status, action } = await CattleSensorData.checkSensors(
-            deviceId
-          );
+          const status = await CattleSensorData.saftyStatus(deviceId);
 
           // Send real-time unsafe data to frontend
           const ioInstance = getSocketIOInstance();
@@ -153,19 +151,19 @@ class MqttHandler {
             });
           }
 
-          action.forEach((actionCode: number) => {
-            if (actionCode === 0) {
-              console.log(status, 'Cattle data not found.');
-            } else if (actionCode === 1) {
-              console.log(status, 'Cattle is safe and within limits.');
-            } else if (actionCode === 2) {
-              console.log(status, 'Heart rate is abnormal.');
-            } else if (actionCode === 3) {
-              console.log(status, 'Temperature is abnormal.');
-            } else if (actionCode === 4) {
-              console.log(status, 'Cattle is out of the designated area.');
-            }
-          });
+          // action.forEach((actionCode: number) => {
+          //   if (actionCode === 0) {
+          //     console.log(status, 'Cattle data not found.');
+          //   } else if (actionCode === 1) {
+          //     console.log(status, 'Cattle is safe and within limits.');
+          //   } else if (actionCode === 2) {
+          //     console.log(status, 'Heart rate is abnormal.');
+          //   } else if (actionCode === 3) {
+          //     console.log(status, 'Temperature is abnormal.');
+          //   } else if (actionCode === 4) {
+          //     console.log(status, 'Cattle is out of the designated area.');
+          //   }
+          // });
         }
       } catch (error) {
         console.error('Error parsing MQTT message:', error);
