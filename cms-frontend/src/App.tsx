@@ -20,6 +20,9 @@ import GeoFencePage from './components/GeoFence/GeoFencePage';
 import Profile from './components/Profile';
 import AddCattleForm from './components/Livestock/AddCattleForm';
 import Settings from './components/Settings/Settings';
+import EditCattleForm from './components/Livestock/EditCattleForm';
+import CattleCard from './components/Livestock/CattleCard';
+import DeleteConformation from './components/Livestock/DeleteConformation';
 
 function App() {
   return (
@@ -48,10 +51,20 @@ function App() {
                 }>
                 <Route element={<RequireAuth />}>
                   <Route path="/dashboard" element={<Dashboard />} />
-                  <Route path="/livestock" element={<CattleList />} />
+                  <Route path="/livestock" element={<CattleList />}>
+                    <Route path="add-cattle" element={<AddCattleForm />} />
+                    <Route
+                      path="edit-cattle/:cattleId"
+                      element={<EditCattleForm />}
+                    />
+                    <Route path=":cattleId" element={<CattleCard />} />
+                    <Route
+                      path="delete-cattle/:cattleId"
+                      element={<DeleteConformation />}
+                    />
+                  </Route>
                   <Route path="/map" element={<MapPage />} />
                   <Route path="/geo-fence" element={<GeoFencePage />} />
-                  <Route path="/add-cattle" element={<AddCattleForm />} />
                   <Route path="/profile" element={<Profile />} />
                   <Route path="/settings" element={<Settings />} />
                 </Route>

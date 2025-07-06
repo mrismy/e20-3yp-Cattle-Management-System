@@ -1,12 +1,11 @@
-import { useContext } from 'react';
+import { useEffect } from 'react';
 import { useForm, FieldValues } from 'react-hook-form';
 import { IoMdCloseCircleOutline } from 'react-icons/io';
-import GlobalContext from '../../context/GlobalContext';
-import { addCattle } from '../../services/CattleListService';
 import Axios from '../../services/Axios';
+import { useNavigate } from 'react-router-dom';
 
 const AddCattleForm = () => {
-  const { setShowCattleAddForm } = useContext(GlobalContext);
+  const navigate = useNavigate();
   const {
     register,
     handleSubmit,
@@ -14,7 +13,7 @@ const AddCattleForm = () => {
   } = useForm();
 
   const closeAddCattleForm = () => {
-    setShowCattleAddForm(false);
+    navigate('/livestock');
   };
 
   const onSubmit = async (data: FieldValues) => {
@@ -38,6 +37,8 @@ const AddCattleForm = () => {
       console.error('Error adding cattle: ', error);
     }
   };
+
+  useEffect(() => {}, []);
 
   return (
     <div className="absolute inset-0 flex justify-center items-center bg-opacity-100 backdrop-blur-lg">

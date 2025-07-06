@@ -16,16 +16,6 @@ router.get('/', async (req: any, res: any) => {
   }
 });
 
-// router.get('/location',(req:any,res:any)=>{
-//     try {
-//         const update = mqttClient.getLatestUpdate();
-//         console.log(update);
-//         res.status(200).json(update);
-//     } catch (error) {
-//         console.error('Failed to subscribe:', error);
-//     }
-// })
-
 router.get('/withCattle', async (req: any, res: any) => {
   try {
     const sensorDataList = await sensorData.find();
@@ -91,15 +81,6 @@ router.get('/latest', async (req: any, res: any) => {
   }
 });
 
-// router.get('/latest',async (req:any,res:any)=>{
-//     try {
-//         const data = await latestSensorData.find();
-//         res.status(200).json(data);
-//     } catch (error) {
-//         res.status(500).json({ message: 'Error fetching sensor data' });
-//     }
-// })
-
 router.get('/latestWithCattle', async (req: any, res: any) => {
   try {
     const memoryData = mqttClient.getLatestUpdate(); // { deviceId1: {...}, deviceId2: {...}, ... }
@@ -127,7 +108,7 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
     const cattleMap = new Map(cattleList.map((c) => [c.deviceId, c]));
 
     // Step 4: Enrich sensor data with cattle info and sensor status/action
-    const result = await Promise.all(
+    const sensorDataWithCattle = await Promise.all(
       mergedSensorData.map(async (sensor) => {
         const deviceId = sensor.deviceId;
         const cattleInfo = cattleMap.get(deviceId);
@@ -136,7 +117,6 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
 
         return {
           ...sensor,
-          // cattleName: cattleInfo?.name || null,
           cattleId: cattleInfo?.cattleId || null,
           deviceId: cattleInfo?.deviceId || null,
           cattleCreatedAt: cattleInfo?.createdAt || null,
@@ -145,12 +125,82 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
       })
     );
 
+    // Find cattle without a deviceId
+    const unassignedCattle = await cattle.find({
+      $or: [
+        { deviceId: null },
+        { deviceId: '' },
+        { deviceId: { $exists: false } },
+      ],
+    });
+
+    const result = [
+      ...sensorDataWithCattle,
+      ...unassignedCattle.map((cattle) => ({
+        cattleId: cattle.cattleId,
+        deviceId: null,
+        cattleCreatedAt: cattle.createdAt,
+        status: 'un-monitored',
+      })),
+    ];
+
     res.status(200).json(result);
   } catch (error) {
     console.error('Error in /latestWithCattle:', error);
     res
       .status(500)
       .json({ message: 'Error fetching sensor data with cattle information' });
+  }
+});
+
+router.get('/latest/:cattleId', async (req: any, res: any) => {
+  try {
+    const cattleId = parseInt(req.params.cattleId);
+
+    const cattleInfo = await cattle.findOne({ cattleId });
+
+    if (!cattleInfo) {
+      return res.status(404).json({ message: 'Cattle not found' });
+    }
+
+    const deviceId = cattleInfo.deviceId;
+
+    const latestFromDB = await sensorData.aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $match: { deviceId },
+      },
+      {
+        $group: {
+          _id: '$deviceId',
+          doc: { $first: '$$ROOT' },
+        },
+      },
+      { $replaceRoot: { newRoot: '$doc' } },
+    ]);
+    console.log('Latest from DB:', latestFromDB);
+
+    // const result = await Promise.all(
+    //   sensorDataList.map(async (sensor) => {
+    //     const { status, action } = await CattleSensorData.checkSensors(
+    //       sensor.deviceId as number
+    //     );
+
+    //     return {
+    //       ...sensor.toObject(),
+    //       cattleId: cattleInfo.deviceId,
+    //       cattleCreatedAt: cattleInfo.createdAt,
+    //       status,
+    //       action,
+    //     };
+    //   })
+    // );
+
+    res.status(200).json(latestFromDB);
+  } catch (error) {
+    res
+      .status(500)
+      .json({ message: 'Error fetching sensor data for the given tag ID' });
   }
 });
 
@@ -330,41 +380,6 @@ router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
 //     res
 //       .status(500)
 //       .json({ message: 'Error fetching monthly sensor data with cattle' });
-//   }
-// });
-
-// router.get('/withCattle/byTag/:tagId', async (req: any, res: any) => {
-//   try {
-//     const tagId = parseInt(req.params.tagId);
-
-//     const sensorDataList = await sensorData.find({ deviceId: tagId });
-//     const cattleInfo = await cattle.findOne({ tagId });
-
-//     if (!cattleInfo) {
-//       return res.status(404).json({ message: 'Cattle not found' });
-//     }
-
-//     const result = await Promise.all(
-//       sensorDataList.map(async (sensor) => {
-//         const { status, action } = await CattleSensorData.checkSensors(
-//           sensor.deviceId as number
-//         );
-
-//         return {
-//           ...sensor.toObject(),
-//           cattleId: cattleInfo.deviceId,
-//           cattleCreatedAt: cattleInfo.createdAt,
-//           status,
-//           action,
-//         };
-//       })
-//     );
-
-//     res.status(200).json(result);
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ message: 'Error fetching sensor data for the given tag ID' });
 //   }
 // });
 

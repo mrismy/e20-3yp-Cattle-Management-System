@@ -1,6 +1,7 @@
 import express, { Request, Response } from 'express';
 import Cattle from '../../model/cattle';
 import { cattleInterface, cattleInterface1 } from '../../types/cattleInterface';
+import sensorData from '../../model/sensorData';
 
 const router = express.Router();
 
@@ -16,9 +17,9 @@ router.get('/', async (req: Request, res: Response) => {
   }
 });
 
-router.get('/:tagId', async (req: any, res: any) => {
+router.get('/:cattleId', async (req: any, res: any) => {
   try {
-    const cattle = await Cattle.findOne({ tagId: req.params.tagId });
+    const cattle = await Cattle.findOne({ cattleId: req.params.cattleId });
     if (!cattle) {
       return res.status(404).json({ message: 'Cattle not found' });
     }
@@ -96,14 +97,21 @@ router.put('/:tagId', async (req: any, res: any) => {
   }
 });
 
-router.delete('/:tagId', async (req: any, res: any) => {
+router.delete('/:cattleId', async (req: any, res: any) => {
   try {
     const deletedCattle = await Cattle.findOneAndDelete({
-      tagId: req.params.tagId,
+      cattleId: req.params.cattleId,
     });
     if (!deletedCattle) {
       return res.status(404).json({ message: 'Cattle not found' });
     }
+    // const deletedSensorData = await sensorData.deleteMany({
+    //   deviceId: deletedCattle.deviceId,
+    // });
+    // if (deletedSensorData.deletedCount === 0) {
+    //   return res.status(404).json({ message: 'Sensor data not found' });
+    // }
+    // console.log('Sensor data deleted:', deletedSensorData.deletedCount);
     res.status(200).json({ message: 'Cattle deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting cattle:', error);
