@@ -105,13 +105,13 @@ router.delete('/:cattleId', async (req: any, res: any) => {
     if (!deletedCattle) {
       return res.status(404).json({ message: 'Cattle not found' });
     }
-    // const deletedSensorData = await sensorData.deleteMany({
-    //   deviceId: deletedCattle.deviceId,
-    // });
-    // if (deletedSensorData.deletedCount === 0) {
-    //   return res.status(404).json({ message: 'Sensor data not found' });
-    // }
-    // console.log('Sensor data deleted:', deletedSensorData.deletedCount);
+    const deletedSensorData = await sensorData.deleteMany({
+      deviceId: deletedCattle.deviceId,
+    });
+    if (deletedSensorData.deletedCount === 0) {
+      return res.status(404).json({ message: 'Sensor data not found' });
+    }
+    console.log('Sensor data deleted:', deletedSensorData.deletedCount);
     res.status(200).json({ message: 'Cattle deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting cattle:', error);

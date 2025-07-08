@@ -39,14 +39,12 @@ module.exports.getAll = async (req: any, res: any) => {
         //   deviceId
         // );
 
-        const cattleStatus = await CattleSensorData.isCattleInSafeZone(
-          deviceId
-        );
+        // const cattleStatus = await CattleSensorData.cattleZoneType(deviceId);
 
         return {
           ...sensor,
           cattleId: cattleInfo ? cattleInfo.deviceId : null,
-          cattleStatus,
+          // cattleStatus,
         };
       })
     );

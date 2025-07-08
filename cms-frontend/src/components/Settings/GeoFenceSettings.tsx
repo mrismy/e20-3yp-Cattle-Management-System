@@ -1,45 +1,27 @@
-import { useState } from 'react';
-
 interface GeoFenceSettingsProps {
-  dangerThreshold: number;
-  safeThreshold: number;
-  setSafeThreshold: (value: number) => void;
-  setDangerThreshold: (value: number) => void;
+  threshold: number;
+  setThreshold: (value: number) => void;
 }
 
 const GeoFenceSettings = ({
-  safeThreshold,
-  setSafeThreshold,
-  dangerThreshold,
-  setDangerThreshold,
+  threshold,
+  setThreshold,
 }: GeoFenceSettingsProps) => {
   const MAX_THRESHOLD = 25;
-
   const center = 150;
   const baseDangerRadius = 70;
   const baseSafeRadius = 130;
 
-  const dangerRadius = baseDangerRadius + dangerThreshold;
-  const safeRadius = Math.max(baseSafeRadius - safeThreshold, 5); // avoid 0 radius
+  const dangerRadius = baseDangerRadius + threshold;
+  const safeRadius = Math.max(baseSafeRadius - threshold, 5);
 
-  const handleThresholdChange = (type: 'danger' | 'safe', delta: number) => {
-    if (type === 'danger') {
-      const newValue = Math.min(
-        Math.max(dangerThreshold + delta, 0),
-        MAX_THRESHOLD
-      );
-      setDangerThreshold(newValue);
-    } else {
-      const newValue = Math.min(
-        Math.max(safeThreshold + delta, 0),
-        MAX_THRESHOLD
-      );
-      setSafeThreshold(newValue);
-    }
+  const handleThresholdChange = (delta: number) => {
+    const newValue = Math.min(Math.max(threshold + delta, 0), MAX_THRESHOLD);
+    setThreshold(newValue);
   };
 
   return (
-    <div className="bg-gray-50 p-6 shadow-2xs rounded-lg w-1/3">
+    <div className="bg-gray-50 p-6 shadow-2xs rounded-lg w-full max-w-md">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-gray-700">
           GeoFence Settings
@@ -51,7 +33,7 @@ const GeoFenceSettings = ({
 
       <div className="flex items-center justify-center">
         <svg viewBox="0 0 300 300" className="w-[350px] h-[350px]">
-          {/* Danger zone (fixed) */}
+          {/* Danger zone (base) */}
           <circle
             cx={center}
             cy={center}
@@ -60,7 +42,7 @@ const GeoFenceSettings = ({
             stroke="#ef4444"
             strokeWidth="2"
           />
-          {/* Safe zone (fixed) */}
+          {/* Safe zone (base) */}
           <circle
             cx={center}
             cy={center}
@@ -93,61 +75,38 @@ const GeoFenceSettings = ({
       </div>
 
       <div className="mt-4 text-center">
-        <div className="grid grid-cols-2 gap-4">
-          {[
-            {
-              type: 'danger',
-              value: dangerThreshold,
-              label: 'DANGER THRESHOLD',
-              color: 'red',
-            },
-            {
-              type: 'safe',
-              value: safeThreshold,
-              label: 'SAFE THRESHOLD',
-              color: 'green',
-            },
-          ].map(({ type, value, label, color }) => (
-            <div key={type} className="space-y-2">
-              <label className="block text-xs font-medium text-gray-500">
-                {label}
-              </label>
-              <div className="flex items-center space-x-1">
-                <button
-                  onClick={() =>
-                    handleThresholdChange(type as 'danger' | 'safe', -1)
-                  }
-                  disabled={value <= 0}
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
-                    value <= 0
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}>
-                  <span className="text-lg">−</span>
-                </button>
-                <div
-                  className={`flex-1 text-center py-1.5 bg-white rounded-lg border font-medium ${
-                    value >= MAX_THRESHOLD
-                      ? `border-${color}-300 bg-${color}-50`
-                      : 'border-gray-300'
-                  }`}>
-                  {value}m
-                </div>
-                <button
-                  onClick={() =>
-                    handleThresholdChange(type as 'danger' | 'safe', 1)
-                  }
-                  disabled={value >= MAX_THRESHOLD}
-                  className={`w-7 h-7 flex items-center justify-center rounded-lg transition-colors ${
-                    value >= MAX_THRESHOLD
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-gray-200 hover:bg-gray-300'
-                  }`}>
-                  <span className="text-lg">+</span>
-                </button>
-              </div>
-            </div>
-          ))}
+        <label className="block text-xs font-medium text-gray-500 mb-1">
+          THRESHOLD
+        </label>
+        <div className="flex items-center justify-center space-x-2">
+          <button
+            onClick={() => handleThresholdChange(-1)}
+            disabled={threshold <= 0}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+              threshold <= 0
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}>
+            −
+          </button>
+          <div
+            className={`px-4 py-2 rounded-lg border text-sm font-medium ${
+              threshold >= MAX_THRESHOLD
+                ? 'border-red-300 bg-red-50 text-red-700'
+                : 'border-gray-300 bg-white text-gray-700'
+            }`}>
+            {threshold}m
+          </div>
+          <button
+            onClick={() => handleThresholdChange(1)}
+            disabled={threshold >= MAX_THRESHOLD}
+            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+              threshold >= MAX_THRESHOLD
+                ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 hover:bg-gray-300'
+            }`}>
+            +
+          </button>
         </div>
       </div>
     </div>

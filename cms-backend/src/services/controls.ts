@@ -2,6 +2,8 @@ import latestSensorData from '../model/sensorData';
 import geoFenceController = require('../controller/geoFenceController');
 import geoFenceModel from '../model/geoFenceModel';
 import sensorData from '../model/sensorData';
+import { ThresholdModel } from '../model/sensorThresholdModel';
+import cattle from '../model/cattle';
 
 export enum ZoneStatus {
   Safe = 'SAFE',
@@ -23,25 +25,20 @@ export enum TemperatureStatus {
 interface CattleDataInterface {
   heartRate: number;
   temperature: number;
-  deviceId: number;
 }
 
 export class CattleSensorData {
-  private static boundaries = {
-    heartRate: { min: 10, max: 200 },
-    temperature: { min: 20, max: 40 },
-    gpsGeofence: {
-      minLatitude: 6.772591,
-      maxLatitude: 6.972591,
-      minLongitude: 80.697847,
-      maxLongitude: 80.897847,
-    },
+  private static getThresholdValue = async () => {
+    const threshold = await ThresholdModel.findById('global');
+    if (!threshold) {
+      throw new Error('Thresholds not found');
+    }
+    return threshold;
   };
 
-  public static saftyStatus = async (cattleId: number) => {
-    const cattleHeartRateStatus = await this.isHeartRateSafe(cattleId);
-    const cattleTemperatureStatus = await this.isTemperatureSafe(cattleId);
-    // const ZoneStatus = this.isCattleInSafeZone();
+  public static saftyStatus = async (deviceId: number) => {
+    const cattleHeartRateStatus = await this.isHeartRateSafe(deviceId);
+    const cattleTemperatureStatus = await this.isTemperatureSafe(deviceId);
     if (
       cattleHeartRateStatus === HeartRateStatus.Safe &&
       cattleTemperatureStatus === TemperatureStatus.Safe
@@ -51,16 +48,39 @@ export class CattleSensorData {
     return 'unsafe';
   };
 
+  // Get the latest sensor data for a specific device
+  public static getLatestSensorData = async (
+    deviceId: number
+  ): Promise<CattleDataInterface | null> => {
+    const latestSensorData = await sensorData
+      .findOne({ deviceId })
+      .sort({ timestamp: -1 })
+      .limit(1);
+    if (!latestSensorData) {
+      return null;
+    }
+    return {
+      heartRate: latestSensorData.heartRate,
+      temperature: latestSensorData.temperature,
+    };
+  };
+
   // Check if the temperature is safe for a specific cattle
   public static isTemperatureSafe = async (
-    cattleId: number
+    deviceId: number
   ): Promise<TemperatureStatus> => {
-    const latestData = await latestSensorData.findOne({ deviceId: cattleId });
-    if (!latestData) {
+    const threshold = await this.getThresholdValue();
+    if (!threshold) {
+      throw new Error('Thresholds not found');
+    }
+    const latestSensorData = await this.getLatestSensorData(deviceId);
+    console.log(latestSensorData);
+
+    if (!latestSensorData) {
       return TemperatureStatus.Danger;
     } else if (
-      latestData.temperature >= this.boundaries.temperature.min &&
-      latestData.temperature <= this.boundaries.temperature.max
+      latestSensorData.temperature >= (threshold?.temperature?.min || 0) &&
+      latestSensorData.temperature <= (threshold?.temperature?.max || 0)
     ) {
       return TemperatureStatus.Safe;
     }
@@ -69,14 +89,19 @@ export class CattleSensorData {
 
   // Check if the heart rate is safe for a specific cattle
   public static isHeartRateSafe = async (
-    cattleId: number
+    deviceId: number
   ): Promise<HeartRateStatus> => {
-    const latestData = await latestSensorData.findOne({ deviceId: cattleId });
+    const threshold = await this.getThresholdValue();
+    if (!threshold) {
+      throw new Error('Thresholds not found');
+    }
+    const latestData = await this.getLatestSensorData(deviceId);
+
     if (!latestData) {
       return HeartRateStatus.Danger;
     } else if (
-      latestData.heartRate >= this.boundaries.heartRate.min &&
-      latestData.heartRate <= this.boundaries.heartRate.max
+      latestData.heartRate >= (threshold?.heartRate?.min || 0) &&
+      latestData.heartRate <= (threshold?.heartRate?.max || 0)
     ) {
       return HeartRateStatus.Safe;
     }
@@ -84,36 +109,49 @@ export class CattleSensorData {
   };
 
   // Check in which zone(Safe, warning, unsafe) a specific cattle is in
-  public static isCattleInSafeZone = async (
-    cattleId: number
+  public static cattleZoneType = async (
+    deviceId: number
   ): Promise<ZoneStatus> => {
-    const threshold = 4;
-    const geoFences = await geoFenceModel.find();
-    if (geoFences.length === 0) {
-      return ZoneStatus.Safe;
-    }
+    const threshold = await this.getThresholdValue();
+    if (!threshold) throw new Error('Threshold not found');
 
-    const latestData = await latestSensorData.findOne({ deviceId: cattleId });
-    if (!latestData || !latestData.gpsLocation) {
-      return ZoneStatus.Unknown;
-    }
+    const warningBuffer = threshold?.geofence?.threshold || 0;
+
+    const geoFences = await geoFenceModel.find();
+    if (geoFences.length === 0) return ZoneStatus.Safe;
+
+    const latestData = await latestSensorData.findOne({ deviceId });
+    if (!latestData?.gpsLocation) return ZoneStatus.Unknown;
+
+    let isInSafe = false;
+    let isInWarning = false;
 
     for (const geoFence of geoFences) {
+      const { latitude, longitude, radius, zoneType } = geoFence;
       const distance = this.findDistance(
         latestData.gpsLocation.latitude,
-        geoFence.latitude,
+        latitude,
         latestData.gpsLocation.longitude,
-        geoFence.longitude
+        longitude
       );
-      const geoFenceRadius = geoFence.radius;
 
-      if (distance <= geoFenceRadius) {
-        if (distance > geoFenceRadius - threshold) {
-          return ZoneStatus.Warning;
+      if (zoneType === 'safe') {
+        if (distance <= radius - warningBuffer) {
+          isInSafe = true;
+        } else if (distance <= radius) {
+          isInWarning = true;
         }
-        return ZoneStatus.Safe;
+      } else if (zoneType === 'danger') {
+        if (distance <= radius) {
+          return ZoneStatus.Danger;
+        } else if (distance <= radius + warningBuffer) {
+          isInWarning = true;
+        }
       }
     }
+
+    if (isInWarning) return ZoneStatus.Warning;
+    if (isInSafe) return ZoneStatus.Safe;
 
     return ZoneStatus.Danger;
   };

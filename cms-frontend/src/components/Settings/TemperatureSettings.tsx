@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useEffect } from 'react';
 import { TEMP_MAX, TEMP_MIN } from './Constants';
 import { RangeDial } from './RangeDial';
 
@@ -117,7 +117,7 @@ export default function TemperatureSettings({
                   <span className="text-lg">−</span>
                 </button>
                 <div className="flex-1 text-center py-1.5 bg-white rounded-lg border border-gray-300 font-medium">
-                  {customRange[type]}°C
+                  {(mode === 'custom' ? customRange : presets[mode])[type]}°C
                 </div>
                 <button
                   onClick={() =>

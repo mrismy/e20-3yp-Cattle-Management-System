@@ -18,8 +18,7 @@ const thresholdSchema = new mongoose.Schema({
     max: Number,
   },
   geofence: {
-    safeThreshold: Number,
-    dangerThreshold: Number,
+    threshold: Number,
   },
   updatedAt: Date,
 });

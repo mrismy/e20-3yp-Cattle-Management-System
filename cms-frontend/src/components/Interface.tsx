@@ -13,3 +13,18 @@ export interface CattleData {
   };
   status: string;
 }
+
+export interface SensorThreshold {
+  heartRate: {
+    min: number;
+    max: number;
+  };
+  temperature: {
+    min: number;
+    max: number;
+  };
+  geoFence: {
+    safeThreshold: number;
+    dangerThreshold: number;
+  };
+}

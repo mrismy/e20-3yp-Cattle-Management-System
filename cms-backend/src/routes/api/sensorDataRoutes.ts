@@ -113,14 +113,19 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
         const deviceId = sensor.deviceId;
         const cattleInfo = cattleMap.get(deviceId);
 
-        const status = await CattleSensorData.saftyStatus(deviceId);
+        let status = 'unknown';
+        try {
+          status = await CattleSensorData.saftyStatus(deviceId);
+        } catch (err) {
+          status = 'no-threshold';
+        }
 
         return {
           ...sensor,
           cattleId: cattleInfo?.cattleId || null,
           deviceId: cattleInfo?.deviceId || null,
           cattleCreatedAt: cattleInfo?.createdAt || null,
-          status,
+          status: status,
         };
       })
     );
@@ -156,7 +161,6 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
 router.get('/latest/:cattleId', async (req: any, res: any) => {
   try {
     const cattleId = parseInt(req.params.cattleId);
-
     const cattleInfo = await cattle.findOne({ cattleId });
 
     if (!cattleInfo) {
@@ -165,38 +169,16 @@ router.get('/latest/:cattleId', async (req: any, res: any) => {
 
     const deviceId = cattleInfo.deviceId;
 
-    const latestFromDB = await sensorData.aggregate([
-      { $sort: { createdAt: -1 } },
-      {
-        $match: { deviceId },
-      },
-      {
-        $group: {
-          _id: '$deviceId',
-          doc: { $first: '$$ROOT' },
-        },
-      },
-      { $replaceRoot: { newRoot: '$doc' } },
-    ]);
-    console.log('Latest from DB:', latestFromDB);
+    const latestSensorData = await sensorData
+      .findOne({ deviceId })
+      .sort({ timestamp: -1 })
+      .limit(1);
+    if (!latestSensorData) {
+      return null;
+    }
+    // console.log('Latest from DB:', latestSensorData);
 
-    // const result = await Promise.all(
-    //   sensorDataList.map(async (sensor) => {
-    //     const { status, action } = await CattleSensorData.checkSensors(
-    //       sensor.deviceId as number
-    //     );
-
-    //     return {
-    //       ...sensor.toObject(),
-    //       cattleId: cattleInfo.deviceId,
-    //       cattleCreatedAt: cattleInfo.createdAt,
-    //       status,
-    //       action,
-    //     };
-    //   })
-    // );
-
-    res.status(200).json(latestFromDB);
+    res.status(200).json(latestSensorData);
   } catch (error) {
     res
       .status(500)

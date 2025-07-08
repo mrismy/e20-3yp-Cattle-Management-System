@@ -71,6 +71,7 @@ const Nav = () => {
               <li key={item.label}>
                 <a
                   href={item.href}
+                  onClick={() => setSelectedMenu(item.label)}
                   className={`flex items-center px-8 py-3 rounded-lg rounded-r-full transition-colors duration-200 group ${
                     isActive(item.href)
                       ? 'bg-violet-100 text-violet-600 font-semibold'

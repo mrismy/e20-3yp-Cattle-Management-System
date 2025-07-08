@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CattleData } from '../Interface';
+import { CattleData, SensorThreshold } from '../Interface';
 import { GiCow } from 'react-icons/gi';
 import { TbHeartRateMonitor } from 'react-icons/tb';
 import { FaTemperatureFull } from 'react-icons/fa6';
@@ -16,18 +16,33 @@ const CattleCard = () => {
   const [currentMenu, setCurrentMenu] = useState('overview');
   const [statusGraph, setStatusGraph] = useState('heartRate');
   const [loading, setLoading] = useState(true);
+  const [sensorThreshold, setSensorThreshold] = useState<SensorThreshold>();
 
   const fetchSensorData = async () => {
     try {
       const response = await axiosPrivate.get(`/api/sensor/latest/${cattleId}`);
-      setCattleData(response.data[0]);
-      console.log('Sensor data fetched successfully:', response.data[0]);
+      setCattleData(response.data);
+      console.log('Sensor data fetched successfully:', response.data);
     } catch (error) {
       console.error('Error fetching sensor data:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  const fetchSensorControl = async () => {
+    try {
+      const response = await axiosPrivate.get('/api/threshold');
+      setSensorThreshold(response.data);
+      console.log('Sensor threshold fetched successfully: ', response.data);
+    } catch (error) {
+      console.error('Error fetching sensor threshold data:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchSensorControl();
+  }, []);
 
   useEffect(() => {
     fetchSensorData();
@@ -99,10 +114,10 @@ const CattleCard = () => {
                 {/* TODO: Get the threshold form the backend */}
                 <p
                   className={`${
-                    cattleData?.heartRate ||
-                    0 > 80 ||
-                    cattleData?.heartRate ||
-                    0 < 55
+                    (cattleData?.heartRate || 0) >
+                      (sensorThreshold?.heartRate.max || 200) ||
+                    (cattleData?.heartRate || 0) <
+                      (sensorThreshold?.heartRate.min || 55)
                       ? 'text-red-700'
                       : 'text-green-700'
                   } text-lg font-semibold`}>
@@ -125,10 +140,10 @@ const CattleCard = () => {
                 </h3>
                 <p
                   className={`${
-                    cattleData?.temperature ||
-                    0 > 40 ||
-                    cattleData?.temperature ||
-                    0 < 35
+                    (cattleData?.temperature || 0) >
+                      (sensorThreshold?.temperature.max || 40) ||
+                    (cattleData?.temperature || 0) <
+                      (sensorThreshold?.temperature.min || 35)
                       ? 'text-red-700'
                       : 'text-green-700'
                   } text-lg font-semibold`}>
