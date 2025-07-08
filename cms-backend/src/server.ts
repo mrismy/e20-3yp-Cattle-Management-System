@@ -13,7 +13,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { setSocketIOInstance } from './socket';
 const cookieParser = require('cookie-parser');
-const PORT = process.env.PORT || 5000;
+const PORT = process.env.PORT || 5010;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
 
 // Initilize server
@@ -25,10 +25,6 @@ const io = new Server(httpServer, {
 });
 
 setSocketIOInstance(io);
-
-httpServer.listen(5010, () => {
-  console.log('Server is running on port 5010');
-});
 
 // CORS options to allow only specific domains
 const corsOptions = {
@@ -61,16 +57,16 @@ app.use('/api/sensor', sensorDataRouter);
 // app.use('/notification', notificationRouter);
 app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
 
+import notificationRoutes from './routes/notificationRoutes';
+app.use('/api/notifications', notificationRoutes);
+
 mongoose
   .connect(DB_CONNECTION)
   .then(() => {
     console.log('Database Connection successful');
-
-    // Running the server
     httpServer.listen(PORT, () => {
       console.log(`Server running on port ${PORT}`);
     });
-
     //TO-DO: latestupdate dictionary initialization
   })
   .catch((err: any) => {

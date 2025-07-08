@@ -2,6 +2,8 @@ import latestSensorData from '../model/sensorData';
 import geoFenceController = require('../controller/geoFenceController');
 import geoFenceModel from '../model/geoFenceModel';
 import sensorData from '../model/sensorData';
+import Notification from '../model/notificationModel';
+import { getSocketIOInstance } from '../socket';
 
 export enum ZoneStatus {
   Safe = 'SAFE',
@@ -43,12 +45,19 @@ export class CattleSensorData {
   ): Promise<{ status: string; action: number[] }> {
     let status: string = 'safe';
     let action: number[] = [];
+    let notificationCreated = false;
 
     const latestData = await sensorData
       .findOne({ deviceId: cattleId })
       .sort({ createdAt: -1 });
 
     if (!latestData) {
+      // Generate notification for missing data
+      await CattleSensorData.createAndEmitNotification(
+        cattleId,
+        'No sensor data available for this cattle.',
+        'unsafe'
+      );
       return {
         status: 'unsafe',
         action: [0],
@@ -57,35 +66,45 @@ export class CattleSensorData {
 
     const cattleData = latestData.toObject();
 
+    // Heart rate check
     if (
       cattleData.heartRate < this.boundaries.heartRate.min ||
       cattleData.heartRate > this.boundaries.heartRate.max
     ) {
       action.push(2);
       status = 'unsafe';
+      notificationCreated = await CattleSensorData.createAndEmitNotification(
+        cattleId,
+        `Cattle ${cattleId} has abnormal heart rate: ${cattleData.heartRate}.`,
+        'unsafe'
+      ) || notificationCreated;
     }
 
+    // Temperature check
     if (
       cattleData.temperature < this.boundaries.temperature.min ||
       cattleData.temperature > this.boundaries.temperature.max
     ) {
       action.push(3);
       status = 'unsafe';
+      notificationCreated = await CattleSensorData.createAndEmitNotification(
+        cattleId,
+        `Cattle ${cattleId} has abnormal temperature: ${cattleData.temperature}.`,
+        'unsafe'
+      ) || notificationCreated;
     }
 
-    // if (cattleData.gpsLocation) {
-    //   const { latitude, longitude } = cattleData;
-    //   if (
-    //     // latitude < this.boundaries.gpsGeofence.minLatitude ||
-    //     // latitude > this.boundaries.gpsGeofence.maxLatitude ||
-    //     // longitude < this.boundaries.gpsGeofence.minLongitude ||
-    //     // longitude > this.boundaries.gpsGeofence.maxLongitude
-    //     await this.isCattleInSafeZone()
-    //   ) {
-    //     action.push(4);
-    //     status = 'unsafe';
-    //   }
-    // }
+    // Geofence check
+    const zoneStatus = await this.isCattleInSafeZone(cattleId);
+    if (zoneStatus === ZoneStatus.Danger) {
+      action.push(4);
+      status = 'unsafe';
+      notificationCreated = await CattleSensorData.createAndEmitNotification(
+        cattleId,
+        `Cattle ${cattleId} is outside the geofence.`,
+        'geofence'
+      ) || notificationCreated;
+    }
 
     if (action.length === 0) {
       return {
@@ -98,6 +117,36 @@ export class CattleSensorData {
       status,
       action,
     };
+  }
+
+  // Helper to create and emit notification, preventing duplicates
+  private static async createAndEmitNotification(
+    cattleId: number,
+    message: string,
+    status: string
+  ) {
+    // Prevent duplicate unread notifications for same cattle and status
+    const existing = await Notification.findOne({
+      cattleId,
+      status,
+      read: false,
+      message,
+    });
+    if (!existing) {
+      const notification = new Notification({
+        cattleId,
+        message,
+        status,
+        timestamp: new Date(),
+      });
+      await notification.save();
+      const io = getSocketIOInstance();
+      if (io) {
+        io.emit('new_notification', notification);
+      }
+      return true;
+    }
+    return false;
   }
 
   // Find the distance between 2 points in sphere (Earth)
