@@ -46,7 +46,7 @@ const CattleCard = () => {
 
   useEffect(() => {
     fetchSensorData();
-  }, [cattleId]);
+  }, []);
 
   if (loading) {
     return (

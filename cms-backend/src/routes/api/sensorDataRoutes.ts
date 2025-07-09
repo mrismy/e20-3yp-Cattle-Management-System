@@ -83,10 +83,13 @@ router.get('/latest', async (req: any, res: any) => {
 
 router.get('/latestWithCattle', async (req: any, res: any) => {
   try {
-    const memoryData = mqttClient.getLatestUpdate(); // { deviceId1: {...}, deviceId2: {...}, ... }
+    const memoryData = mqttClient.getLatestUpdate(); // In-memory MQTT data
 
-    // Step 1: Get the latest sensor data per deviceId from the DB
-    let dbSensorData = await sensorData.aggregate([
+    // Step 1: Get all cattle records
+    const cattleList = await cattle.find();
+
+    // Step 2: Get the latest sensor data per deviceId from DB
+    const dbSensorData = await sensorData.aggregate([
       { $sort: { createdAt: -1 } },
       {
         $group: {
@@ -97,59 +100,43 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
       { $replaceRoot: { newRoot: '$doc' } },
     ]);
 
-    // Step 2: Replace DB entries with in-memory MQTT data if available
-    const mergedSensorData = dbSensorData.map((dbDoc) => {
-      const memDoc = memoryData[dbDoc.deviceId];
-      return memDoc ? memDoc : dbDoc;
+    // Step 3: Merge DB sensor data with MQTT data
+    const latestSensorDataMap = new Map<number, any>();
+    dbSensorData.forEach((doc) => {
+      latestSensorDataMap.set(doc.deviceId, doc);
     });
+    for (const deviceId in memoryData) {
+      latestSensorDataMap.set(Number(deviceId), memoryData[deviceId]);
+    }
 
-    // Step 3: Get all cattle info and create a Map for fast lookup
-    const cattleList = await cattle.find();
-    const cattleMap = new Map(cattleList.map((c) => [c.deviceId, c]));
-
-    // Step 4: Enrich sensor data with cattle info and sensor status/action
-    const sensorDataWithCattle = await Promise.all(
-      mergedSensorData.map(async (sensor) => {
-        const deviceId = sensor.deviceId;
-        const cattleInfo = cattleMap.get(deviceId);
-
-        let status = 'unknown';
-        try {
-          status = await CattleSensorData.saftyStatus(deviceId);
-        } catch (err) {
-          status = 'no-threshold';
+    // Step 4: Enrich each cattle record
+    const enrichedCattleData = await Promise.all(
+      cattleList.map(async (cattleInfo) => {
+        const deviceId = cattleInfo.deviceId;
+        const sensor = deviceId ? latestSensorDataMap.get(deviceId) : null;
+        let status = 'no-data';
+        if (deviceId === null) {
+          status = 'un-monitored';
+        }
+        if (sensor) {
+          try {
+            status = await CattleSensorData.saftyStatus(deviceId || 0);
+          } catch (err) {
+            status = 'no-threshold';
+          }
         }
 
         return {
           ...sensor,
-          cattleId: cattleInfo?.cattleId || null,
-          deviceId: cattleInfo?.deviceId || null,
-          cattleCreatedAt: cattleInfo?.createdAt || null,
+          cattleId: cattleInfo.cattleId,
+          deviceId: cattleInfo.deviceId || null,
+          cattleCreatedAt: cattleInfo.createdAt,
           status: status,
         };
       })
     );
 
-    // Find cattle without a deviceId
-    const unassignedCattle = await cattle.find({
-      $or: [
-        { deviceId: null },
-        { deviceId: '' },
-        { deviceId: { $exists: false } },
-      ],
-    });
-
-    const result = [
-      ...sensorDataWithCattle,
-      ...unassignedCattle.map((cattle) => ({
-        cattleId: cattle.cattleId,
-        deviceId: null,
-        cattleCreatedAt: cattle.createdAt,
-        status: 'un-monitored',
-      })),
-    ];
-
-    res.status(200).json(result);
+    res.status(200).json(enrichedCattleData);
   } catch (error) {
     console.error('Error in /latestWithCattle:', error);
     res
@@ -168,16 +155,18 @@ router.get('/latest/:cattleId', async (req: any, res: any) => {
     }
 
     const deviceId = cattleInfo.deviceId;
+    if (!deviceId) {
+      return res.status(404).json({ message: 'Device not found' });
+    }
 
     const latestSensorData = await sensorData
       .findOne({ deviceId })
       .sort({ timestamp: -1 })
       .limit(1);
     if (!latestSensorData) {
-      return null;
+      return res.status(404).json({ message: 'Sensor data not found' });
     }
-    // console.log('Latest from DB:', latestSensorData);
-
+    console.log(latestSensorData);
     res.status(200).json(latestSensorData);
   } catch (error) {
     res
