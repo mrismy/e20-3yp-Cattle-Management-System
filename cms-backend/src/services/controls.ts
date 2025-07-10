@@ -2,6 +2,8 @@ import latestSensorData from '../model/sensorData';
 import geoFenceController = require('../controller/geoFenceController');
 import geoFenceModel from '../model/geoFenceModel';
 import sensorData from '../model/sensorData';
+import Notification from '../model/notificationModel';
+import { getSocketIOInstance } from '../socket';
 import { ThresholdModel } from '../model/sensorThresholdModel';
 import cattle from '../model/cattle';
 
@@ -77,7 +79,6 @@ export class CattleSensorData {
     return TemperatureStatus.Danger;
   };
 
-  // Check if the heart rate is safe for a specific cattle
   public static isHeartRateSafe = async (
     latestSensorData: SensorDataInterface
   ): Promise<HeartRateStatus> => {
@@ -97,7 +98,6 @@ export class CattleSensorData {
     return HeartRateStatus.Danger;
   };
 
-  // Check in which zone(Safe, warning, unsafe) a specific cattle is in
   public static cattleZoneType = async (
     latestSensorData: SensorDataInterface
   ): Promise<ZoneStatus> => {
@@ -131,6 +131,11 @@ export class CattleSensorData {
         }
       } else if (zoneType === 'danger') {
         if (distance <= radius) {
+          await this.createAndEmitNotification(
+            deviceId,
+            `Cattle ${deviceId} is inside a danger geofence.`,
+            'DANGER'
+          );
           return ZoneStatus.Danger;
         } else if (distance <= radius + warningBuffer) {
           isInWarning = true;
@@ -141,17 +146,49 @@ export class CattleSensorData {
     if (isInWarning) return ZoneStatus.Warning;
     if (isInSafe) return ZoneStatus.Safe;
 
+    await this.createAndEmitNotification(
+      deviceId,
+      `Cattle ${deviceId} is outside all safe zones.`,
+      'DANGER'
+    );
     return ZoneStatus.Danger;
   };
 
-  // Find the distance between 2 points in sphere (Earth)
+  private static async createAndEmitNotification(
+    cattleId: number,
+    message: string,
+    status: string
+  ) {
+    const existing = await Notification.findOne({
+      cattleId,
+      status,
+      read: false,
+      message,
+    });
+    if (!existing) {
+      const notification = new Notification({
+        cattleId,
+        message,
+        status,
+        timestamp: new Date(),
+      });
+      await notification.save();
+      const io = getSocketIOInstance();
+      if (io) {
+        io.emit('new_notification', notification);
+      }
+      return true;
+    }
+    return false;
+  }
+
   private static findDistance = (
     lat1: number,
     lat2: number,
     lng1: number,
     lng2: number
   ) => {
-    const radiusOfEath = 6371e3;
+    const radiusOfEarth = 6371e3;
     const toRad = (value: number) => (value * Math.PI) / 180;
 
     const dLat = toRad(lat2 - lat1);
@@ -164,8 +201,6 @@ export class CattleSensorData {
         Math.sin(dLon / 2) *
         Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-    const distance = radiusOfEath * c;
-
-    return distance;
+    return radiusOfEarth * c;
   };
 }

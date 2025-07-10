@@ -3,8 +3,7 @@ import { RiAddCircleLine } from 'react-icons/ri';
 import GlobalContext from '../../context/GlobalContext';
 import { CattleData } from '../Interface';
 import dayjs from 'dayjs';
-import { MdDeleteOutline } from 'react-icons/md';
-import { MdOutlineEdit } from 'react-icons/md';
+import { MdDeleteOutline, MdOutlineEdit } from 'react-icons/md';
 import NavSub from '../NavSub';
 import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { Outlet, useNavigate } from 'react-router-dom';
@@ -13,7 +12,9 @@ const CattleList = () => {
   const navigate = useNavigate();
   const { cattleList_selectedOption, setCattlelist_selectedOption } =
     useContext(GlobalContext);
+
   const cattleStatus = ['all cattle', 'safe', 'unsafe', 'un-monitored'];
+
   const [filteredCattleData, setFilteredCattleData] = useState<CattleData[]>(
     []
   );
@@ -32,7 +33,8 @@ const CattleList = () => {
         setFilteredCattleData(
           data.filter(
             (cattle: CattleData) =>
-              cattle.status.toLowerCase() === cattleList_selectedOption
+              cattle.status.toLowerCase() ===
+              cattleList_selectedOption.toLowerCase()
           )
         );
       }
