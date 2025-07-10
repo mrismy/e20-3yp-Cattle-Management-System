@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { CattleData, SensorThreshold } from '../Interface';
+import { SensorData, SensorThreshold } from '../Interface';
 import { GiCow } from 'react-icons/gi';
 import { TbHeartRateMonitor } from 'react-icons/tb';
 import { FaTemperatureFull } from 'react-icons/fa6';
@@ -12,16 +12,16 @@ import { axiosPrivate } from '../../services/Axios';
 
 const CattleCard = () => {
   const { cattleId } = useParams<{ cattleId: string }>();
-  const [cattleData, setCattleData] = useState<CattleData | null>(null);
+  const [cattleData, setCattleData] = useState<SensorData | null>(null);
   const [currentMenu, setCurrentMenu] = useState('overview');
   const [statusGraph, setStatusGraph] = useState('heartRate');
   const [loading, setLoading] = useState(true);
-  const [sensorThreshold, setSensorThreshold] = useState<SensorThreshold>();
 
   const fetchSensorData = async () => {
     try {
       const response = await axiosPrivate.get(`/api/sensor/latest/${cattleId}`);
       setCattleData(response.data);
+      console.log(cattleData?.heartRateStatus === 'DANGER' ? 'true' : 'fale ');
       console.log('Sensor data fetched successfully:', response.data);
     } catch (error) {
       console.error('Error fetching sensor data:', error);
@@ -29,20 +29,6 @@ const CattleCard = () => {
       setLoading(false);
     }
   };
-
-  const fetchSensorControl = async () => {
-    try {
-      const response = await axiosPrivate.get('/api/threshold');
-      setSensorThreshold(response.data);
-      console.log('Sensor threshold fetched successfully: ', response.data);
-    } catch (error) {
-      console.error('Error fetching sensor threshold data:', error);
-    }
-  };
-
-  useEffect(() => {
-    fetchSensorControl();
-  }, []);
 
   useEffect(() => {
     fetchSensorData();
@@ -97,7 +83,7 @@ const CattleCard = () => {
                 </p>
                 <p>
                   <span className="text-gray-500 text-xs">Device ID:</span>{' '}
-                  {cattleData?.deviceId || '--'}
+                  {cattleData?.sensorData.deviceId || '--'}
                 </p>
               </div>
             </div>
@@ -114,17 +100,17 @@ const CattleCard = () => {
                 {/* TODO: Get the threshold form the backend */}
                 <p
                   className={`${
-                    (cattleData?.heartRate || 0) >
-                      (sensorThreshold?.heartRate.max || 200) ||
-                    (cattleData?.heartRate || 0) <
-                      (sensorThreshold?.heartRate.min || 55)
+                    cattleData?.heartRateStatus === 'DANGER'
                       ? 'text-red-700'
-                      : 'text-green-700'
+                      : cattleData?.heartRateStatus === 'SAFE'
+                      ? 'text-green-700'
+                      : 'text-gray-500'
                   } text-lg font-semibold`}>
-                  {cattleData?.heartRate + ' bpm' || '--'}
+                  {cattleData?.sensorData.heartRate + ' bpm' || '--'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Last updated: {dayjs(cattleData?.updatedAt).format('h:mm A')}
+                  Last updated:{' '}
+                  {dayjs(cattleData?.sensorData.updatedAt).format('h:mm A')}
                 </p>
               </div>
             </div>
@@ -140,17 +126,17 @@ const CattleCard = () => {
                 </h3>
                 <p
                   className={`${
-                    (cattleData?.temperature || 0) >
-                      (sensorThreshold?.temperature.max || 40) ||
-                    (cattleData?.temperature || 0) <
-                      (sensorThreshold?.temperature.min || 35)
+                    cattleData?.temperatureStatus === 'DANGER'
                       ? 'text-red-700'
-                      : 'text-green-700'
+                      : cattleData?.heartRateStatus === 'SAFE'
+                      ? 'text-green-700'
+                      : 'text-gray-500'
                   } text-lg font-semibold`}>
-                  {cattleData?.temperature + ' °C' || '--'}
+                  {cattleData?.sensorData.temperature + ' °C' || '--'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Last updated: {dayjs(cattleData?.updatedAt).format('h:mm A')}
+                  Last updated:{' '}
+                  {dayjs(cattleData?.sensorData.updatedAt).format('h:mm A')}
                 </p>
               </div>
             </div>
@@ -164,16 +150,17 @@ const CattleCard = () => {
                 <h3 className="font-medium text-gray-600 text-md">Location</h3>
                 <p
                   className={`${
-                    cattleData?.status === 'safe'
+                    cattleData?.locationStatus === 'SAFE'
                       ? 'text-green-700'
-                      : cattleData?.status === 'warning'
+                      : cattleData?.locationStatus === 'WARNING'
                       ? 'text-yellow-700'
                       : 'text-red-700'
-                  } text-lg font-semibold`}>
-                  {cattleData?.status || '--'}
+                  } text-lg font-semibold lowercase`}>
+                  {cattleData?.locationStatus || '--'}
                 </p>
                 <p className="text-xs text-gray-500">
-                  Last updated: {dayjs(cattleData?.updatedAt).format('h:mm A')}
+                  Last updated:{' '}
+                  {dayjs(cattleData?.sensorData.updatedAt).format('h:mm A')}
                 </p>
               </div>
             </div>

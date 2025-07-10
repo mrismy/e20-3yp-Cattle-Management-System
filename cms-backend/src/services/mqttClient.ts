@@ -136,7 +136,7 @@ class MqttHandler {
           // }
 
           // Check alerts and log them
-          const status = await CattleSensorData.saftyStatus(deviceId);
+          const status = await CattleSensorData.saftyStatus(receivedMsg);
 
           // Send real-time unsafe data to frontend
           const ioInstance = getSocketIOInstance();

@@ -50,15 +50,6 @@ const CattleList = () => {
     fetchAndFilter();
   }, [cattleList_selectedOption]);
 
-  // if (loading)
-  //   return (
-  //     <div className="absolute inset-0 flex items-center justify-center bg-gray-50 z-50">
-  //       <div className="text-gray-600 text-lg animate-pulse">
-  //         Loading cattle data...
-  //       </div>
-  //     </div>
-  //   );
-
   return (
     <div className="mt-10 overflow-x-auto px-5">
       <div className="flex items-start justify-between mb">
@@ -144,7 +135,9 @@ const CattleList = () => {
                     </td>
 
                     <td className="py-3 text-center text-sm text-gray-500">
-                      {dayjs(cattleData.createdAt).format('MMM D, YYYY h:mm A')}
+                      {dayjs(cattleData.cattleCreatedAt).format(
+                        'MMM D, YYYY h:mm A'
+                      )}
                     </td>
 
                     <td className="py-3 text-center ">

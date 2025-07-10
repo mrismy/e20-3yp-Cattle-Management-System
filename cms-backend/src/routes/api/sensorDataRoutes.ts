@@ -7,6 +7,16 @@ import cattle from '../../model/cattle';
 import { CattleSensorData } from '../../services/controls';
 const router = express.Router();
 
+interface SensorDataInterface {
+  deviceId: number;
+  heartRate: number;
+  temperature: number;
+  gpsLocation?: {
+    longitude: number;
+    latitude: number;
+  };
+}
+
 router.get('/', async (req: any, res: any) => {
   try {
     const data = await sensorData.find();
@@ -32,9 +42,7 @@ router.get('/withCattle', async (req: any, res: any) => {
             : undefined;
 
         // Get status and action from checkSensors
-        const status = await CattleSensorData.saftyStatus(
-          sensor.deviceId as number
-        );
+        // const status = await CattleSensorData.saftyStatus(sensor);
 
         return {
           ...sensor.toObject(),
@@ -120,7 +128,7 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
         }
         if (sensor) {
           try {
-            status = await CattleSensorData.saftyStatus(deviceId || 0);
+            status = await CattleSensorData.saftyStatus(sensor);
           } catch (err) {
             status = 'no-threshold';
           }
@@ -160,14 +168,29 @@ router.get('/latest/:cattleId', async (req: any, res: any) => {
     }
 
     const latestSensorData = await sensorData
-      .findOne({ deviceId })
-      .sort({ timestamp: -1 })
-      .limit(1);
+      .findOne({ deviceId: deviceId })
+      .sort({ createdAt: -1 })
+      .limit(1)
+      .lean<SensorDataInterface>();
     if (!latestSensorData) {
       return res.status(404).json({ message: 'Sensor data not found' });
     }
-    console.log(latestSensorData);
-    res.status(200).json(latestSensorData);
+
+    const heartRateStatus = await CattleSensorData.isHeartRateSafe(
+      latestSensorData
+    );
+    const temperatureStatus = await CattleSensorData.isTemperatureSafe(
+      latestSensorData
+    );
+    const locationStatus = await CattleSensorData.cattleZoneType(
+      latestSensorData
+    );
+    return res.status(200).json({
+      heartRateStatus,
+      temperatureStatus,
+      locationStatus,
+      sensorData: latestSensorData,
+    });
   } catch (error) {
     res
       .status(500)

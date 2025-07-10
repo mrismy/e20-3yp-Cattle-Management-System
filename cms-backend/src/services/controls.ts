@@ -22,9 +22,14 @@ export enum TemperatureStatus {
   Danger = 'DANGER',
 }
 
-interface CattleDataInterface {
+interface SensorDataInterface {
+  deviceId: number;
   heartRate: number;
   temperature: number;
+  gpsLocation?: {
+    longitude: number;
+    latitude: number;
+  };
 }
 
 export class CattleSensorData {
@@ -36,46 +41,31 @@ export class CattleSensorData {
     return threshold;
   };
 
-  public static saftyStatus = async (deviceId: number) => {
-    const cattleHeartRateStatus = await this.isHeartRateSafe(deviceId);
-    const cattleTemperatureStatus = await this.isTemperatureSafe(deviceId);
+  public static saftyStatus = async (sensor: SensorDataInterface) => {
+    if (!sensor) {
+      return 'no-data';
+    }
+    const cattleHeartRateStatus = await this.isHeartRateSafe(sensor);
+    const cattleTemperatureStatus = await this.isTemperatureSafe(sensor);
+    const cattleLocationStatus = await this.cattleZoneType(sensor);
     if (
       cattleHeartRateStatus === HeartRateStatus.Safe &&
-      cattleTemperatureStatus === TemperatureStatus.Safe
+      cattleTemperatureStatus === TemperatureStatus.Safe &&
+      cattleLocationStatus === ZoneStatus.Safe
     ) {
       return 'safe';
     }
     return 'unsafe';
   };
 
-  // Get the latest sensor data for a specific device
-  public static getLatestSensorData = async (
-    deviceId: number
-  ): Promise<CattleDataInterface | null> => {
-    const latestSensorData = await sensorData
-      .findOne({ deviceId })
-      .sort({ timestamp: -1 })
-      .limit(1);
-    if (!latestSensorData) {
-      return null;
-    }
-    return {
-      heartRate: latestSensorData.heartRate,
-      temperature: latestSensorData.temperature,
-    };
-  };
-
   // Check if the temperature is safe for a specific cattle
   public static isTemperatureSafe = async (
-    deviceId: number
+    latestSensorData: SensorDataInterface
   ): Promise<TemperatureStatus> => {
     const threshold = await this.getThresholdValue();
     if (!threshold) {
       throw new Error('Thresholds not found');
     }
-    const latestSensorData = await this.getLatestSensorData(deviceId);
-    console.log(latestSensorData);
-
     if (!latestSensorData) {
       return TemperatureStatus.Danger;
     } else if (
@@ -89,19 +79,18 @@ export class CattleSensorData {
 
   // Check if the heart rate is safe for a specific cattle
   public static isHeartRateSafe = async (
-    deviceId: number
+    latestSensorData: SensorDataInterface
   ): Promise<HeartRateStatus> => {
     const threshold = await this.getThresholdValue();
     if (!threshold) {
       throw new Error('Thresholds not found');
     }
-    const latestData = await this.getLatestSensorData(deviceId);
 
-    if (!latestData) {
+    if (!latestSensorData) {
       return HeartRateStatus.Danger;
     } else if (
-      latestData.heartRate >= (threshold?.heartRate?.min || 0) &&
-      latestData.heartRate <= (threshold?.heartRate?.max || 0)
+      latestSensorData.heartRate >= (threshold?.heartRate?.min || 0) &&
+      latestSensorData.heartRate <= (threshold?.heartRate?.max || 0)
     ) {
       return HeartRateStatus.Safe;
     }
@@ -110,7 +99,7 @@ export class CattleSensorData {
 
   // Check in which zone(Safe, warning, unsafe) a specific cattle is in
   public static cattleZoneType = async (
-    deviceId: number
+    latestSensorData: SensorDataInterface
   ): Promise<ZoneStatus> => {
     const threshold = await this.getThresholdValue();
     if (!threshold) throw new Error('Threshold not found');
@@ -120,8 +109,7 @@ export class CattleSensorData {
     const geoFences = await geoFenceModel.find();
     if (geoFences.length === 0) return ZoneStatus.Safe;
 
-    const latestData = await latestSensorData.findOne({ deviceId });
-    if (!latestData?.gpsLocation) return ZoneStatus.Unknown;
+    if (!latestSensorData?.gpsLocation) return ZoneStatus.Unknown;
 
     let isInSafe = false;
     let isInWarning = false;
@@ -129,9 +117,9 @@ export class CattleSensorData {
     for (const geoFence of geoFences) {
       const { latitude, longitude, radius, zoneType } = geoFence;
       const distance = this.findDistance(
-        latestData.gpsLocation.latitude,
+        latestSensorData.gpsLocation.latitude,
         latitude,
-        latestData.gpsLocation.longitude,
+        latestSensorData.gpsLocation.longitude,
         longitude
       );
 

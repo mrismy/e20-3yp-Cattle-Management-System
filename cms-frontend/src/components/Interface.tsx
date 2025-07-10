@@ -5,13 +5,20 @@ export interface CattleData {
   createdAt: string;
   cattleStatus: string;
   updatedAt: string;
+  cattleCreatedAt: string;
   heartRate: number;
   temperature: number;
   gpsLocation: {
     latitude: number;
     longitude: number;
   };
-  status: string;
+}
+
+export interface SensorData {
+  sensorData: CattleData;
+  heartRateStatus: string;
+  temperatureStatus: string;
+  locationStatus: string;
 }
 
 export interface SensorThreshold {
