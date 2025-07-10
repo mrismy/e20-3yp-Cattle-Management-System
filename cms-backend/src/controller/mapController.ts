@@ -27,7 +27,7 @@ module.exports.getAll = async (req: any, res: any) => {
 
     // Step 3: Get all cattle info and create a Map for fast lookup
     const cattleList = await cattle.find();
-    const cattleMap = new Map(cattleList.map((c) => [c.tagId, c]));
+    const cattleMap = new Map(cattleList.map((c) => [c.deviceId, c]));
 
     // Step 4: Enrich sensor data with cattle info and sensor status/action
     const result = await Promise.all(
@@ -39,14 +39,12 @@ module.exports.getAll = async (req: any, res: any) => {
         //   deviceId
         // );
 
-        const cattleStatus = await CattleSensorData.isCattleInSafeZone(
-          deviceId
-        );
+        // const cattleStatus = await CattleSensorData.cattleZoneType(deviceId);
 
         return {
           ...sensor,
-          cattleId: cattleInfo ? cattleInfo.tagId : null,
-          cattleStatus,
+          cattleId: cattleInfo ? cattleInfo.deviceId : null,
+          // cattleStatus,
         };
       })
     );

@@ -1,5 +1,6 @@
 export interface CattleData {
   cattleId: string;
+  deviceId: string | null;
   cattleName: string;
   createdAt: string;
   cattleStatus: string;
@@ -10,5 +11,20 @@ export interface CattleData {
     latitude: number;
     longitude: number;
   };
-  status:string;
+  status: string;
+}
+
+export interface SensorThreshold {
+  heartRate: {
+    min: number;
+    max: number;
+  };
+  temperature: {
+    min: number;
+    max: number;
+  };
+  geoFence: {
+    safeThreshold: number;
+    dangerThreshold: number;
+  };
 }
