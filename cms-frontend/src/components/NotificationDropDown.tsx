@@ -1,29 +1,69 @@
-import { Notification } from './TopNav';
+import React from "react";
+import { useNotifications } from "../context/NotificationContext";
 
-interface Props {
-  notifications: Notification[];
-}
+const NotificationDropDown = ({
+  onNotificationClick,
+}: {
+  onNotificationClick?: (n: any) => void;
+}) => {
+  const { notifications, markRead, deleteNotification, clearAll, markAllRead } =
+    useNotifications();
 
-const NotificationDropDown = ({ notifications }: Props) => {
   return (
-    <div className="absolute z-30 p-3 rounded-lg right-0 mt-2 w-64 bg-gray-50 border border-gray-300 shadow-lg">
-      <h3 className="font-semibold text-gray-700">Notifications</h3>
-      <ul className="mt-2 max-h-60 overflow-y-auto">
-        {notifications.length === 0 && (
-          <li className="text-sm text-gray-500">No notifications</li>
-        )}
-        {notifications.map((notification, idx) => (
-          <li
-            key={idx}
-            className="p-1 hover:bg-gray-200 rounded text-sm text-gray-700"
+    <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+      <div className="flex justify-between items-center px-4 py-2 border-b">
+        <span className="font-bold">Notifications</span>
+        <div className="flex gap-2">
+          <button className="text-xs text-blue-600" onClick={markAllRead}>
+            Mark all read
+          </button>
+          <button className="text-xs text-red-600" onClick={clearAll}>
+            Clear all
+          </button>
+        </div>
+      </div>
+      {notifications.length === 0 ? (
+        <div className="p-4 text-gray-500">No notifications</div>
+      ) : (
+        notifications.map((n) => (
+          <div
+            key={n._id}
+            className={`px-4 py-2 border-b cursor-pointer ${
+              n.read ? "bg-white" : "bg-gray-200"
+            }`}
+            onClick={() => {
+              markRead(n._id);
+              if (onNotificationClick) onNotificationClick(n);
+            }}
           >
-            Cow {notification.deviceId} is <b>{notification.status}</b> <br />
-            <span className="text-xs text-gray-500">
-              {notification.timestamp}
-            </span>
-          </li>
-        ))}
-      </ul>
+            <div className="flex justify-between items-center">
+              <span className="font-semibold">Cattle {n.cattleId}</span>
+              <span
+                className={`text-xs ml-2 ${
+                  n.status === "unsafe" ? "text-red-500" : "text-yellow-600"
+                }`}
+              >
+                {n.status}
+              </span>
+            </div>
+            <div className="text-sm">{n.message}</div>
+            <div className="flex justify-between items-center mt-1">
+              <span className="text-xs text-gray-400">
+                {new Date(n.timestamp).toLocaleString()}
+              </span>
+              <button
+                className="text-xs text-red-500 hover:underline ml-2"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  deleteNotification(n._id);
+                }}
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        ))
+      )}
     </div>
   );
 };

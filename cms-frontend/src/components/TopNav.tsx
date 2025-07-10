@@ -1,11 +1,10 @@
-import { useContext, useState, useEffect, useRef } from 'react';
-import NotificationIcon from './NotificationIcon';
-import NotificationDropDown from './NotificationDropDown';
-import { FaCircleUser } from 'react-icons/fa6';
-import GlobalContext from '../context/GlobalContext';
-import { io } from 'socket.io-client';
-
-const socket = io('http://localhost:5010');
+import { useContext, useState, useEffect, useRef } from "react";
+import NotificationIcon from "./NotificationIcon";
+import NotificationDropDown from "./NotificationDropDown";
+import { FaCircleUser } from "react-icons/fa6";
+import GlobalContext from "../context/GlobalContext";
+import { useNotifications } from "../context/NotificationContext";
+import { useNavigate } from "react-router-dom";
 
 export interface Notification {
   deviceId: number;
@@ -21,9 +20,11 @@ export interface Notification {
 
 const TopNav = () => {
   const [isClicked, setIsClicked] = useState(false);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
   const notificationRef = useRef<HTMLDivElement>(null);
   const { selectedMenu } = useContext(GlobalContext);
+  const { notifications } = useNotifications();
+  const unreadCount = notifications.filter((n) => !n.read).length;
+  const navigate = useNavigate();
 
   // Handle outside click
   useEffect(() => {
@@ -36,26 +37,12 @@ const TopNav = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  // Listen to new notifications
-  useEffect(() => {
-    const handleNewNotification = (data: Notification) => {
-      console.log('New notification:', data);
-      setNotifications((prev) => [data, ...prev]);
-    };
-
-    socket.on('new_notification', handleNewNotification);
-
-    return () => {
-      socket.off('new_notification', handleNewNotification);
-    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
   return (
-    <div className="flex flex-row h-1/12 bg-white border-b-2 border-gray-200 justify-between items-center z-10">
+    <div className="flex flex-row h-1/12 bg-white border-b-2 border-gray-200 justify-between items-center z-50 relative">
       <h1 className="ml-7 font-stretch-110% font-bold text-2xl text-green-800">
         {selectedMenu}
       </h1>
@@ -65,8 +52,15 @@ const TopNav = () => {
           className="relative p-2 rounded-2xl"
           onClick={() => setIsClicked((prev) => !prev)}
         >
-          <NotificationIcon count={notifications.length} />
-          {isClicked && <NotificationDropDown notifications={notifications} />}
+          <NotificationIcon count={unreadCount} />
+          {isClicked && (
+            <NotificationDropDown
+              onNotificationClick={(n) => {
+                setIsClicked(false);
+                navigate(`/alerts/${n._id}`);
+              }}
+            />
+          )}
         </div>
         <FaCircleUser className="h-8 w-8 text-gray-800 hover:text-green-600" />
       </div>

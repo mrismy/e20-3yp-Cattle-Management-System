@@ -29,7 +29,7 @@ type UserDetailsFields = {
 };
 
 const Profile = () => {
-  const { auth, setAuth } = useContext(GlobalContext);
+  const { auth, setAuth, setSelectedMenu } = useContext(GlobalContext);
   const [isEditing, setIsEditing] = useState(false);
   const [activeTab, setActiveTab] = useState<"details" | "password">("details");
   const [message, setMessage] = useState<{
@@ -114,6 +114,10 @@ const Profile = () => {
       fetchUserDetails();
     }
   }, [auth.accessToken]);
+
+  useEffect(() => {
+    setSelectedMenu("Profile");
+  }, [setSelectedMenu]);
 
   const onPasswordSubmit: SubmitHandler<ChangePasswordFields> = async (
     data
