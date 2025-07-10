@@ -1,4 +1,5 @@
 export interface CattleData {
+  status: string;
   cattleId: string;
   deviceId: string | null;
   cattleName: string;

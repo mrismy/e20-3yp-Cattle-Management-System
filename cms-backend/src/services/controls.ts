@@ -50,6 +50,23 @@ export class CattleSensorData {
     const cattleHeartRateStatus = await this.isHeartRateSafe(sensor);
     const cattleTemperatureStatus = await this.isTemperatureSafe(sensor);
     const cattleLocationStatus = await this.cattleZoneType(sensor);
+
+    // Notification creation if danger detected
+    if (cattleHeartRateStatus === HeartRateStatus.Danger) {
+      await this.createAndEmitNotification(
+        sensor.deviceId,
+        `Cattle ${sensor.deviceId} has abnormal heart rate.`,
+        'DANGER'
+      );
+    }
+
+    if (cattleTemperatureStatus === TemperatureStatus.Danger) {
+      await this.createAndEmitNotification(
+        sensor.deviceId,
+        `Cattle ${sensor.deviceId} has abnormal temperature.`,
+        'DANGER'
+      );
+    }
     if (
       cattleHeartRateStatus === HeartRateStatus.Safe &&
       cattleTemperatureStatus === TemperatureStatus.Safe &&
@@ -132,8 +149,8 @@ export class CattleSensorData {
       } else if (zoneType === 'danger') {
         if (distance <= radius) {
           await this.createAndEmitNotification(
-            deviceId,
-            `Cattle ${deviceId} is inside a danger geofence.`,
+            latestSensorData.deviceId,
+            `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
             'DANGER'
           );
           return ZoneStatus.Danger;
@@ -147,8 +164,8 @@ export class CattleSensorData {
     if (isInSafe) return ZoneStatus.Safe;
 
     await this.createAndEmitNotification(
-      deviceId,
-      `Cattle ${deviceId} is outside all safe zones.`,
+      latestSensorData.deviceId,
+      `Cattle ${latestSensorData.deviceId} is outside all safe zones.`,
       'DANGER'
     );
     return ZoneStatus.Danger;
