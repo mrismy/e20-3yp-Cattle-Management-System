@@ -1,6 +1,5 @@
 import sensorData from '../../model/sensorData';
 import { mqttClient } from '../../services/mqttClient';
-import latestSensorData from '../../model/latestSensorData';
 import dayjs from 'dayjs';
 const express = require('express');
 import cattle from '../../model/cattle';
