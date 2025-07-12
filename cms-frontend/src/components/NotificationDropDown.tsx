@@ -10,7 +10,7 @@ const NotificationDropDown = ({
     useNotifications();
 
   return (
-    <div className="absolute right-0 mt-2 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-96 overflow-y-auto">
+    <div className="fixed right-10 top-20 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-96 overflow-y-auto">
       <div className="flex justify-between items-center px-4 py-2 border-b">
         <span className="font-bold">Notifications</span>
         <div className="flex gap-2">

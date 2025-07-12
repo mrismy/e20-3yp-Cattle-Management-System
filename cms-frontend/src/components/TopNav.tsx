@@ -42,7 +42,7 @@ const TopNav = () => {
   }, []);
 
   return (
-    <div className="flex flex-row h-1/12 bg-white border-b-2 border-gray-200 justify-between items-center z-50 relative">
+    <div className="flex flex-row h-1/12 bg-white border-b-2 border-gray-200 justify-between items-center z-[9999] relative">
       <h1 className="ml-7 font-stretch-110% font-bold text-2xl text-green-800">
         {selectedMenu}
       </h1>
