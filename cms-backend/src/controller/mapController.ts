@@ -34,17 +34,25 @@ module.exports.getAll = async (req: any, res: any) => {
       mergedSensorData.map(async (sensor) => {
         const deviceId = sensor.deviceId;
         const cattleInfo = cattleMap.get(deviceId);
+        console.log(sensor);
 
-        // const { status, action } = await CattleSensorData.checkSensors(
-        //   deviceId
-        // );
-
-        // const cattleStatus = await CattleSensorData.cattleZoneType(deviceId);
+        let locationStatus = 'UNKNOWN';
+        try {
+          if (
+            sensor &&
+            typeof sensor.gpsLocation?.latitude === 'number' &&
+            typeof sensor.gpsLocation?.longitude === 'number'
+          ) {
+            locationStatus = await CattleSensorData.cattleZoneType(sensor);
+          }
+        } catch (err) {
+          console.error(`Error determining zone for device ${deviceId}:`, err);
+        }
 
         return {
           ...sensor,
-          cattleId: cattleInfo ? cattleInfo.deviceId : null,
-          // cattleStatus,
+          cattleId: cattleInfo ? cattleInfo.cattleId : null,
+          locationStatus,
         };
       })
     );

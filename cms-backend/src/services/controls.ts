@@ -131,6 +131,8 @@ export class CattleSensorData {
     let isInSafe = false;
     let isInWarning = false;
 
+    let hasSafeZone = geoFences.some((zone) => zone.zoneType === 'safe');
+
     for (const geoFence of geoFences) {
       const { latitude, longitude, radius, zoneType } = geoFence;
       const distance = this.findDistance(
@@ -161,6 +163,8 @@ export class CattleSensorData {
             'WARNING'
           );
           isInWarning = true;
+        } else if (distance > radius) {
+          isInSafe = true;
         }
       }
     }
