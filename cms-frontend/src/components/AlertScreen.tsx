@@ -5,7 +5,7 @@ import { useParams } from "react-router-dom";
 import dayjs from "dayjs";
 
 const AlertScreen = () => {
-  const { notifications } = useNotifications();
+  const { notifications, markRead } = useNotifications();
   const { setSelectedMenu } = useContext(GlobalContext);
   const { id } = useParams();
   const rowRefs = useRef<{ [key: string]: HTMLTableRowElement | null }>({});
@@ -60,13 +60,18 @@ const AlertScreen = () => {
                 <tr
                   key={n._id}
                   ref={(el) => (rowRefs.current[n._id] = el)}
-                  className={
+                  onClick={() => {
+                    if (!n.read) {
+                      markRead(n._id);
+                    }
+                  }}
+                  className={`cursor-pointer transition-colors ${
                     id === n._id
                       ? "bg-green-50 hover:bg-green-100"
                       : n.read
                       ? "hover:bg-gray-50"
                       : "bg-gray-50 hover:bg-gray-100"
-                  }
+                  }`}
                 >
                   <td className="py-3 text-center text-sm font-medium text-gray-900">
                     {n.cattleId}
