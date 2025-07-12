@@ -155,6 +155,11 @@ export class CattleSensorData {
           );
           return ZoneStatus.Danger;
         } else if (distance <= radius + warningBuffer) {
+          await this.createAndEmitNotification(
+            latestSensorData.deviceId,
+            `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
+            'WARNING'
+          );
           isInWarning = true;
         }
       }

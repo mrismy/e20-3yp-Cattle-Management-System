@@ -62,7 +62,10 @@ const TopNav = () => {
             />
           )}
         </div>
-        <FaCircleUser className="h-8 w-8 text-gray-800 hover:text-green-600" />
+        <FaCircleUser
+          className="h-8 w-8 text-gray-800 hover:text-green-600"
+          onClick={() => navigate("/profile")}
+        />
       </div>
     </div>
   );
