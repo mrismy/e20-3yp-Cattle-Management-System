@@ -21,9 +21,6 @@
 #define GPS_UART_BAUD_RATE 9600 // Standard GPS baud rate
 #define BUF_SIZE (1024)
 
-// FreeRTOS task handles
-TaskHandle_t gps_task_handle = NULL;
-
 int settimeofday(const struct timeval *tv, const struct timezone *tz);
 #define DEVICE_ID 3
 // Data structure for sensor readings
@@ -38,6 +35,8 @@ typedef struct
 sensor_data_t shared_data;
 sensor_data_t copy;
 SemaphoreHandle_t data_mutex;
+
+uint8_t prev_ack_retry = -1;
 
 // STATE machines
 typedef enum
@@ -96,15 +95,18 @@ void setupTime();
 void configSyncTime(void *);
 void lora_peek_device_id(uint16_t *);
 void gps_task(void *);
+bool lora_new_rety_req(void);
 
 bool sync_status = false;
 
 void configSyncTime(void *pvParam)
 {
     uint8_t rx_buffer[256];
+    uint8_t dummy_buffer[256];
     uint32_t unix;
     uint16_t alloc_time;
     uint8_t retry_count;
+    uint8_t prev_retry_count = -1;
     uint8_t *sync_status_mask;
     uint8_t mode;
 
@@ -129,21 +131,26 @@ void configSyncTime(void *pvParam)
         retry_count = rx_buffer[11];
         sync_status_mask = &rx_buffer[12];
 
-        ESP_LOGI("TIME_CONFIG", "UNIX: %d ALLOC_TIME: %d RETRY: %d", (int)unix, (int)alloc_time, (int)retry_count);
+        if (prev_retry_count == retry_count)
+        {
+            // New data has not yet arrived
+            ESP_LOGI("TIME_CONFIG", "UNIX: %d ALLOC_TIME: %d RETRY: %d", (int)unix, (int)alloc_time, (int)retry_count);
+            vTaskDelay(pdMS_TO_TICKS(5));
+            continue;
+        }
+
+        uint8_t byteMask = DEVICE_ID / 8;
+        uint8_t bitMask = DEVICE_ID % 8;
+
+        sync_status = ((sync_status_mask[byteMask] & (1 << bitMask)) != 0);
+        ESP_LOGI("SYNC", "sync_status_mask[1] = %x", sync_status_mask[byteMask]);
+        ESP_LOGI("SYNC", "Device %d status: %s", DEVICE_ID, sync_status ? "SYNCED" : "UNSYNCED");
 
         // If device is not synced
         if (!sync_status)
         {
             ESP_LOGI("TIME CONFIG", "current time: %d, allocated time: %d", (int)unix, (int)alloc_time * DEVICE_ID);
 
-            uint8_t byteMask = DEVICE_ID / 8;
-            uint8_t bitMask = DEVICE_ID % 8;
-
-            sync_status = ((sync_status_mask[byteMask] & (1 << bitMask)) != 0);
-            ESP_LOGI("SYNC", "sync_status_mask[1] = %x", sync_status_mask[byteMask]);
-            ESP_LOGI("SYNC", "Device %d status: %s",
-                     DEVICE_ID,
-                     sync_status ? "SYNCED" : "UNSYNCED");
             if (unix > 0)
             {
                 setupTime(unix);
@@ -152,8 +159,8 @@ void configSyncTime(void *pvParam)
                 lora_send_packet((uint8_t *)&ack, sizeof(ack));
                 ESP_LOGI("TIME_CONFIG", "Ack sent");
             }
-
-            vTaskDelay(pdMS_TO_TICKS(200));
+            prev_retry_count = retry_count;
+            vTaskDelay(pdMS_TO_TICKS(20));
             lora_peek_header(&mode, 1);
         }
         else
@@ -169,6 +176,7 @@ void configSyncTime(void *pvParam)
 
 void read_sensors_task(void *pvParam)
 {
+
     while (1)
     {
         uint8_t rx_buffer[256];
@@ -177,27 +185,40 @@ void read_sensors_task(void *pvParam)
 
         int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
         device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
-        ack_status_mask = &rx_buffer[3];
+        ack_status_mask = &rx_buffer[4];
 
         uint8_t byteMask = DEVICE_ID / 8;
         uint8_t bitMask = DEVICE_ID % 8;
+
+        ESP_LOG_BUFFER_HEXDUMP("SENSOR_MODE", rx_buffer, bytes_received, ESP_LOG_INFO);
 
         if (device_Id == DEVICE_ID)
         {
             if ((ack_status_mask[byteMask] & (1 << bitMask)) != 0)
             {
                 ESP_LOGI("SENSOR_MODE", "Device data is already Acked by RX Station");
-                ESP_LOGI("TIME_CONFIG", "Going to deep sleep");
-                esp_sleep_enable_timer_wakeup((180 * 1000000) - (36 * (DEVICE_ID) * 1000000));
+                ESP_LOGI("SENSOR_MODE", "Going to deep sleep");
+                uint64_t sleep_us = (180 - 36 * DEVICE_ID) * 1000000;
+                esp_sleep_enable_timer_wakeup(sleep_us);
+                vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
                 esp_deep_sleep_start();
-                vTaskSuspend(NULL);
             }
             else
             {
                 ESP_LOGI("SENSOR_MODE", "Device data is not Acked.");
                 xTaskCreate(lora_send_task, "LoRa_Task", 4 * 1024, NULL, 24, NULL);
-                vTaskSuspend(NULL);
+                tasks_handle.read_sensor_handle = NULL;
+                vTaskDelete(NULL);
             }
+        }
+        else if (device_Id > DEVICE_ID)
+        {
+            ESP_LOGI("SENSOR_MODE", "Device data allocated time is over");
+            ESP_LOGI("SENSOR_MODE", "Going to deep sleep");
+            uint64_t sleep_us = (180 - 36 * (DEVICE_ID + 0.5)) * 1000000;
+            esp_sleep_enable_timer_wakeup(sleep_us);
+            vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
+            esp_deep_sleep_start();
         }
 
         ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
@@ -222,12 +243,12 @@ void read_sensors_task(void *pvParam)
         if (tasks_handle.gps_handle != NULL)
         {
             vTaskResume(tasks_handle.gps_handle);
-        } else
-        {
-            xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, &gps_task_handle);
         }
-        
-        
+        else
+        {
+            xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, &tasks_handle.gps_handle);
+        }
+
         vTaskDelay(pdMS_TO_TICKS(5000)); // Let the sensor get the reading for 10 secs
 
         do
@@ -248,7 +269,8 @@ void read_sensors_task(void *pvParam)
         xTaskNotifyGive(tasks_handle.gps_handle);
 
         vTaskDelay(pdMS_TO_TICKS(20));
-        vTaskSuspend(NULL);
+        tasks_handle.read_sensor_handle = NULL;
+        vTaskDelete(NULL);
     }
 }
 
@@ -290,14 +312,17 @@ void gps_task(void *pvParameters)
 
     uint8_t *data = (uint8_t *)malloc(BUF_SIZE);
     int newdata = 0;
-
+    ESP_LOGI("SENSOR_MODE", "Obtaining current location from GPS....");
     while (1)
     {
-        if (ulTaskNotifyTake(pdTRUE, pdMS_TO_TICKS(100)))
-        {
-            // ESP_LOGI("SENSOR_MODE", "Suspend Heart Rate Sensor");
-            vTaskSuspend(NULL);
-        }
+        // if (ulTaskNotifyTake(pdTRUE, portMAX_DELAY))
+        // {
+        //     uart_flush(GPS_UART_NUM);
+        //     if (data)
+        //         free(data);
+        //     ESP_ERROR_CHECK(uart_driver_delete(GPS_UART_NUM));
+        //     vTaskDelete(NULL);
+        // }
         // Read data from UART
         int len = uart_read_bytes(GPS_UART_NUM, data, BUF_SIZE, 20 / portTICK_PERIOD_MS);
         if (len > 0)
@@ -314,7 +339,7 @@ void gps_task(void *pvParameters)
                 float flat, flon;
                 unsigned long age;
                 gps_f_get_position(&flat, &flon, &age);
-                xSemaphoreTake(data_mutex,portMAX_DELAY);
+                xSemaphoreTake(data_mutex, portMAX_DELAY);
                 shared_data.lon = flon;
                 shared_data.lat = flat;
                 xSemaphoreGive(data_mutex);
@@ -324,9 +349,6 @@ void gps_task(void *pvParameters)
 
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
-
-    free(data);
-    vTaskDelete(NULL);
 }
 
 void read_heartrate_task(void *pvParameters)
@@ -396,6 +418,7 @@ void read_heartrate_task(void *pvParameters)
             xSemaphoreTake(data_mutex, pdMS_TO_TICKS(10));
             shared_data.heart_rate = beatAvg;
             xSemaphoreGive(data_mutex);
+            ESP_LOGI("HEART_RATE", "Heart Rate %d", beatAvg);
             last_beatAvg = beatAvg;
         }
         // printf("Heart Rate: %d Temp: %.2f\n", shared_data.heart_rate, shared_data.temperature);
@@ -429,7 +452,7 @@ void lora_receive_task(void *pvParameters)
                 break;
 
             case 0xB0: // Read sensor task
-                if (((int)deviceId == DEVICE_ID - 1) || ((int)deviceId == DEVICE_ID))
+                if ((((int)deviceId == DEVICE_ID - 1) || ((int)deviceId == DEVICE_ID)) && lora_new_rety_req())
                 {
                     if (tasks_handle.read_sensor_handle != NULL)
                     {
@@ -478,6 +501,8 @@ void lora_send_task(void *pvParameters)
         ESP_LOGE("LORA", "JSON creation failed!");
     }
 
+    // Provide some time to the RX station to reply
+    vTaskDelay(pdMS_TO_TICKS(20));
     xTaskCreate(lora_receive_task, "lora_rx", 4096, NULL, 24, NULL);
     vTaskDelete(NULL);
 }
@@ -504,6 +529,7 @@ void read_temp_task(void *pvParameter)
             shared_data.temperature = temp;
             xSemaphoreGive(data_mutex);
             temperature = temp;
+            // ESP_LOGI("SENSOR_MODE","Temperature: %0.2f ",temp);
         }
         vTaskDelay(pdMS_TO_TICKS(10));
     }
@@ -515,6 +541,20 @@ void lora_peek_device_id(uint16_t *deviceId)
     lora_peek_header((uint8_t *)&payload, 3); // read the first 3 bytes without consuming
     *deviceId = (payload >> 8) & 0xFFFF;
     ;
+}
+
+bool lora_new_rety_req()
+{
+    uint32_t payload;
+    uint8_t curr_retry;
+    lora_peek_header((uint8_t *)&payload, 4);
+    curr_retry = (payload >> 24) & 0xFF;
+    if (curr_retry != prev_ack_retry)
+    {
+        prev_ack_retry = curr_retry;
+        return true;
+    }
+    return false;
 }
 
 void app_main(void *pvParamaters)
@@ -544,7 +584,7 @@ void app_main(void *pvParamaters)
     // xTaskCreate(read_heartrate_task, "HeartRate_Task", 4096, NULL, 2, NULL);
     // xTaskCreate(lora_send_task, "LoRa_Task", 4096, NULL, 1, NULL);
     xTaskCreate(lora_receive_task, "lora_rx", 4096, NULL, 24, NULL);
-    // xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, &gps_task_handle);
+    // xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, tasks_handle.gps_handle);
 
     ESP_LOGI("ESP32", "Tasks created, system running");
 }
@@ -576,8 +616,8 @@ void createJsonDoc(char **jsonStr)
     snprintf(dev_id, sizeof(dev_id), "%d", id);
     snprintf(temp_str, sizeof(temp_str), "%.2f", temp);
     snprintf(hr_str, sizeof(hr_str), "%d", hr);
-    snprintf(lat_str, sizeof(lat_str), "%.2f", lat);
-    snprintf(lon_str, sizeof(lon_str), "%.2f", lon);
+    snprintf(lat_str, sizeof(lat_str), "%.5f", lat);
+    snprintf(lon_str, sizeof(lon_str), "%.5f", lon);
 
     // Add strings to JSON (not numbers)
     cJSON_AddStringToObject(doc, "i", dev_id);

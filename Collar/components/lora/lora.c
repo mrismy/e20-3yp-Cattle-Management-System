@@ -14,7 +14,7 @@
 #define CONFIG_MISO_GPIO 19 // Replace 19 with the correct GPIO pin number
 #define CONFIG_MOSI_GPIO 23 // Replace 23 with the correct GPIO pin number
 #define CONFIG_CS_GPIO 14 // Replace 5 with the correct GPIO pin number
-#define CONFIG_RST_GPIO 4 // Replace 18 with the correct GPIO pin number
+#define CONFIG_RST_GPIO 5 // Replace 18 with the correct GPIO pin number
 #define CONFIG_SCK_GPIO 18 // Replace 18 with the correct GPIO pin number
 
 /*

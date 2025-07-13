@@ -15,7 +15,7 @@
 #include <stdio.h>
 #include "max30102.h"
 #include <string.h>
-#include "uart_max30102.h"
+// #include "uart_max30102.h"
 #define I2C_PORT I2C_NUM_0
 
 Message msg;
@@ -53,7 +53,7 @@ esp_err_t max30102_init(max30102_t *this, i2c_port_t i2c_num)
     if(ret != ESP_OK) return ret;
     ret = max30102_set_high_res(this, MAX30102_ADC_RANGE_4096);
     if(ret != ESP_OK) return ret;
-    ret = max30102_set_led_current(this, MAX30102_LED_CURRENT_4_4MA, MAX30102_LED_CURRENT_7_6MA);
+    ret = max30102_set_led_current(this, MAX30102_LED_CURRENT_11MA, MAX30102_LED_CURRENT_11MA);
     if(ret != ESP_OK) return ret;
 
     return ret;
