@@ -49,7 +49,11 @@ const NotificationDropDown = ({
             <div className="text-sm">{n.message}</div>
             <div className="flex justify-between items-center mt-1">
               <span className="text-xs text-gray-400">
-                {new Date(n.timestamp).toLocaleString()}
+                {new Date(n.timestamp).toLocaleDateString()}{" "}
+                {new Date(n.timestamp).toLocaleTimeString([], {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                })}
               </span>
               <button
                 className="text-xs text-red-500 hover:underline ml-2"

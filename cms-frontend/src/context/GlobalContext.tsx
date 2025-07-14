@@ -8,6 +8,8 @@ type AuthType = {
   firstName: string;
   lastName: string;
   address: string;
+  role: "admin" | "user";
+  userId: string;
 };
 
 interface GlobalContextType {
@@ -35,11 +37,13 @@ const GlobalContext = React.createContext<GlobalContextType>({
     firstName: "",
     lastName: "",
     address: "",
+    role: "user",
+    userId: "",
   },
   setAuth: () => {},
-  cattleList_selectedOption: '',
+  cattleList_selectedOption: "",
   setCattlelist_selectedOption: () => {},
-  selectedMenu: '',
+  selectedMenu: "",
   setSelectedMenu: () => {},
 });
 

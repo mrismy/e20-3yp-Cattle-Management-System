@@ -9,6 +9,9 @@ interface UserInterface {
   password: string;
   refreshToken: string;
   address: string;
+  role: 'admin' | 'user';
+  createdAt?: Date;
+  updatedAt?: Date;
 }
 
 interface UserModelInterface extends mongoose.Model<UserInterface> {
@@ -42,7 +45,13 @@ const userSchema = new mongoose.Schema<UserInterface, UserModelInterface>({
     type: String,
     required: [true, 'Please enter your address'],
   },
-});
+  role: {
+    type: String,
+    enum: ['admin', 'user'],
+    default: 'user',
+    required: true,
+  },
+}, { timestamps: true });
 
 const User = mongoose.model<UserInterface, UserModelInterface>(
   'User',
