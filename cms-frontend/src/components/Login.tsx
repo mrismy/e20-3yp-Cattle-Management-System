@@ -31,40 +31,50 @@ const Login = () => {
       firstName: "",
       lastName: "",
       address: "",
+      role: "user",
+      userId: "",
     });
   };
 
   const onSubmit: SubmitHandler<FormFields> = async (data) => {
     try {
-      const respone = await login(data);
-      const accessToken = respone.data.accessToken;
-      console.log(accessToken);
+      const response = await login(data);
+      const { accessToken, user } = response.data;
+      console.log("Login response:", response.data);
       setAuth({
         email: data.email,
         password: data.password,
         accessToken: accessToken,
-        firstName: "",
-        lastName: "",
-        address: "",
+        firstName: user.firstName,
+        lastName: user.lastName,
+        address: user.address,
+        role: user.role,
+        userId: user.id,
       });
-      console.log("Login successful", respone.data.accessToken);
+      console.log("Login successful", response.data.accessToken);
       navigate("/dashboard");
     } catch (error) {
-      console.error("Error during signup:", error);
+      console.error("Error during login:", error);
       if (axios.isAxiosError(error)) {
-        console.log("Axios error:", error.response?.data);
-        if (error.response?.data?.errors.email) {
+        console.log("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+        if (error.response?.data?.errors?.email) {
           setError("email", {
-            message: error.response?.data?.errors.email,
+            message: error.response?.data?.errors?.email,
           });
-        } else if (error.response?.data?.errors.password) {
+        } else if (error.response?.data?.errors?.password) {
           setError("password", {
-            message: error.response?.data?.errors.password,
+            message: error.response?.data?.errors?.password,
           });
         } else {
           setError("root", {
             message:
-              error.response?.data.message || "An unknown error occurred.",
+              error.response?.data?.message ||
+              error.response?.data ||
+              "An unknown error occurred.",
           });
         }
       } else {
@@ -139,15 +149,8 @@ const Login = () => {
             </div>
             <div className="flex flex-row mt-3 ml-1 items-center space-x-4">
               <p className="text-md text-gray-500">
-                Don't you have an account?
+                Contact your administrator for account access
               </p>
-              <button
-                onClick={() => navigate("/signup")}
-                className="text-md text-violet-400 hover:text-violet-700 hover:scale-[1.02]"
-              >
-                Sign up here
-              </button>
-              <Link to="/signup"></Link>
             </div>
             {/* <div className="mt-5">
               <Divider>Or</Divider>

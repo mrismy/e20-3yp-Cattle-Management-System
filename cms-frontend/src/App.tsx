@@ -11,7 +11,6 @@ import {
 } from "react-router-dom";
 import ContextWrapper from "./context/ContextWrapper";
 import Login from "./components/Login";
-import Signup from "./components/Signup";
 import RequireAuth from "./components/RequireAuth";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -25,6 +24,20 @@ import CattleCard from "./components/Livestock/CattleCard";
 import DeleteConformation from "./components/Livestock/DeleteConformation";
 import { NotificationProvider } from "./context/NotificationContext";
 import AlertScreen from "./components/AlertScreen";
+import UserManagement from "./components/UserManagement";
+import { useContext } from "react";
+import GlobalContext from "./context/GlobalContext";
+
+// Role-based route component
+const RequireAdmin = () => {
+  const { auth } = useContext(GlobalContext);
+
+  if (auth.role !== "admin") {
+    return <Navigate to="/dashboard" replace />;
+  }
+
+  return <Outlet />;
+};
 
 function App() {
   return (
@@ -35,15 +48,16 @@ function App() {
             <div className="flex w-full h-screen">
               <Routes>
                 <Route path="/login" element={<Login />} />
-                <Route path="/signup" element={<Signup />} />
 
                 <Route
                   element={
                     <>
-                      <Nav />
-                      <div className="flex flex-col w-6/7 bg-gray-100">
+                      <div className="fixed left-0 top-0 h-full z-20">
+                        <Nav />
+                      </div>
+                      <div className="flex flex-col w-full ml-64 bg-gray-100">
                         <TopNav />
-                        <div className="h-11/12 relative">
+                        <div className="h-11/12 relative overflow-auto">
                           <Outlet />
                         </div>
                       </div>
@@ -70,6 +84,14 @@ function App() {
                     <Route path="/settings" element={<Settings />} />
                     <Route path="/alerts" element={<AlertScreen />} />
                     <Route path="/alerts/:id" element={<AlertScreen />} />
+
+                    {/* Admin-only routes */}
+                    <Route element={<RequireAdmin />}>
+                      <Route
+                        path="/user-management"
+                        element={<UserManagement />}
+                      />
+                    </Route>
                   </Route>
                 </Route>
 
