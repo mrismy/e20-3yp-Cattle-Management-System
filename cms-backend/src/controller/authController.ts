@@ -48,7 +48,7 @@ export const login = async (req: Request, res: Response, next: unknown) => {
       throw new Error('JWT secrets are not configured');
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
     console.log('User found:', user ? 'Yes' : 'No');
     
     if (!user) return res.status(400).json({ message: 'User not found' });
@@ -112,7 +112,7 @@ export const createUser = async (req: Request, res: Response) => {
     const newUser = new User({
       firstName,
       lastName,
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
       address,
       role,
@@ -285,8 +285,8 @@ export const updateUserDetails = async (req: Request, res: Response) => {
     }
 
     // Check if email is being changed and if it's already in use
-    if (email !== user.email) {
-      const existingUser = await User.findOne({ email });
+    if (email.toLowerCase() !== user.email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
       if (existingUser) {
         return res.status(400).json({ message: 'Email already in use' });
       }
@@ -295,7 +295,7 @@ export const updateUserDetails = async (req: Request, res: Response) => {
     // Update user details
     user.firstName = firstName;
     user.lastName = lastName;
-    user.email = email;
+    user.email = email.toLowerCase();
     user.address = address;
 
     await user.save();
@@ -318,8 +318,8 @@ export const updateUserByAdmin = async (req: Request, res: Response) => {
     }
 
     // Check if email is being changed and if it's already in use by another user
-    if (email !== user.email) {
-      const existingUser = await User.findOne({ email });
+    if (email.toLowerCase() !== user.email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
       if (existingUser) {
         return res.status(400).json({ message: 'Email already in use' });
       }
@@ -328,7 +328,7 @@ export const updateUserByAdmin = async (req: Request, res: Response) => {
     // Update user details
     user.firstName = firstName;
     user.lastName = lastName;
-    user.email = email;
+    user.email = email.toLowerCase();
     user.address = address;
     user.role = role;
 
