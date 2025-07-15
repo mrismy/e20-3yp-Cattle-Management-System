@@ -13,6 +13,8 @@
 #include "esp_timer.h"
 #include <sys/time.h>
 #include "tinygps.h"
+#include "nvs_flash.h"
+#include "nvs.h"
 
 // GPS Configuration
 #define GPS_UART_NUM UART_NUM_2
@@ -22,7 +24,7 @@
 #define BUF_SIZE (1024)
 
 int settimeofday(const struct timeval *tv, const struct timezone *tz);
-#define DEVICE_ID 3
+#define DEVICE_ID 30
 // Data structure for sensor readings
 typedef struct
 {
@@ -37,6 +39,13 @@ sensor_data_t copy;
 SemaphoreHandle_t data_mutex;
 
 uint8_t prev_ack_retry = -1;
+uint8_t before_me = 0xFF;
+uint8_t my_position;
+bool before_me_saved = false;
+bool sentOnce = false;
+
+uint16_t alloc_time;
+uint16_t time_interval;
 
 // STATE machines
 typedef enum
@@ -96,6 +105,8 @@ void configSyncTime(void *);
 void lora_peek_device_id(uint16_t *);
 void gps_task(void *);
 bool lora_new_rety_req(void);
+void get_my_slot(uint8_t *, int, uint8_t *, uint8_t *);
+void load_before_me(uint8_t *, uint16_t *, uint16_t *, uint8_t *);
 
 bool sync_status = false;
 
@@ -104,7 +115,6 @@ void configSyncTime(void *pvParam)
     uint8_t rx_buffer[256];
     uint8_t dummy_buffer[256];
     uint32_t unix;
-    uint16_t alloc_time;
     uint8_t retry_count;
     uint8_t prev_retry_count = -1;
     uint8_t *sync_status_mask;
@@ -123,18 +133,20 @@ void configSyncTime(void *pvParam)
         // Receive packet with timeout (non-blocking alternative available)
         int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer)); // Leave space for null terminator
 
-        ESP_LOGI("TIME_CONFIG", "Received buffer size: %d", bytes_received);
+        // ESP_LOGI("TIME_CONFIG", "Received buffer size: %d", bytes_received);
         ESP_LOG_BUFFER_HEXDUMP("RX", rx_buffer, bytes_received, ESP_LOG_INFO);
         // memcpy(&unix, rx_buffer, 4);
         unix = rx_buffer[1] | (rx_buffer[2] << 8) | (rx_buffer[3] << 16) | (rx_buffer[4] << 24);
         alloc_time = rx_buffer[9] | (rx_buffer[10] << 8);
-        retry_count = rx_buffer[11];
-        sync_status_mask = &rx_buffer[12];
+        time_interval = rx_buffer[11] | (rx_buffer[12] << 8);
+        retry_count = rx_buffer[13];
+        sync_status_mask = &rx_buffer[14];
+        int len_sync_status = bytes_received - 14; // Sync_status_mask starts at 12th byte
 
         if (prev_retry_count == retry_count)
         {
             // New data has not yet arrived
-            ESP_LOGI("TIME_CONFIG", "UNIX: %d ALLOC_TIME: %d RETRY: %d", (int)unix, (int)alloc_time, (int)retry_count);
+            // ESP_LOGI("TIME_CONFIG", "UNIX: %d ALLOC_TIME: %d RETRY: %d", (int)unix, (int)alloc_time, (int)retry_count);
             vTaskDelay(pdMS_TO_TICKS(5));
             continue;
         }
@@ -149,7 +161,7 @@ void configSyncTime(void *pvParam)
         // If device is not synced
         if (!sync_status)
         {
-            ESP_LOGI("TIME CONFIG", "current time: %d, allocated time: %d", (int)unix, (int)alloc_time * DEVICE_ID);
+            ESP_LOGI("TIME CONFIG", "current time: %d, time interval, %d, allocated time: %d", (int)unix, (int)time_interval, (int)alloc_time);
 
             if (unix > 0)
             {
@@ -163,12 +175,47 @@ void configSyncTime(void *pvParam)
             vTaskDelay(pdMS_TO_TICKS(20));
             lora_peek_header(&mode, 1);
         }
-        else
+        else if (retry_count < 4)
         {
             ESP_LOGI("TIME_CONFIG", "Already Acked");
+        }
+        else
+        {
             ESP_LOGI("TIME_CONFIG", "Going to deep sleep");
-            esp_sleep_enable_timer_wakeup(alloc_time * (DEVICE_ID - 2) * 1000000);
-            esp_deep_sleep_start();
+            get_my_slot(sync_status_mask, len_sync_status, &before_me, &my_position);
+            ESP_LOGI("TIME CONFIG", "Device Id: %d , my position: %d and before me: %d", DEVICE_ID, (int)my_position, (int)before_me);
+
+            if (!before_me_saved)
+            {
+                nvs_handle_t sync_nvs;
+                esp_err_t err = nvs_open("sync_info", NVS_READWRITE, &sync_nvs);
+                if (err == ESP_OK)
+                {
+                    err |= nvs_set_u8(sync_nvs, "before_me", before_me);
+
+                    err |= nvs_set_u16(sync_nvs, "alloc_time", alloc_time);
+
+                    err |= nvs_set_u16(sync_nvs, "time_interval", time_interval);
+
+                    err |= nvs_set_u8(sync_nvs, "my_position", my_position);
+                    if (err == ESP_OK)
+                    {
+                        nvs_commit(sync_nvs);
+                        ESP_LOGI("NVS", "Saved before_me = %d, Allocated_time = %d, Time_Interval = %d, my_position = %d", before_me, alloc_time, time_interval, my_position);
+                    }
+                    else
+                    {
+                        ESP_LOGE("NVS", "Failed to write some keys");
+                    }
+                    nvs_close(sync_nvs);
+                }
+            }
+
+            if (my_position > 2)
+            {
+                esp_sleep_enable_timer_wakeup((alloc_time - 5) * (my_position - 2) * 1000000);
+                esp_deep_sleep_start();
+            }
         }
         lora_receive(); // Listen to next packet
     }
@@ -176,6 +223,40 @@ void configSyncTime(void *pvParam)
 
 void read_sensors_task(void *pvParam)
 {
+    if (!sentOnce)
+    {
+        // Heart Rate
+        if (tasks_handle.heart_rate_handle != NULL)
+        {
+            vTaskResume(tasks_handle.heart_rate_handle);
+        }
+        else
+        {
+            xTaskCreate(read_heartrate_task, "heart_rate", 4096, NULL, 24, &tasks_handle.heart_rate_handle);
+        }
+
+        // Temperature Sensor
+        if (tasks_handle.temp_handle != NULL)
+        {
+            vTaskResume(tasks_handle.temp_handle);
+        }
+        else
+        {
+            xTaskCreate(read_temp_task, "temp", 2048, NULL, 24, &tasks_handle.temp_handle);
+        }
+
+        // GPS
+        if (tasks_handle.gps_handle != NULL)
+        {
+            vTaskResume(tasks_handle.gps_handle);
+        }
+        else
+        {
+            xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, &tasks_handle.gps_handle);
+        }
+
+        vTaskDelay(pdMS_TO_TICKS(5000)); // Let the sensor get the reading for 10 secs
+    }
 
     while (1)
     {
@@ -187,90 +268,69 @@ void read_sensors_task(void *pvParam)
         device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
         ack_status_mask = &rx_buffer[4];
 
-        uint8_t byteMask = DEVICE_ID / 8;
-        uint8_t bitMask = DEVICE_ID % 8;
-
+        // ESP_LOGI("SENSOR_MODE", "Bytes rcvd: %d", bytes_received);
         ESP_LOG_BUFFER_HEXDUMP("SENSOR_MODE", rx_buffer, bytes_received, ESP_LOG_INFO);
 
-        if (device_Id == DEVICE_ID)
-        {
-            if ((ack_status_mask[byteMask] & (1 << bitMask)) != 0)
-            {
-                ESP_LOGI("SENSOR_MODE", "Device data is already Acked by RX Station");
-                ESP_LOGI("SENSOR_MODE", "Going to deep sleep");
-                uint64_t sleep_us = (180 - 36 * DEVICE_ID) * 1000000;
-                esp_sleep_enable_timer_wakeup(sleep_us);
-                vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
-                esp_deep_sleep_start();
-            }
-            else
-            {
-                ESP_LOGI("SENSOR_MODE", "Device data is not Acked.");
-                xTaskCreate(lora_send_task, "LoRa_Task", 4 * 1024, NULL, 24, NULL);
-                tasks_handle.read_sensor_handle = NULL;
-                vTaskDelete(NULL);
-            }
-        }
-        else if (device_Id > DEVICE_ID)
-        {
-            ESP_LOGI("SENSOR_MODE", "Device data allocated time is over");
-            ESP_LOGI("SENSOR_MODE", "Going to deep sleep");
-            uint64_t sleep_us = (180 - 36 * (DEVICE_ID + 0.5)) * 1000000;
-            esp_sleep_enable_timer_wakeup(sleep_us);
-            vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
-            esp_deep_sleep_start();
-        }
-
-        ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
-
-        if (tasks_handle.heart_rate_handle != NULL)
-        {
-            vTaskResume(tasks_handle.heart_rate_handle);
-        }
-        else
-        {
-            xTaskCreate(read_heartrate_task, "heart_rate", 4096, NULL, 24, &tasks_handle.heart_rate_handle);
-        }
-
-        if (tasks_handle.temp_handle != NULL)
-        {
-            vTaskResume(tasks_handle.temp_handle);
-        }
-        else
-        {
-            xTaskCreate(read_temp_task, "temp", 2048, NULL, 24, &tasks_handle.temp_handle);
-        }
-        if (tasks_handle.gps_handle != NULL)
-        {
-            vTaskResume(tasks_handle.gps_handle);
-        }
-        else
-        {
-            xTaskCreate(gps_task, "gps_task", 4096, NULL, 23, &tasks_handle.gps_handle);
-        }
-
-        vTaskDelay(pdMS_TO_TICKS(5000)); // Let the sensor get the reading for 10 secs
-
-        do
+        if (device_Id > 255 || device_Id < DEVICE_ID || bytes_received == 0)
         {
             lora_receive();
-            bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer));
-            device_Id = rx_buffer[1] | (rx_buffer[2] << 8);
-            vTaskDelay(pdMS_TO_TICKS(10));
-        } while (device_Id < DEVICE_ID);
+            vTaskDelay(pdMS_TO_TICKS(10)); // Small delay to prevent CPU hogging
+            continue;                      // Out of range & still not requesting from current device
+        }
+
+        uint8_t byteMask = DEVICE_ID / 8;
+        uint8_t bitMask = DEVICE_ID % 8;
 
         ESP_LOGI("SENSOR_MODE", "Current request Id: %d", (int)device_Id);
         ESP_LOGI("SENSOR_MODE", "Heart Rate: %d Temperature: %.2f", shared_data.heart_rate, shared_data.temperature);
 
-        xTaskCreate(lora_send_task, "LoRa_Task", 4 * 1024, NULL, 24, NULL);
+        if (!sentOnce)
+        {
+            xTaskCreate(lora_send_task, "LoRa_Task", 4 * 1024, NULL, 24, NULL);
+            sentOnce = true;
 
-        xTaskNotifyGive(tasks_handle.temp_handle);
-        xTaskNotifyGive(tasks_handle.heart_rate_handle);
-        xTaskNotifyGive(tasks_handle.gps_handle);
+            xTaskNotifyGive(tasks_handle.temp_handle);
+            xTaskNotifyGive(tasks_handle.heart_rate_handle);
+            xTaskNotifyGive(tasks_handle.gps_handle);
 
-        vTaskDelay(pdMS_TO_TICKS(20));
-        tasks_handle.read_sensor_handle = NULL;
-        vTaskDelete(NULL);
+            vTaskDelay(pdMS_TO_TICKS(20));
+            tasks_handle.read_sensor_handle = NULL;
+            vTaskDelete(NULL);
+        }
+        else
+        {
+            if (device_Id == DEVICE_ID)
+            {
+                if ((ack_status_mask[byteMask] & (1 << bitMask)) != 0)
+                {
+                    max30102Sensor_shutdown();
+                    ESP_LOGI("SENSOR_MODE", "Device data is already Acked by RX Station");
+                    ESP_LOGI("SENSOR_MODE", "Going to deep sleep");
+                    ESP_LOGI("SENSOR_MODE1", "my_position = %d, Allocated_time = %d, Time_Interval = %d", my_position, alloc_time, time_interval);
+                    uint64_t sleep_us = (time_interval - alloc_time * (my_position + 1)) * 1000000;
+                    int sleeping = (time_interval - alloc_time * (my_position + 1));
+                    ESP_LOGI("SENSOR_MODE", "Going to sleep for %d s", sleeping);
+                    esp_sleep_enable_timer_wakeup(sleep_us);
+                    vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
+                    esp_deep_sleep_start();
+                }
+                else
+                {
+                    ESP_LOGI("SENSOR_MODE", "Device data is not Acked.");
+                    xTaskCreate(lora_send_task, "LoRa_Task", 4 * 1024, NULL, 24, NULL);
+                    tasks_handle.read_sensor_handle = NULL;
+                    vTaskDelete(NULL);
+                }
+            }
+
+            vTaskDelay(pdMS_TO_TICKS(20));
+            tasks_handle.read_sensor_handle = NULL;
+            vTaskDelete(NULL);
+        }
+
+        // xTaskNotifyGive(tasks_handle.temp_handle);
+        // xTaskNotifyGive(tasks_handle.heart_rate_handle);
+        // xTaskNotifyGive(tasks_handle.gps_handle);
     }
 }
 
@@ -452,20 +512,35 @@ void lora_receive_task(void *pvParameters)
                 break;
 
             case 0xB0: // Read sensor task
-                if ((((int)deviceId == DEVICE_ID - 1) || ((int)deviceId == DEVICE_ID)) && lora_new_rety_req())
+            {
+                if (((int)deviceId == (int)before_me) ||
+                    (((int)deviceId == DEVICE_ID) && lora_new_rety_req()))
                 {
                     if (tasks_handle.read_sensor_handle != NULL)
                     {
-                        vTaskResume(tasks_handle.read_sensor_handle);
+                        tasks_handle.read_sensor_handle = NULL;
                     }
-                    else
-                    {
-                        xTaskCreate(read_sensors_task, "read_sensor", 4096, NULL, 24, &tasks_handle.read_sensor_handle);
-                    }
-                    ESP_LOGI("RX_MODE", "Changing to Sensor read mode....");
+
+                    xTaskCreate(read_sensors_task, "read_sensor", 4096, NULL, 24, &tasks_handle.read_sensor_handle);
+
+                    ESP_LOGI("RX_MODE", "Changing to Sensor read mode.... Requesting from %d", (int)deviceId);
                     vTaskDelete(NULL);
                 }
-                break;
+                else if ((int)deviceId > DEVICE_ID)
+                {
+                    // max30102Sensor_shutdown();
+                    ESP_LOGI("SENSOR_MODE", "Device data allocated time is over");
+                    ESP_LOGI("SENSOR_MODE", "Going to deep sleep");
+                    ESP_LOGI("SENSOR_MODE2", "my_position = %d, Allocated_time = %d, Time_Interval = %d", my_position, alloc_time, time_interval);
+                    uint64_t sleep_us = (time_interval - alloc_time * (my_position + 1.5)) * 1000000;
+                    int sleeping = sleep_us / 1000000;
+                    ESP_LOGI("SENSOR_MODE", "Going to sleep for %d s", sleeping);
+                    esp_sleep_enable_timer_wakeup(sleep_us);
+                    vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
+                    esp_deep_sleep_start();
+                }
+            }
+            break;
             default:
                 break;
             }
@@ -540,7 +615,7 @@ void lora_peek_device_id(uint16_t *deviceId)
     uint32_t payload;
     lora_peek_header((uint8_t *)&payload, 3); // read the first 3 bytes without consuming
     *deviceId = (payload >> 8) & 0xFFFF;
-    ;
+    // *deviceId = (payload) & 0xFFFF;
 }
 
 bool lora_new_rety_req()
@@ -559,6 +634,18 @@ bool lora_new_rety_req()
 
 void app_main(void *pvParamaters)
 {
+    // Initialize NVS
+    esp_err_t ret = nvs_flash_init();
+    if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND)
+    {
+        ESP_ERROR_CHECK(nvs_flash_erase());
+        ret = nvs_flash_init();
+    }
+    ESP_ERROR_CHECK(ret);
+
+    load_before_me(&before_me, &alloc_time, &time_interval, &my_position);
+    ESP_LOGI("MAIN", "Retreiving Before me : %d", (int)before_me);
+
     // init_uart();
     data_mutex = xSemaphoreCreateMutex();
     if (data_mutex == NULL)
@@ -650,4 +737,74 @@ void readGps(float *lat, float *lon)
 {
     *lat = 7.25448;
     *lon = 80.59145;
+}
+
+void get_my_slot(uint8_t *sync_status_mask, int len, uint8_t *before_me, uint8_t *my_position)
+{
+    int current_device_id = 0;
+    int prev_device_id = -1; // Sync device before me
+    int position = 0;
+
+    // Total collars
+    int total_collars = 8 * len;
+
+    for (size_t i = 0; i < total_collars; i++)
+    {
+        if (current_device_id == DEVICE_ID)
+        {
+            position++;
+            break;
+        }
+
+        uint8_t byteMask = current_device_id / 8;
+        uint8_t bitMask = current_device_id % 8;
+
+        bool curr_dev_sync_status = ((sync_status_mask[byteMask] & (1 << bitMask)) != 0);
+
+        if (curr_dev_sync_status)
+        {
+            position++;
+            prev_device_id = current_device_id;
+        }
+
+        current_device_id++;
+    }
+
+    *before_me = (uint8_t)prev_device_id;
+    *my_position = position;
+}
+
+void load_before_me(uint8_t *before_me, uint16_t *alloc_time, uint16_t *time_interval, uint8_t *my_position)
+{
+    nvs_handle_t sync_nvs;
+    esp_err_t err = nvs_open("sync_info", NVS_READONLY, &sync_nvs);
+    if (err == ESP_OK)
+    {
+        err |= nvs_get_u8(sync_nvs, "before_me", before_me);
+
+        err |= nvs_get_u16(sync_nvs, "alloc_time", alloc_time);
+
+        err |= nvs_get_u16(sync_nvs, "time_interval", time_interval);
+
+        err |= nvs_get_u8(sync_nvs, "my_position", my_position);
+
+        if (err == ESP_OK)
+        {
+            ESP_LOGI("NVS", "Restored before_me = %d, alloc_time = %d, time_interval = %d", *before_me, *alloc_time, *time_interval);
+        }
+        else if (err == ESP_ERR_NVS_NOT_FOUND)
+        {
+            ESP_LOGI("NVS", "before_me not yet stored");
+            *before_me = 0xFF; // default/fallback value
+        }
+        else
+        {
+            ESP_LOGE("NVS", "Error reading before_me: %s", esp_err_to_name(err));
+        }
+        nvs_close(sync_nvs);
+    }
+    else
+    {
+        ESP_LOGE("NVS", "Failed to open NVS: %s", esp_err_to_name(err));
+    }
 }
