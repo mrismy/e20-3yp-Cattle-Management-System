@@ -132,6 +132,7 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
             status = 'no-threshold';
           }
         }
+        // console.log(sensor);
 
         return {
           ...sensor,
@@ -197,34 +198,80 @@ router.get('/latest/:cattleId', async (req: any, res: any) => {
   }
 });
 
+// router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
+//   try {
+//     const dateString = req.params.date;
+//     const formattedDate = dayjs(dateString);
+//     if (!formattedDate.isValid()) {
+//       return res.status(400).json({ message: 'Invalid date format' });
+//     }
+
+//     const cattleId = parseInt(req.params.cattleId);
+//     const cattleInfo = await cattle.findOne({ cattleId });
+//     if (!cattleInfo) {
+//       return res.status(404).json({ message: 'Cattle not found' });
+//     }
+
+//     const deviceId = cattleInfo.deviceId;
+//     const startOfDay = formattedDate.startOf('day').toDate();
+//     const endOfDay = formattedDate.endOf('day').toDate();
+
+//     // Fetch ALL sensor data for the day
+//     const sensorDataList = await sensorData.find({
+//       deviceId: deviceId,
+//       createdAt: { $gte: startOfDay, $lte: endOfDay },
+//     });
+
+//     // Filter out zero heart rates
+//     const result = sensorDataList
+//       .filter((sensor) => sensor.heartRate > 0)
+//       .map((sensor) => ({
+//         cattleId: cattleInfo.deviceId,
+//         time: dayjs(sensor.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+//         heartRate: sensor.heartRate,
+//         temperature: sensor.temperature,
+//       }));
+
+//     // Sort by time
+//     result.sort((a, b) => a.time.localeCompare(b.time));
+
+//     res.status(200).json(result);
+//   } catch (error) {
+//     console.error(error);
+//     res.status(500).json({ message: 'Error fetching sensor data for cattle' });
+//   }
+// });
+
 // Get the hourly sensor data of a specific cattle for a specific day
 router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
   try {
     const dateString = req.params.date;
-    const cattleId = req.params.cattleId;
     const formattedDate = dayjs(dateString);
-
     if (!formattedDate.isValid()) {
       return res.status(400).json({ message: 'Invalid date format' });
     }
 
+    const cattleId = parseInt(req.params.cattleId);
+    // Find the specific cattle
+    const cattleInfo = await cattle.findOne({ cattleId });
+    if (!cattleInfo) {
+      return res.status(404).json({ message: 'Cattle not found' });
+    }
+
+    const deviceId = cattleInfo.deviceId;
     const startOfDay = formattedDate.startOf('day').toDate();
     const endOfDay = formattedDate.endOf('day').toDate();
 
     // Fetch the sensor data from the database for the specific cattle
     const sensorDataList = await sensorData.find({
-      deviceId: cattleId,
+      deviceId: deviceId,
       createdAt: {
         $gte: startOfDay,
         $lte: endOfDay,
       },
     });
 
-    // Find the specific cattle
-    const cattleInfo = await cattle.findOne({ tagId: cattleId });
-    if (!cattleInfo) {
-      return res.status(404).json({ message: 'Cattle not found' });
-    }
+    // console.log(sensorDataList);
 
     // Process data into hourly averages
     const hourlyAverages = new Map<
@@ -289,198 +336,180 @@ router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
   }
 });
 
-// Weekly
-// router.get('/withCattle/weekly/:weeks', async (req: any, res: any) => {
-//   try {
-//     const weeks = parseInt(req.params.weeks);
-//     if (isNaN(weeks) || weeks < 1) {
-//       return res.status(400).json({ message: 'Invalid number of weeks' });
-//     }
+// Weekly data by cattleId
+router.get('/withCattle/week/:date/:cattleId', async (req: any, res: any) => {
+  try {
+    const dateString = req.params.date;
+    const formattedDate = dayjs(dateString);
+    if (!formattedDate.isValid()) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
 
-//     const fromDate = dayjs().subtract(weeks, 'week').toDate();
+    const cattleId = parseInt(req.params.cattleId);
+    // Find the specific cattle
+    const cattleInfo = await cattle.findOne({ cattleId });
+    if (!cattleInfo) {
+      return res.status(404).json({ message: 'Cattle not found' });
+    }
 
-//     const sensorDataList = await sensorData.find({
-//       createdAt: { $gte: fromDate },
-//     });
-//     const cattleList = await cattle.find();
+    const deviceId = cattleInfo.deviceId;
 
-//     const cattleMap = new Map(cattleList.map((c) => [c.deviceId, c]));
+    // Start and end of the week (Sunday-Saturday by default)
+    const startDate = formattedDate.startOf('week').toDate();
+    const endDate = formattedDate.endOf('week').toDate();
 
-//     const result = await Promise.all(
-//       sensorDataList.map(async (sensor) => {
-//         const cattleInfo =
-//           sensor.deviceId != null ? cattleMap.get(sensor.deviceId) : undefined;
-//         const { status, action } = await CattleSensorData.checkSensors(
-//           sensor.deviceId as number
-//         );
-//         return {
-//           ...sensor.toObject(),
-//           cattleId: cattleInfo?.deviceId || null,
-//           cattleCreatedAt: cattleInfo?.createdAt || null,
-//           status,
-//           action,
-//         };
-//       })
-//     );
+    // Fetch data for the entire week
+    const sensorDataList = await sensorData.find({
+      deviceId,
+      createdAt: { $gte: startDate, $lte: endDate },
+    });
 
-//     res.status(200).json(result);
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ message: 'Error fetching weekly sensor data with cattle' });
-//   }
-// });
+    // Group by day
+    const dailyAverages = new Map<
+      string,
+      {
+        heartRate: { sum: number; count: number };
+        temperature: { sum: number; count: number };
+        date: string;
+      }
+    >();
 
-// // Monthly
-// router.get('/withCattle/monthly/:months', async (req: any, res: any) => {
-//   try {
-//     const months = parseInt(req.params.months);
-//     if (isNaN(months) || months < 1) {
-//       return res.status(400).json({ message: 'Invalid number of months' });
-//     }
+    for (const sensor of sensorDataList) {
+      const day = dayjs(sensor.createdAt).format('YYYY-MM-DD'); // Group by date
 
-//     const fromDate = dayjs().subtract(months, 'month').toDate();
-//     console.log('Filter from date:', fromDate);
+      if (!dailyAverages.has(day)) {
+        dailyAverages.set(day, {
+          heartRate: { sum: 0, count: 0 },
+          temperature: { sum: 0, count: 0 },
+          date: day,
+        });
+      }
 
-//     const sensorDataList = await sensorData.find({
-//       createdAt: { $gte: fromDate },
-//     });
-//     console.log('Sensor data count:', sensorDataList.length);
+      const current = dailyAverages.get(day)!;
 
-//     const cattleList = await cattle.find();
+      if (sensor.heartRate > 0) {
+        current.heartRate.sum += sensor.heartRate;
+        current.heartRate.count++;
+      }
 
-//     const cattleMap = new Map(cattleList.map((c) => [c.deviceId, c]));
+      if (sensor.temperature > 0) {
+        current.temperature.sum += sensor.temperature;
+        current.temperature.count++;
+      }
+    }
 
-//     const result = await Promise.all(
-//       sensorDataList.map(async (sensor) => {
-//         const cattleInfo =
-//           sensor.deviceId != null ? cattleMap.get(sensor.deviceId) : undefined;
-//         const { status, action } = await CattleSensorData.checkSensors(
-//           sensor.deviceId as number
-//         );
-//         return {
-//           ...sensor.toObject(),
-//           cattleId: cattleInfo?.deviceId || null,
-//           cattleCreatedAt: cattleInfo?.createdAt || null,
-//           status,
-//           action,
-//         };
-//       })
-//     );
+    // Prepare final result
+    const result = Array.from(dailyAverages.values()).map((item) => ({
+      date: item.date,
+      avgHeartRate:
+        item.heartRate.count > 0
+          ? Math.round(item.heartRate.sum / item.heartRate.count)
+          : null,
+      avgTemperature:
+        item.temperature.count > 0
+          ? Math.round((item.temperature.sum / item.temperature.count) * 10) /
+            10
+          : null,
+    }));
 
-//     res.status(200).json(result);
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ message: 'Error fetching monthly sensor data with cattle' });
-//   }
-// });
+    // Sort by date
+    result.sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix());
 
-// // Weekly data by tagId
-// router.get('/withCattle/weekly/:tagId/:weeks', async (req: any, res: any) => {
-//   try {
-//     const tagId = parseInt(req.params.tagId);
-//     const weeks = parseInt(req.params.weeks);
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: 'Error fetching weekly sensor data for cattle' });
+  }
+});
 
-//     if (isNaN(tagId) || isNaN(weeks) || weeks < 1) {
-//       return res
-//         .status(400)
-//         .json({ message: 'Invalid tag ID or number of weeks' });
-//     }
+// Monthly data by cattleId
+router.get('/withCattle/month/:date/:cattleId', async (req: any, res: any) => {
+  try {
+    const dateString = req.params.date;
+    const formattedDate = dayjs(dateString);
+    if (!formattedDate.isValid()) {
+      return res.status(400).json({ message: 'Invalid date format' });
+    }
 
-//     const fromDate = dayjs().subtract(weeks, 'week').toDate();
+    const cattleId = parseInt(req.params.cattleId);
+    // Find the specific cattle
+    const cattleInfo = await cattle.findOne({ cattleId });
+    if (!cattleInfo) {
+      return res.status(404).json({ message: 'Cattle not found' });
+    }
 
-//     const sensorDataList = await sensorData.find({
-//       deviceId: tagId,
-//       createdAt: { $gte: fromDate },
-//     });
+    const deviceId = cattleInfo.deviceId;
 
-//     const cattleInfo = await cattle.findOne({ tagId });
+    // Start and end of the month
+    const startDate = formattedDate.startOf('month').toDate();
+    const endDate = formattedDate.endOf('month').toDate();
 
-//     if (!cattleInfo) {
-//       return res.status(404).json({ message: 'Cattle not found' });
-//     }
+    // Fetch data for the entire month
+    const sensorDataList = await sensorData.find({
+      deviceId,
+      createdAt: { $gte: startDate, $lte: endDate },
+    });
 
-//     const result = await Promise.all(
-//       sensorDataList.map(async (sensor) => {
-//         const { status, action } = await CattleSensorData.checkSensors(
-//           sensor.deviceId as number
-//         );
-//         return {
-//           ...sensor.toObject(),
-//           cattleId: cattleInfo.deviceId,
-//           cattleCreatedAt: cattleInfo.createdAt,
-//           status,
-//           action,
-//         };
-//       })
-//     );
+    // Group by day
+    const dailyAverages = new Map<
+      string,
+      {
+        heartRate: { sum: number; count: number };
+        temperature: { sum: number; count: number };
+        date: string;
+      }
+    >();
 
-//     res.status(200).json(result);
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ message: 'Error fetching weekly sensor data for tag ID' });
-//   }
-// });
+    for (const sensor of sensorDataList) {
+      const day = dayjs(sensor.createdAt).format('YYYY-MM-DD'); // Group by date
 
-// // Monthly data by tagId
-// router.get('/withCattle/monthly/:tagId/:months', async (req: any, res: any) => {
-//   try {
-//     const tagId = parseInt(req.params.tagId);
-//     const months = parseInt(req.params.months);
+      if (!dailyAverages.has(day)) {
+        dailyAverages.set(day, {
+          heartRate: { sum: 0, count: 0 },
+          temperature: { sum: 0, count: 0 },
+          date: day,
+        });
+      }
 
-//     if (isNaN(tagId) || isNaN(months) || months < 1) {
-//       return res
-//         .status(400)
-//         .json({ message: 'Invalid tag ID or number of months' });
-//     }
+      const current = dailyAverages.get(day)!;
 
-//     const fromDate = dayjs().subtract(months, 'month').toDate();
+      if (sensor.heartRate > 0) {
+        current.heartRate.sum += sensor.heartRate;
+        current.heartRate.count++;
+      }
 
-//     const sensorDataList = await sensorData.find({
-//       deviceId: tagId,
-//       createdAt: { $gte: fromDate },
-//     });
+      if (sensor.temperature > 0) {
+        current.temperature.sum += sensor.temperature;
+        current.temperature.count++;
+      }
+    }
 
-//     const cattleInfo = await cattle.findOne({ tagId });
+    // Prepare final result
+    const result = Array.from(dailyAverages.values()).map((item) => ({
+      date: item.date,
+      avgHeartRate:
+        item.heartRate.count > 0
+          ? Math.round(item.heartRate.sum / item.heartRate.count)
+          : null,
+      avgTemperature:
+        item.temperature.count > 0
+          ? Math.round((item.temperature.sum / item.temperature.count) * 10) /
+            10
+          : null,
+    }));
 
-//     if (!cattleInfo) {
-//       return res.status(404).json({ message: 'Cattle not found' });
-//     }
+    // Sort by date
+    result.sort((a, b) => dayjs(a.date).unix() - dayjs(b.date).unix());
 
-//     const result = await Promise.all(
-//       sensorDataList.map(async (sensor) => {
-//         const { status, action } = await CattleSensorData.checkSensors(
-//           sensor.deviceId as number
-//         );
-//         return {
-//           ...sensor.toObject(),
-//           cattleId: cattleInfo.deviceId,
-//           cattleCreatedAt: cattleInfo.createdAt,
-//           status,
-//           action,
-//         };
-//       })
-//     );
-
-//     res.status(200).json(result);
-//   } catch (error) {
-//     res
-//       .status(500)
-//       .json({ message: 'Error fetching monthly sensor data for tag ID' });
-//   }
-// });
-
-// router.get('/alert/:Id', async (req: any, res: any) => {
-//   try {
-//     const { status, action } = await CattleSensorData.checkSensors(
-//       req.params.Id
-//     );
-//     res.status(200).json(action);
-//   } catch (error) {
-//     res.status(500).json({ message: 'Error fetching sensor data' });
-//   }
-// });
+    res.status(200).json(result);
+  } catch (error) {
+    console.error(error);
+    res
+      .status(500)
+      .json({ message: 'Error fetching monthly sensor data for cattle' });
+  }
+});
 
 export { router as sensorDataRouter };

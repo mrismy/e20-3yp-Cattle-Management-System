@@ -34,7 +34,7 @@ module.exports.getAll = async (req: any, res: any) => {
       mergedSensorData.map(async (sensor) => {
         const deviceId = sensor.deviceId;
         const cattleInfo = cattleMap.get(deviceId);
-        console.log(sensor);
+        // console.log(sensor);
 
         let locationStatus = 'UNKNOWN';
         try {
