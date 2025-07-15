@@ -106,7 +106,7 @@ const DeleteGeoFence = () => {
   };
 
   useEffect(() => {
-    const map = L.map('map').setView([6.872591, 80.797847], 16);
+    const map = L.map('map').setView([7.25, 80.59], 16);
     mapRef.current = map;
     highlightLayerRef.current = L.layerGroup().addTo(map);
 
@@ -126,17 +126,17 @@ const DeleteGeoFence = () => {
       <div className="relative w-2/7 overflow-hidden">
         {!showDeletePopup ? (
           // GeoFence list table
-          <div className="w-full h-full bg-white rounded-lg border border-gray-200 shadow-sm overflow-hidden">
+          <div className="w-full h-full bg-white rounded-sm border border-gray-200 shadow-xs overflow-hidden">
             <table className="w-full">
               <thead className="bg-green-600 text-white">
                 <tr>
-                  <th className="px-4 py-3 w-1/3 text-sm text-start font-semibold uppercase tracking-wide">
+                  <th className="px-4 py-4 w-1/3 text-sm text-start font-semibold uppercase tracking-wide">
                     Name
                   </th>
-                  <th className="px-4 py-3 w-1/3 text-sm text-start font-semibold uppercase tracking-wide">
+                  <th className="px-4 py-4 w-1/3 text-sm text-start font-semibold uppercase tracking-wide">
                     Type
                   </th>
-                  <th className="px-4 py-3 w-1/3 text-sm text-start font-semibold uppercase tracking-wide">
+                  <th className="px-4 py-4 w-1/3 text-sm text-start font-semibold uppercase tracking-wide">
                     Action
                   </th>
                 </tr>
@@ -145,7 +145,7 @@ const DeleteGeoFence = () => {
 
             <div className="overflow-y-auto h-fit">
               <table className="w-full">
-                <tbody className="bg-white">
+                <tbody className="bg-white divide-y divide-gray-200">
                   {geoFences.map((geoFence: geoFenceInterface) => {
                     const isSelected =
                       geoFence.zoneName === selectedGeoFence?.zoneName;
@@ -157,11 +157,22 @@ const DeleteGeoFence = () => {
                             ? 'bg-violet-50 border-l-5 border-violet-600'
                             : 'hover:bg-gray-50'
                         }`}>
-                        <td className="px-2 py-3 w-1/3 text-start text-sm font-medium text-gray-900">
-                          {geoFence.zoneName}
+                        <td className="px-6 py-3 whitespace-nowrap">
+                          <div className="flex items-center">
+                            <div className="text-sm font-medium text-gray-900">
+                              {geoFence.zoneName}
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-4 py-3 w-1/3 text-start text-sm text-gray-600 capitalize">
-                          {geoFence.zoneType}
+                        <td className="px-6 py-3 whitespace-nowrap">
+                          <span
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                              geoFence.zoneType === 'danger'
+                                ? 'bg-red-100 text-red-800'
+                                : 'bg-green-100 text-green-800'
+                            }`}>
+                            {geoFence.zoneType}
+                          </span>
                         </td>
                         <td className="px-8 py-3 w-1/3 text-start">
                           <button

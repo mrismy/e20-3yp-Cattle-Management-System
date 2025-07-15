@@ -98,6 +98,7 @@ const LiveLocationMap = ({
 
     // Add updated markers
     cattleData.forEach((data) => {
+      if (!data.cattleId) return;
       if (
         data.gpsLocation?.latitude &&
         data.gpsLocation?.longitude &&

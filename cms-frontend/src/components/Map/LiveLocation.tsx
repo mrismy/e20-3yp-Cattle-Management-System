@@ -60,8 +60,9 @@ const LiveLocation = () => {
               Cattle in Safe Zone
               <span className="ml-auto bg-green-300 px-2 py-1 rounded-full text-xs">
                 {
-                  allCattleData.filter((c) => c.locationStatus === 'SAFE')
-                    .length
+                  allCattleData.filter(
+                    (c) => c.locationStatus === 'SAFE' && c.cattleId
+                  ).length
                 }
               </span>
             </h3>
@@ -70,7 +71,10 @@ const LiveLocation = () => {
             <table className="w-full">
               <tbody className="divide-y divide-gray-100">
                 {allCattleData
-                  .filter((cattle) => cattle.locationStatus === 'SAFE')
+                  .filter(
+                    (cattle) =>
+                      cattle.locationStatus === 'SAFE' && cattle.cattleId
+                  )
                   .map((cattle) => (
                     <tr
                       key={cattle.cattleId}
@@ -88,8 +92,9 @@ const LiveLocation = () => {
                       </td>
                     </tr>
                   ))}
-                {allCattleData.filter((c) => c.locationStatus === 'SAFE')
-                  .length === 0 && (
+                {allCattleData.filter(
+                  (c) => c.locationStatus === 'SAFE' && c.cattleId
+                ).length === 0 && (
                   <tr>
                     <td
                       colSpan={2}
@@ -110,8 +115,9 @@ const LiveLocation = () => {
               Cattle in Warning Zone
               <span className="ml-auto bg-yellow-300 px-2 py-1 rounded-full text-xs">
                 {
-                  allCattleData.filter((c) => c.locationStatus === 'WARNING')
-                    .length
+                  allCattleData.filter(
+                    (c) => c.locationStatus === 'WARNING' && c.cattleId
+                  ).length
                 }
               </span>
             </h3>
@@ -120,7 +126,10 @@ const LiveLocation = () => {
             <table className="w-full">
               <tbody className="divide-y divide-gray-100">
                 {allCattleData
-                  .filter((cattle) => cattle.locationStatus === 'WARNING')
+                  .filter(
+                    (cattle) =>
+                      cattle.locationStatus === 'WARNING' && cattle.cattleId
+                  )
                   .map((cattle) => (
                     <tr
                       key={cattle.cattleId}
@@ -138,8 +147,9 @@ const LiveLocation = () => {
                       </td>
                     </tr>
                   ))}
-                {allCattleData.filter((c) => c.locationStatus === 'WARNING')
-                  .length === 0 && (
+                {allCattleData.filter(
+                  (c) => c.locationStatus === 'WARNING' && c.cattleId
+                ).length === 0 && (
                   <tr>
                     <td
                       colSpan={2}
@@ -160,8 +170,9 @@ const LiveLocation = () => {
               Cattle in Danger Zone
               <span className="ml-auto bg-red-300 px-2 py-1 rounded-full text-xs">
                 {
-                  allCattleData.filter((c) => c.locationStatus === 'DANGER')
-                    .length
+                  allCattleData.filter(
+                    (c) => c.locationStatus === 'DANGER' && c.cattleId
+                  ).length
                 }
               </span>
             </h3>
@@ -170,7 +181,10 @@ const LiveLocation = () => {
             <table className="w-full">
               <tbody className="divide-y divide-gray-100">
                 {allCattleData
-                  .filter((cattle) => cattle.locationStatus === 'DANGER')
+                  .filter(
+                    (cattle) =>
+                      cattle.locationStatus === 'DANGER' && cattle.cattleId
+                  )
                   .map((cattle) => (
                     <tr
                       key={cattle.cattleId}
@@ -188,8 +202,9 @@ const LiveLocation = () => {
                       </td>
                     </tr>
                   ))}
-                {allCattleData.filter((c) => c.locationStatus === 'DANGER')
-                  .length === 0 && (
+                {allCattleData.filter(
+                  (c) => c.locationStatus === 'DANGER' && c.cattleId
+                ).length === 0 && (
                   <tr>
                     <td
                       colSpan={2}

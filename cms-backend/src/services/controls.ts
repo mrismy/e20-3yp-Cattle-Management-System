@@ -119,7 +119,7 @@ export class CattleSensorData {
     latestSensorData: SensorDataInterface
   ): Promise<ZoneStatus> => {
     const threshold = await this.getThresholdValue();
-    if (!threshold) throw new Error('Threshold not found');
+    // if (!threshold) throw new Error('Threshold not found');
 
     const warningBuffer = threshold?.geofence?.threshold || 0;
 
@@ -131,9 +131,8 @@ export class CattleSensorData {
     let isInSafe = false;
     let isInWarning = false;
 
-    let hasSafeZone = geoFences.some((zone) => zone.zoneType === 'safe');
-
-    for (const geoFence of geoFences) {
+    // First check all danger zones
+    for (const geoFence of geoFences.filter((g) => g.zoneType === 'danger')) {
       const { latitude, longitude, radius, zoneType } = geoFence;
       const distance = this.findDistance(
         latestSensorData.gpsLocation.latitude,
@@ -141,33 +140,112 @@ export class CattleSensorData {
         latestSensorData.gpsLocation.longitude,
         longitude
       );
-
-      if (zoneType === 'safe') {
-        if (distance <= radius - warningBuffer) {
-          isInSafe = true;
-        } else if (distance <= radius) {
-          isInWarning = true;
-        }
-      } else if (zoneType === 'danger') {
-        if (distance <= radius) {
-          await this.createAndEmitNotification(
-            latestSensorData.deviceId,
-            `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
-            'DANGER'
-          );
-          return ZoneStatus.Danger;
-        } else if (distance <= radius + warningBuffer) {
-          await this.createAndEmitNotification(
-            latestSensorData.deviceId,
-            `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
-            'WARNING'
-          );
-          isInWarning = true;
-        } else if (distance > radius) {
-          isInSafe = true;
-        }
+      if (distance <= geoFence.radius) {
+        await this.createAndEmitNotification(
+          latestSensorData.deviceId,
+          `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
+          'DANGER'
+        );
+        return ZoneStatus.Danger;
+      }
+      if (distance <= geoFence.radius + warningBuffer) {
+        isInWarning = true;
       }
     }
+
+    // Then check safe zones if not in danger
+    for (const geoFence of geoFences.filter((g) => g.zoneType === 'safe')) {
+      const { latitude, longitude, radius, zoneType } = geoFence;
+      const distance = this.findDistance(
+        latestSensorData.gpsLocation.latitude,
+        latitude,
+        latestSensorData.gpsLocation.longitude,
+        longitude
+      );
+      if (distance <= geoFence.radius - warningBuffer) {
+        isInSafe = true;
+      } else if (distance <= geoFence.radius) {
+        isInWarning = true;
+        await this.createAndEmitNotification(
+          latestSensorData.deviceId,
+          `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
+          'WARNING'
+        );
+      }
+    }
+
+    // for (const geoFence of geoFences) {
+    //   const { latitude, longitude, radius, zoneType } = geoFence;
+    //   const distance = this.findDistance(
+    //     latestSensorData.gpsLocation.latitude,
+    //     latitude,
+    //     latestSensorData.gpsLocation.longitude,
+    //     longitude
+    //   );
+
+    //   if (zoneType === 'safe') {
+    //     if (distance <= radius - warningBuffer) {
+    //       isInSafe = true;
+    //     } else if (distance <= radius) {
+    //       isInWarning = true;
+    //     } else if (distance > radius) {
+    //     }
+    //   } else if (zoneType === 'danger') {
+    //     if (distance <= radius) {
+    //       await this.createAndEmitNotification(
+    //         latestSensorData.deviceId,
+    //         `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
+    //         'DANGER'
+    //       );
+    //       return ZoneStatus.Danger;
+    //     } else if (distance <= radius + warningBuffer) {
+    //       isInWarning = true;
+    //       await this.createAndEmitNotification(
+    //         latestSensorData.deviceId,
+    //         `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
+    //         'WARNING'
+    //       );
+    //     } else if (distance > radius) {
+    //       isInSafe = true;
+    //     }
+    //   }
+    // }
+    // for (const geoFence of geoFences) {
+    //   const { latitude, longitude, radius, zoneType } = geoFence;
+    //   const distance = this.findDistance(
+    //     latestSensorData.gpsLocation.latitude,
+    //     latitude,
+    //     latestSensorData.gpsLocation.longitude,
+    //     longitude
+    //   );
+
+    //   if (zoneType === 'safe') {
+    //     if (distance <= radius - warningBuffer) {
+    //       isInSafe = true;
+    //     } else if (distance <= radius) {
+    //       isInWarning = true;
+    //     } else if (distance > radius) {
+    //     }
+    //   } else if (zoneType === 'danger') {
+    //     if (distance <= radius) {
+    //       await this.createAndEmitNotification(
+    //         latestSensorData.deviceId,
+    //         `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
+    //         'DANGER'
+    //       );
+    //       return ZoneStatus.Danger;
+    //     } else if (distance <= radius + warningBuffer) {
+    //       isInWarning = true;
+    //       await this.createAndEmitNotification(
+    //         latestSensorData.deviceId,
+    //         `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
+    //         'WARNING'
+    //       );
+    //     } else if (distance > radius) {
+    //       isInSafe = true;
+    //     }
+    //   }
+    // }
 
     if (isInWarning) return ZoneStatus.Warning;
     if (isInSafe) return ZoneStatus.Safe;

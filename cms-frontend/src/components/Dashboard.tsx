@@ -57,16 +57,39 @@ const Dashboard = () => {
               <GiCow className="p-3 w-14 h-14 text-gray-600 bg-gray-100 rounded-full" />
             </div>
           </div>
-          {/* TODO: Active collars must be get from backend */}
           <div className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
             <div className="flex flex-col">
               <p className="text-gray-500 text-sm font-medium">
                 Active Collars
               </p>
-              <h3 className="text-3xl font-bold text-gray-800 mt-1">10</h3>
+              <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                {allCattleData.length -
+                  allCattleData.filter(
+                    (cattle) => cattle.status === 'un-monitored'
+                  ).length}
+              </h3>
             </div>
             <div className="flex-row-reverse">
               <IoBatteryHalf className="p-3 w-14 h-14 text-blue-600 bg-blue-100 rounded-full" />
+            </div>
+          </div>
+          <div
+            // onClick={() => {
+            //   navigate('/livestock');
+            //   setCattlelist_selectedOption('alert');
+            // }}
+            className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
+            <div className="flex flex-col">
+              <p className="text-gray-500 text-sm font-medium">No Data</p>
+              <h3 className="text-3xl font-bold text-gray-800 mt-1">
+                {
+                  allCattleData.filter((cattle) => cattle.status === 'no-data')
+                    .length
+                }
+              </h3>
+            </div>
+            <div className="flex-row-reverse">
+              <GoAlertFill className="p-3 w-14 h-14 text-yellow-600 bg-yellow-100 rounded-full" />
             </div>
           </div>
           <div
@@ -88,25 +111,7 @@ const Dashboard = () => {
               <AiFillSafetyCertificate className="p-3 w-14 h-14 text-green-600 bg-green-100 rounded-full" />
             </div>
           </div>
-          <div
-            onClick={() => {
-              navigate('/livestock');
-              setCattlelist_selectedOption('alert');
-            }}
-            className="flex bg-white p-5 rounded-2xl border-gray-400 shadow-md items-center justify-between hover:bg-gray-50 hover:shadow-xl transition-all duration-200 cursor-pointer">
-            <div className="flex flex-col">
-              <p className="text-gray-500 text-sm font-medium">Alert State</p>
-              <h3 className="text-3xl font-bold text-gray-800 mt-1">
-                {
-                  allCattleData.filter((cattle) => cattle.status === 'alert')
-                    .length
-                }
-              </h3>
-            </div>
-            <div className="flex-row-reverse">
-              <GoAlertFill className="p-3 w-14 h-14 text-yellow-600 bg-yellow-100 rounded-full" />
-            </div>
-          </div>
+
           <div
             onClick={() => {
               navigate('/livestock');

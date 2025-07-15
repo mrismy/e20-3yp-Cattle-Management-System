@@ -1,10 +1,9 @@
-import { useContext, useState, useEffect, useRef } from "react";
-import NotificationIcon from "./NotificationIcon";
-import NotificationDropDown from "./NotificationDropDown";
-import { FaCircleUser } from "react-icons/fa6";
-import GlobalContext from "../context/GlobalContext";
-import { useNotifications } from "../context/NotificationContext";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect, useRef } from 'react';
+import NotificationIcon from './NotificationIcon';
+import NotificationDropDown from './NotificationDropDown';
+import { FaCircleUser } from 'react-icons/fa6';
+import { useNotifications } from '../context/NotificationContext';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 export interface Notification {
   deviceId: number;
@@ -21,10 +20,30 @@ export interface Notification {
 const TopNav = () => {
   const [isClicked, setIsClicked] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const { selectedMenu } = useContext(GlobalContext);
   const { notifications } = useNotifications();
   const unreadCount = notifications.filter((n) => !n.read).length;
   const navigate = useNavigate();
+
+  const location = useLocation();
+  const currentPath = location.pathname;
+
+  const menuMap: { [key: string]: string } = {
+    '/dashboard': 'Dashboard',
+    '/livestock': 'Cattle Data List',
+    '/map': 'Live Location',
+    '/geofence': 'Geo Fence',
+    '/alerts': 'Alerts',
+    '/settings': 'Settings',
+    '/profile': 'Profile',
+  };
+
+  let selectedMenu = menuMap[currentPath];
+  if (!selectedMenu) {
+    const matchedKey = Object.keys(menuMap).find((key) =>
+      currentPath.startsWith(key)
+    );
+    selectedMenu = matchedKey ? menuMap[matchedKey] : 'Dashboard';
+  }
 
   // Handle outside click
   useEffect(() => {
@@ -37,8 +56,8 @@ const TopNav = () => {
       }
     };
 
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   return (
@@ -50,8 +69,7 @@ const TopNav = () => {
         <div
           ref={notificationRef}
           className="relative p-2 rounded-2xl"
-          onClick={() => setIsClicked((prev) => !prev)}
-        >
+          onClick={() => setIsClicked((prev) => !prev)}>
           <NotificationIcon count={unreadCount} />
           {isClicked && (
             <NotificationDropDown
@@ -63,8 +81,8 @@ const TopNav = () => {
           )}
         </div>
         <FaCircleUser
-          className="h-8 w-8 text-gray-800 hover:text-green-600"
-          onClick={() => navigate("/profile")}
+          className="h-8 w-8 text-gray-800 hover:text-green-600 cursor-pointer"
+          onClick={() => navigate('/profile')}
         />
       </div>
     </div>
