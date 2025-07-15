@@ -22,7 +22,7 @@ const LiveLocation = () => {
           item.gpsLocation.latitude !== 0 &&
           item.gpsLocation.longitude !== 0
       );
-      console.log('Response:', filteredData);
+      // console.log('Response:', filteredData);
       setAllCattleData(filteredData);
     } catch (error) {
       console.error('Error fetching cattle data:', error);

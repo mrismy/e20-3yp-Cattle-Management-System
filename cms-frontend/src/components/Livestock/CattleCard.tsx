@@ -128,7 +128,7 @@ const CattleCard = () => {
                   className={`${
                     cattleData?.temperatureStatus === 'DANGER'
                       ? 'text-red-700'
-                      : cattleData?.heartRateStatus === 'SAFE'
+                      : cattleData?.temperatureStatus === 'SAFE'
                       ? 'text-green-700'
                       : 'text-gray-500'
                   } text-lg font-semibold`}>
