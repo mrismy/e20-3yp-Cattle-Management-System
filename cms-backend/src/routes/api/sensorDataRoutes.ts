@@ -139,6 +139,7 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
           cattleId: cattleInfo.cattleId,
           deviceId: cattleInfo.deviceId || null,
           cattleCreatedAt: cattleInfo.createdAt,
+          sensorCreatedAt: sensor ? sensor.createdAt : null,
           status: status,
         };
       })

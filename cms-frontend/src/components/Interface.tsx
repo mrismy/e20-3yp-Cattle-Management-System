@@ -7,6 +7,7 @@ export interface CattleData {
   createdAt: string;
   cattleStatus: string;
   updatedAt: string;
+  sensorCreatedAt: string;
   cattleCreatedAt: string;
   heartRate: number;
   temperature: number;

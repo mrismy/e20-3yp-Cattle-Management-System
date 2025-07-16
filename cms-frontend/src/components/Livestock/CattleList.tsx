@@ -159,9 +159,11 @@ const CattleList = () => {
                     <td className="py-3 text-center text-sm text-gray-500">
                       {cattleData.status === 'safe' ||
                       cattleData.status === 'unsafe'
-                        ? dayjs(cattleData.updatedAt).format(
-                            'MMM D, YYYY h:mm A'
-                          )
+                        ? cattleData.sensorCreatedAt
+                          ? dayjs(cattleData.sensorCreatedAt).format(
+                              'MMM D, YYYY h:mm A'
+                            )
+                          : '--'
                         : '--'}
                     </td>
 
