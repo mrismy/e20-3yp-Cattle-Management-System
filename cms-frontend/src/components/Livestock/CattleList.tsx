@@ -7,6 +7,7 @@ import { MdDeleteOutline, MdOutlineEdit } from 'react-icons/md';
 import NavSub from '../NavSub';
 import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { io } from 'socket.io-client';
 
 const CattleList = () => {
   const navigate = useNavigate();
@@ -45,6 +46,17 @@ const CattleList = () => {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    const socket = io('http://localhost:5010');
+    socket.on('cattle_data_updated', (updatedData) => {
+      console.log('Realtime Update:', updatedData);
+      fetchAndFilter();
+    });
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
 
   useEffect(() => {
     setFilteredCattleData([]);

@@ -35,9 +35,11 @@ interface HeartRateGraphProps {
 type ViewType = 'day' | 'week' | 'month';
 
 interface SensorData {
+  time: string;
   hour?: string; // for 'day'
   date?: string; // for 'week' and 'month'
   avgHeartRate: number | null;
+  heartRate: number | null;
 }
 
 const HeartRateGraph = ({ cattleId }: HeartRateGraphProps) => {
@@ -76,18 +78,10 @@ const HeartRateGraph = ({ cattleId }: HeartRateGraphProps) => {
   let chartValues: (number | null)[] = [];
 
   if (viewType === 'day') {
-    // Show 24 hours
-    chartLabels = Array.from({ length: 24 }, (_, i) =>
-      dayjs(selectedDate).startOf('day').add(i, 'hour').format('h:mm A')
+    chartLabels = sensorData.map(
+      (item) => dayjs(item.time).format('h:mm A') // exact time for each reading
     );
-    chartValues = Array(24).fill(null);
-
-    sensorData.forEach((item) => {
-      if (item.hour) {
-        const hourIndex = dayjs(item.hour).hour();
-        chartValues[hourIndex] = item.avgHeartRate;
-      }
-    });
+    chartValues = sensorData.map((item) => item.heartRate);
   } else if (viewType === 'week') {
     // 7 days (Mon–Sun)
     chartLabels = Array.from({ length: 7 }, (_, i) =>
@@ -175,7 +169,7 @@ const HeartRateGraph = ({ cattleId }: HeartRateGraphProps) => {
       },
       y: {
         min: 30,
-        max: 90,
+        max: 105,
         ticks: {
           stepSize: 15,
         },

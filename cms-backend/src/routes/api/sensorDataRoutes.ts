@@ -199,51 +199,6 @@ router.get('/latest/:cattleId', async (req: any, res: any) => {
   }
 });
 
-// router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
-//   try {
-//     const dateString = req.params.date;
-//     const formattedDate = dayjs(dateString);
-//     if (!formattedDate.isValid()) {
-//       return res.status(400).json({ message: 'Invalid date format' });
-//     }
-
-//     const cattleId = parseInt(req.params.cattleId);
-//     const cattleInfo = await cattle.findOne({ cattleId });
-//     if (!cattleInfo) {
-//       return res.status(404).json({ message: 'Cattle not found' });
-//     }
-
-//     const deviceId = cattleInfo.deviceId;
-//     const startOfDay = formattedDate.startOf('day').toDate();
-//     const endOfDay = formattedDate.endOf('day').toDate();
-
-//     // Fetch ALL sensor data for the day
-//     const sensorDataList = await sensorData.find({
-//       deviceId: deviceId,
-//       createdAt: { $gte: startOfDay, $lte: endOfDay },
-//     });
-
-//     // Filter out zero heart rates
-//     const result = sensorDataList
-//       .filter((sensor) => sensor.heartRate > 0)
-//       .map((sensor) => ({
-//         cattleId: cattleInfo.deviceId,
-//         time: dayjs(sensor.createdAt).format('YYYY-MM-DD HH:mm:ss'),
-//         heartRate: sensor.heartRate,
-//         temperature: sensor.temperature,
-//       }));
-
-//     // Sort by time
-//     result.sort((a, b) => a.time.localeCompare(b.time));
-
-//     res.status(200).json(result);
-//   } catch (error) {
-//     console.error(error);
-//     res.status(500).json({ message: 'Error fetching sensor data for cattle' });
-//   }
-// });
-
-// Get the hourly sensor data of a specific cattle for a specific day
 router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
   try {
     const dateString = req.params.date;
@@ -253,7 +208,6 @@ router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
     }
 
     const cattleId = parseInt(req.params.cattleId);
-    // Find the specific cattle
     const cattleInfo = await cattle.findOne({ cattleId });
     if (!cattleInfo) {
       return res.status(404).json({ message: 'Cattle not found' });
@@ -263,79 +217,123 @@ router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
     const startOfDay = formattedDate.startOf('day').toDate();
     const endOfDay = formattedDate.endOf('day').toDate();
 
-    // Fetch the sensor data from the database for the specific cattle
-    const sensorDataList = await sensorData.find({
-      deviceId: deviceId,
-      createdAt: {
-        $gte: startOfDay,
-        $lte: endOfDay,
-      },
-    });
+    // Fetch all readings for the day
+    const sensorDataList = await sensorData
+      .find({
+        deviceId,
+        createdAt: { $gte: startOfDay, $lte: endOfDay },
+      })
+      .sort({ createdAt: 1 }); // Sort chronologically
 
-    // console.log(sensorDataList);
-
-    // Process data into hourly averages
-    const hourlyAverages = new Map<
-      string,
-      {
-        heartRate: { sum: number; count: number };
-        temperature: { sum: number; count: number };
-        hour: string;
-      }
-    >();
-
-    for (const sensor of sensorDataList) {
-      const hour = dayjs(sensor.createdAt).format('YYYY-MM-DDTHH:00:00'); // Group by hour
-
-      // Initialize if not exists
-      if (!hourlyAverages.has(hour)) {
-        hourlyAverages.set(hour, {
-          heartRate: { sum: 0, count: 0 },
-          temperature: { sum: 0, count: 0 },
-          hour,
-        });
-      }
-
-      const current = hourlyAverages.get(hour)!;
-
-      // Only include non-zero values in averages
-      if (sensor.heartRate > 0) {
-        current.heartRate.sum += sensor.heartRate;
-        current.heartRate.count++;
-      }
-
-      if (sensor.temperature > 0) {
-        current.temperature.sum += sensor.temperature;
-        current.temperature.count++;
-      }
-    }
-
-    // Convert to final response format
-    const result = Array.from(hourlyAverages.values()).map((item) => ({
-      cattleId: cattleInfo.deviceId,
-      hour: item.hour,
-      avgHeartRate:
-        item.heartRate.count > 0
-          ? Math.round(item.heartRate.sum / item.heartRate.count)
-          : null,
-      avgTemperature:
-        item.temperature.count > 0
-          ? Math.round((item.temperature.sum / item.temperature.count) * 10) /
-            10
-          : null,
-    }));
-
-    // Sort results by hour
-    result.sort((a, b) => a.hour.localeCompare(b.hour));
+    // Prepare raw readings for the frontend
+    const result = sensorDataList
+      .filter((sensor) => sensor.heartRate > 0) // Remove invalid readings
+      .map((sensor) => ({
+        time: dayjs(sensor.createdAt).format('YYYY-MM-DD HH:mm:ss'),
+        heartRate: sensor.heartRate,
+        temperature: sensor.temperature,
+      }));
 
     res.status(200).json(result);
   } catch (error) {
     console.error(error);
-    res
-      .status(500)
-      .json({ message: 'Error fetching daily sensor data for cattle' });
+    res.status(500).json({ message: 'Error fetching sensor data' });
   }
 });
+
+// // Get the hourly sensor data of a specific cattle for a specific day
+// router.get('/withCattle/day/:date/:cattleId', async (req: any, res: any) => {
+//   try {
+//     const dateString = req.params.date;
+//     const formattedDate = dayjs(dateString);
+//     if (!formattedDate.isValid()) {
+//       return res.status(400).json({ message: 'Invalid date format' });
+//     }
+
+//     const cattleId = parseInt(req.params.cattleId);
+//     // Find the specific cattle
+//     const cattleInfo = await cattle.findOne({ cattleId });
+//     if (!cattleInfo) {
+//       return res.status(404).json({ message: 'Cattle not found' });
+//     }
+
+//     const deviceId = cattleInfo.deviceId;
+//     const startOfDay = formattedDate.startOf('day').toDate();
+//     const endOfDay = formattedDate.endOf('day').toDate();
+
+//     // Fetch the sensor data from the database for the specific cattle
+//     const sensorDataList = await sensorData.find({
+//       deviceId: deviceId,
+//       createdAt: {
+//         $gte: startOfDay,
+//         $lte: endOfDay,
+//       },
+//     });
+
+//     // console.log(sensorDataList);
+
+//     // Process data into hourly averages
+//     const hourlyAverages = new Map<
+//       string,
+//       {
+//         heartRate: { sum: number; count: number };
+//         temperature: { sum: number; count: number };
+//         hour: string;
+//       }
+//     >();
+
+//     for (const sensor of sensorDataList) {
+//       const hour = dayjs(sensor.createdAt).format('YYYY-MM-DDTHH:00:00'); // Group by hour
+
+//       // Initialize if not exists
+//       if (!hourlyAverages.has(hour)) {
+//         hourlyAverages.set(hour, {
+//           heartRate: { sum: 0, count: 0 },
+//           temperature: { sum: 0, count: 0 },
+//           hour,
+//         });
+//       }
+
+//       const current = hourlyAverages.get(hour)!;
+
+//       // Only include non-zero values in averages
+//       if (sensor.heartRate > 0) {
+//         current.heartRate.sum += sensor.heartRate;
+//         current.heartRate.count++;
+//       }
+
+//       if (sensor.temperature > 0) {
+//         current.temperature.sum += sensor.temperature;
+//         current.temperature.count++;
+//       }
+//     }
+
+//     // Convert to final response format
+//     const result = Array.from(hourlyAverages.values()).map((item) => ({
+//       cattleId: cattleInfo.deviceId,
+//       hour: item.hour,
+//       avgHeartRate:
+//         item.heartRate.count > 0
+//           ? Math.round(item.heartRate.sum / item.heartRate.count)
+//           : null,
+//       avgTemperature:
+//         item.temperature.count > 0
+//           ? Math.round((item.temperature.sum / item.temperature.count) * 10) /
+//             10
+//           : null,
+//     }));
+
+//     // Sort results by hour
+//     result.sort((a, b) => a.hour.localeCompare(b.hour));
+
+//     res.status(200).json(result);
+//   } catch (error) {
+//     console.error(error);
+//     res
+//       .status(500)
+//       .json({ message: 'Error fetching daily sensor data for cattle' });
+//   }
+// });
 
 // Weekly data by cattleId
 router.get('/withCattle/week/:date/:cattleId', async (req: any, res: any) => {

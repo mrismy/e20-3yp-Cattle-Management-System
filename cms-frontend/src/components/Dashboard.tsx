@@ -11,7 +11,8 @@ import { useNavigate } from 'react-router-dom';
 import GlobalContext from '../context/GlobalContext';
 
 const Dashboard = () => {
-  const { setCattlelist_selectedOption } = useContext(GlobalContext);
+  const { setCattlelist_selectedOption, setSelectedMenu } =
+    useContext(GlobalContext);
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
   const navigate = useNavigate();
 
@@ -35,7 +36,7 @@ const Dashboard = () => {
     <>
       <div className="absolute top-0 left-0 w-full h-44 bg-green-600 z-0">
         <h1 className="py-7 px-6 text-white text-3xl font-stretch-110% font-bold">
-          Welcome to CMS
+          Welcome to Cattle-Net
         </h1>
       </div>
       <div className="px-6 relative z-10 flex h-4/5 justify-evenly mt-28 space-x-6">
@@ -136,6 +137,7 @@ const Dashboard = () => {
         <div
           onClick={() => {
             navigate('/map');
+            setSelectedMenu('map');
           }}
           className="h-full flex w-7/9">
           <Map />

@@ -33,6 +33,10 @@ const LiveLocation = () => {
   };
   useEffect(() => {
     fetchAllCattle();
+    const interval = setInterval(() => {
+      fetchAllCattle();
+    }, 60000);
+    return () => clearInterval(interval);
   }, []);
 
   if (loading)

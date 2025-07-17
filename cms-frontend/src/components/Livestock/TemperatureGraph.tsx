@@ -16,6 +16,7 @@ import {
   Tooltip,
   Legend,
 } from 'chart.js';
+import { PathString } from 'react-hook-form';
 
 ChartJS.register(
   CategoryScale,
@@ -34,9 +35,11 @@ interface TemperatureGraphProps {
 type ViewType = 'day' | 'week' | 'month';
 
 interface SensorData {
+  time: PathString;
   hour?: string; // For day
   date?: string; // For week/month
   avgTemperature: number | null;
+  temperature: number | null;
 }
 
 const TemperatureGraph = ({ cattleId }: TemperatureGraphProps) => {
@@ -75,17 +78,8 @@ const TemperatureGraph = ({ cattleId }: TemperatureGraphProps) => {
   let chartValues: (number | null)[] = [];
 
   if (viewType === 'day') {
-    chartLabels = Array.from({ length: 24 }, (_, i) =>
-      dayjs(selectedDate).startOf('day').add(i, 'hour').format('h:mm A')
-    );
-    chartValues = Array(24).fill(null);
-
-    sensorData.forEach((item) => {
-      if (item.hour) {
-        const hourIndex = dayjs(item.hour).hour();
-        chartValues[hourIndex] = item.avgTemperature;
-      }
-    });
+    chartLabels = sensorData.map((item) => dayjs(item.time).format('h:mm A'));
+    chartValues = sensorData.map((item) => item.temperature);
   } else if (viewType === 'week') {
     chartLabels = Array.from({ length: 7 }, (_, i) =>
       dayjs(selectedDate).startOf('week').add(i, 'day').format('DD MMM')

@@ -113,8 +113,6 @@ class MqttHandler {
             gpsLocation
           );
 
-
-
           // Check alerts and log them
           const status = await CattleSensorData.saftyStatus(receivedMsg);
 
@@ -168,6 +166,17 @@ class MqttHandler {
 
       await newSensorData.save();
       console.log(`Sensor data stored in DB for device ${deviceId}:`);
+
+      const ioInstance = getSocketIOInstance();
+      if (ioInstance) {
+        ioInstance.emit('sensor_data_updated', {
+          deviceId,
+          heartRate,
+          temperature,
+          gpsLocation,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error) {
       console.error(' Error storing sensor data:', error);
     }
