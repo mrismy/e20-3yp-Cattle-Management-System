@@ -5,7 +5,7 @@ import Axios from '../services/Axios';
 const useRefreshToken = () => {
   const { setAuth } = useContext(GlobalContext);
   const refresh = async () => {
-    const response = await Axios.get('http://localhost:5010/api/auth/refresh', {
+    const response = await Axios.get('/api/auth/refresh', {
       withCredentials: true,
     });
     setAuth((prev) => {
