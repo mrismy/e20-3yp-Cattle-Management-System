@@ -49,7 +49,7 @@ const CattleList = () => {
 
   useEffect(() => {
     const socket = io('http://localhost:5010');
-    socket.on('cattle_data_updated', (updatedData) => {
+    socket.on('sensor_data', (updatedData) => {
       console.log('Realtime Update:', updatedData);
       fetchAndFilter();
     });

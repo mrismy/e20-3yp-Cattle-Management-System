@@ -116,10 +116,10 @@ class MqttHandler {
           // Check alerts and log them
           const status = await CattleSensorData.saftyStatus(receivedMsg);
 
-          // Send real-time unsafe data to frontend
+          // Send real-time data to frontend
           const ioInstance = getSocketIOInstance();
-          if (ioInstance && status.toLowerCase() === 'unsafe') {
-            ioInstance.emit('new_notification', {
+          if (ioInstance) {
+            ioInstance.emit('sensor_data', {
               deviceId,
               heartRate,
               temperature,
@@ -169,6 +169,7 @@ class MqttHandler {
 
       const ioInstance = getSocketIOInstance();
       if (ioInstance) {
+        console.log('Send data socket: ');
         ioInstance.emit('sensor_data_updated', {
           deviceId,
           heartRate,
