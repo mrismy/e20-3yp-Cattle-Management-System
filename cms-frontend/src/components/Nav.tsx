@@ -1,9 +1,9 @@
-import { IconType } from "react-icons";
-import logo from "../assets/images/logo.png";
-import { menuLinks, adminLinks } from "../constants";
-import { accountLinks } from "../constants";
-import { useContext, useState } from "react";
-import GlobalContext from "../context/GlobalContext";
+import { IconType } from 'react-icons';
+import logo from '../assets/images/logo.png';
+import { menuLinks, adminLinks } from '../constants';
+import { accountLinks } from '../constants';
+import { useContext } from 'react';
+import GlobalContext from '../context/GlobalContext';
 
 interface NavLink {
   label: string;
@@ -16,13 +16,13 @@ const Nav = () => {
   const isActive = (href: string) => {
     return (
       location.pathname === href ||
-      (href !== "/" && location.pathname.startsWith(href))
+      (href !== '/' && location.pathname.startsWith(href))
     );
   };
-  console.log("Nav - selectedMenu:", selectedMenu);
-  console.log("Nav - auth state:", auth);
-  console.log("Nav - auth.role:", auth.role);
-  console.log("Nav - isAdmin:", auth.role === "admin");
+  console.log('Nav - selectedMenu:', selectedMenu);
+  console.log('Nav - auth state:', auth);
+  console.log('Nav - auth.role:', auth.role);
+  console.log('Nav - isAdmin:', auth.role === 'admin');
 
   return (
     <div className="flex flex-col w-64 h-full bg-white shadow-md z-10 overflow-y-auto">
@@ -45,15 +45,14 @@ const Nav = () => {
                   onClick={() => setSelectedMenu(item.label)}
                   className={`flex items-center px-8 py-3 rounded-lg rounded-r-full transition-colors duration-200 group ${
                     isActive(item.href)
-                      ? "bg-green-100 text-green-600 font-semibold"
-                      : "text-gray-700 hover:bg-green-50 hover:text-green-600"
-                  }`}
-                >
+                      ? 'bg-green-100 text-green-600 font-semibold'
+                      : 'text-gray-700 hover:bg-green-50 hover:text-green-600'
+                  }`}>
                   <item.symbol
                     className={`w-5 h-5 mr-3 ${
                       isActive(item.href)
-                        ? "text-green-600"
-                        : "text-gray-500 group-hover:text-green-600"
+                        ? 'text-green-600'
+                        : 'text-gray-500 group-hover:text-green-600'
                     }`}
                   />
                   <span className="text-md">{item.label}</span>
@@ -64,7 +63,7 @@ const Nav = () => {
         </nav>
 
         {/* Admin Menu (only for admin users) */}
-        {auth.role === "admin" && (
+        {auth.role === 'admin' && (
           <>
             <div className="border-t border-gray-100 my-4" />
             <nav className="py-6">
@@ -79,15 +78,14 @@ const Nav = () => {
                       onClick={() => setSelectedMenu(item.label)}
                       className={`flex items-center px-8 py-3 rounded-lg rounded-r-full transition-colors duration-200 group ${
                         isActive(item.href)
-                          ? "bg-purple-100 text-purple-600 font-semibold"
-                          : "text-gray-700 hover:bg-purple-50 hover:text-purple-600"
-                      }`}
-                    >
+                          ? 'bg-purple-100 text-purple-600 font-semibold'
+                          : 'text-gray-700 hover:bg-purple-50 hover:text-purple-600'
+                      }`}>
                       <item.symbol
                         className={`w-5 h-5 mr-3 ${
                           isActive(item.href)
-                            ? "text-purple-600"
-                            : "text-gray-500 group-hover:text-purple-600"
+                            ? 'text-purple-600'
+                            : 'text-gray-500 group-hover:text-purple-600'
                         }`}
                       />
                       <span className="text-md">{item.label}</span>
@@ -114,15 +112,14 @@ const Nav = () => {
                   onClick={() => setSelectedMenu(item.label)}
                   className={`flex items-center px-8 py-3 rounded-lg rounded-r-full transition-colors duration-200 group ${
                     isActive(item.href)
-                      ? "bg-violet-100 text-violet-600 font-semibold"
-                      : "text-gray-700 hover:bg-violet-50 hover:text-violet-600"
-                  }`}
-                >
+                      ? 'bg-violet-100 text-violet-600 font-semibold'
+                      : 'text-gray-700 hover:bg-violet-50 hover:text-violet-600'
+                  }`}>
                   <item.symbol
                     className={`w-5 h-5 mr-3 ${
                       isActive(item.href)
-                        ? "text-violet-600"
-                        : "text-gray-500 group-hover:text-violet-600"
+                        ? 'text-violet-600'
+                        : 'text-gray-500 group-hover:text-violet-600'
                     }`}
                   />
                   <span className="text-md">{item.label}</span>

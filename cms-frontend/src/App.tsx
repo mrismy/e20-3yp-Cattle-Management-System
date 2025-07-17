@@ -1,38 +1,41 @@
-import Dashboard from "./components/Dashboard";
-import CattleList from "./components/Livestock/CattleList";
-import Nav from "./components/Nav";
-import TopNav from "./components/TopNav";
+import Dashboard from './components/Dashboard';
+import CattleList from './components/Livestock/CattleList';
+import Nav from './components/Nav';
+import TopNav from './components/TopNav';
 import {
   BrowserRouter,
   Navigate,
   Outlet,
   Route,
   Routes,
-} from "react-router-dom";
-import ContextWrapper from "./context/ContextWrapper";
-import Login from "./components/Login";
-import RequireAuth from "./components/RequireAuth";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
-import MapPage from "./components/Map/MapPage";
-import GeoFencePage from "./components/GeoFence/GeoFencePage";
-import Profile from "./components/Profile";
-import AddCattleForm from "./components/Livestock/AddCattleForm";
-import Settings from "./components/Settings/Settings";
-import EditCattleForm from "./components/Livestock/EditCattleForm";
-import CattleCard from "./components/Livestock/CattleCard";
-import DeleteConformation from "./components/Livestock/DeleteConformation";
-import { NotificationProvider } from "./context/NotificationContext";
-import AlertScreen from "./components/AlertScreen";
-import UserManagement from "./components/UserManagement";
-import { useContext } from "react";
-import GlobalContext from "./context/GlobalContext";
+} from 'react-router-dom';
+import ContextWrapper from './context/ContextWrapper';
+import Login from './components/Login';
+import RequireAuth from './components/RequireAuth';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+import MapPage from './components/Map/MapPage';
+import GeoFencePage from './components/GeoFence/GeoFencePage';
+import Profile from './components/Profile';
+import AddCattleForm from './components/Livestock/AddCattleForm';
+import Settings from './components/Settings/Settings';
+import EditCattleForm from './components/Livestock/EditCattleForm';
+import CattleCard from './components/Livestock/CattleCard';
+import DeleteConformation from './components/Livestock/DeleteConformation';
+import { NotificationProvider } from './context/NotificationContext';
+import AlertScreen from './components/AlertScreen';
+import UserManagement from './components/UserManagement';
+import { useContext } from 'react';
+import GlobalContext from './context/GlobalContext';
+import Configure from './components/ReceiverConfig/Configure';
+import AddConfigForm from './components/ReceiverConfig/AddConfigForm';
+import ConfigPage from './components/ReceiverConfig/ConfigPage';
 
 // Role-based route component
 const RequireAdmin = () => {
   const { auth } = useContext(GlobalContext);
 
-  if (auth.role !== "admin") {
+  if (auth.role !== 'admin') {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -62,8 +65,7 @@ function App() {
                         </div>
                       </div>
                     </>
-                  }
-                >
+                  }>
                   <Route element={<RequireAuth />}>
                     <Route path="/dashboard" element={<Dashboard />} />
                     <Route path="/livestock" element={<CattleList />}>
@@ -82,6 +84,8 @@ function App() {
                     <Route path="/geo-fence" element={<GeoFencePage />} />
                     <Route path="/profile" element={<Profile />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/configure" element={<ConfigPage />} />
+                    <Route path="/configure-add" element={<AddConfigForm />} />
                     <Route path="/alerts" element={<AlertScreen />} />
                     <Route path="/alerts/:id" element={<AlertScreen />} />
 

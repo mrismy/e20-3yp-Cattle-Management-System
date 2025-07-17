@@ -33,7 +33,8 @@ const TopNav = () => {
     '/map': 'Live Location',
     '/geofence': 'Geo Fence',
     '/alerts': 'Alerts',
-    '/settings': 'Settings',
+    '/settings': 'Sensor settings',
+    '/configure': 'Configure receiver',
     '/profile': 'Profile',
   };
 

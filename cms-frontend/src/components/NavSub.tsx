@@ -1,5 +1,3 @@
-import { useState } from 'react';
-
 interface NavSubProps {
   options: string[];
   selectedOption: string;
@@ -7,8 +5,6 @@ interface NavSubProps {
 }
 
 const NavSub = ({ options, selectedOption, onSelect }: NavSubProps) => {
-  // const [selectedOption, setSelectedOption] = useState(options[0]);
-
   return (
     <nav>
       <ul className="flex items-center justify-start">

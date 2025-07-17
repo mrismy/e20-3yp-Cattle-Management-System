@@ -73,7 +73,8 @@ const Profile = () => {
           address: userData.address,
         });
       } catch (error) {
-        setMessage({ type: 'error', text: 'Failed to fetch user details' });
+        console.log('Error in fetching');
+        // setMessage({ type: 'error', text: 'Failed to fetch user details' });
       }
     };
     if (auth.accessToken) fetchUserDetails();

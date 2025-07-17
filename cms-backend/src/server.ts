@@ -10,6 +10,7 @@ import verifyJWT from './middlewear/verifyJWT';
 import { geoFenceRouter } from './routes/api/geoFenceRoutes';
 import { mapRouter } from './routes/api/mapRoutes';
 import { sensorThresholdRouter } from './routes/api/sensorThresholdRoutes';
+import { receiverConfigRouter } from './routes/api/receiverConfigRoutes';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { setSocketIOInstance } from './socket';
@@ -56,6 +57,7 @@ app.use('/map', mapRouter);
 app.use('/api/cattle', cattleRouter);
 app.use('/api/sensor', sensorDataRouter);
 app.use('/api/threshold', sensorThresholdRouter);
+app.use('/api/configurations', receiverConfigRouter);
 // app.use('/notification', notificationRouter);
 app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
 
