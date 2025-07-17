@@ -13,6 +13,8 @@ type AuthType = {
   firstName: string;
   lastName: string;
   address: string;
+  role: "user" | "admin";
+  userId: string;
 };
 
 const ContextWrapper = ({ children }: ContextWrapperProps) => {
@@ -24,16 +26,18 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
     if (savedAuth) {
       try {
         return JSON.parse(savedAuth) as AuthType;
-      } catch {
-        // If parsing fails, return default
-        return {
-          email: '',
-          password: '',
-          accessToken: '',
-          firstName: '',
-          lastName: '',
-          address: '',
-        };
+      } catch (e) {
+        // If parsing fails, fall back to default
+            return {
+      email: '',
+      password: '',
+      accessToken: '',
+      firstName: '',
+      lastName: '',
+      address: '',
+      role: "user",
+      userId: '',
+    };
       }
     }
     return {
@@ -43,6 +47,8 @@ const ContextWrapper = ({ children }: ContextWrapperProps) => {
       firstName: '',
       lastName: '',
       address: '',
+      role: "user",
+      userId: '',
     };
   });
   const [cattleList_selectedOption, setCattlelist_selectedOption] =
