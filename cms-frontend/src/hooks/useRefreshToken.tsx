@@ -1,11 +1,11 @@
-import { useContext } from "react";
-import GlobalContext from "../context/GlobalContext";
-import axios from "axios";
+import { useContext } from 'react';
+import GlobalContext from '../context/GlobalContext';
+import Axios from '../services/Axios';
 
 const useRefreshToken = () => {
   const { setAuth } = useContext(GlobalContext);
   const refresh = async () => {
-    const response = await axios.get("http://localhost:5010/api/auth/refresh", {
+    const response = await Axios.get('http://localhost:5010/api/auth/refresh', {
       withCredentials: true,
     });
     setAuth((prev) => {

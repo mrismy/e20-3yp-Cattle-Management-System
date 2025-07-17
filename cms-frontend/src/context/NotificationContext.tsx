@@ -1,14 +1,14 @@
-import React, {
+import {
   createContext,
   useContext,
   useState,
   useEffect,
   PropsWithChildren,
-} from "react";
-import { io } from "socket.io-client";
-import axios from "axios";
+} from 'react';
+import { io } from 'socket.io-client';
+import { axiosPrivate, BASE_URL } from '../services/Axios';
 
-const socket = io("http://localhost:5010");
+const socket = io(`${BASE_URL}`);
 
 export interface Notification {
   _id: string;
@@ -42,63 +42,61 @@ export const NotificationProvider = ({ children }: PropsWithChildren<{}>) => {
 
   useEffect(() => {
     // Fetch notifications on mount
-    axios
-      .get("http://localhost:5010/api/notifications")
+    axiosPrivate
+      .get('/api/notifications')
       .then((res) => {
-        console.log("Fetched notifications:", res.data);
+        console.log('Fetched notifications:', res.data);
         setNotifications(res.data);
       })
       .catch((err) => {
-        console.error("Failed to fetch notifications:", err);
+        console.error('Failed to fetch notifications:', err);
       });
 
     // Listen for new notifications
-    socket.on("new_notification", (notification: Notification) => {
+    socket.on('new_notification', (notification: Notification) => {
       setNotifications((prev) => [notification, ...prev]);
     });
 
     return () => {
-      socket.off("new_notification");
+      socket.off('new_notification');
     };
   }, []);
 
   const markAllRead = async () => {
     try {
-      await axios.post("http://localhost:5010/api/notifications/markAllRead");
+      await axiosPrivate.post('/api/notifications/markAllRead');
       setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
     } catch (err) {
-      console.error("Failed to mark all as read:", err);
+      console.error('Failed to mark all as read:', err);
     }
   };
 
   const clearAll = async () => {
     try {
-      await axios.delete("http://localhost:5010/api/notifications/clearAll");
+      await axiosPrivate.delete('/api/notifications/clearAll');
       setNotifications([]);
     } catch (err) {
-      console.error("Failed to clear all notifications:", err);
+      console.error('Failed to clear all notifications:', err);
     }
   };
 
   const markRead = async (id: string) => {
     try {
-      await axios.post(
-        `http://localhost:5010/api/notifications/${id}/markRead`
-      );
+      await axiosPrivate.post(`/api/notifications/${id}/markRead`);
       setNotifications((prev) =>
         prev.map((n) => (n._id === id ? { ...n, read: true } : n))
       );
     } catch (err) {
-      console.error("Failed to mark notification as read:", err);
+      console.error('Failed to mark notification as read:', err);
     }
   };
 
   const deleteNotification = async (id: string) => {
     try {
-      await axios.delete(`http://localhost:5010/api/notifications/${id}`);
+      await axiosPrivate.delete(`/api/notifications/${id}`);
       setNotifications((prev) => prev.filter((n) => n._id !== id));
     } catch (err) {
-      console.error("Failed to delete notification:", err);
+      console.error('Failed to delete notification:', err);
     }
   };
 
@@ -110,8 +108,7 @@ export const NotificationProvider = ({ children }: PropsWithChildren<{}>) => {
         clearAll,
         markRead,
         deleteNotification,
-      }}
-    >
+      }}>
       {children}
     </NotificationContext.Provider>
   );

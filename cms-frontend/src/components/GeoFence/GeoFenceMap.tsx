@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-import Axios from '../../services/Axios';
+import Axios, { axiosPrivate } from '../../services/Axios';
 import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
 import markerIcon from 'leaflet/dist/images/marker-icon.png';
 import markerShadow from 'leaflet/dist/images/marker-shadow.png';
+import { CattleData } from '../Interface';
 
 delete (L.Icon.Default.prototype as any)._getIconUrl;
 
@@ -72,6 +73,40 @@ const GeoFenceMap = ({
     }
   };
 
+  const fetchAllSensorLocation = async (
+    mapRef: React.MutableRefObject<L.Map | null>
+  ) => {
+    try {
+      const response = await axiosPrivate.get('/map');
+      const data = await response.data;
+      const filteredData = data.filter(
+        (item: CattleData) =>
+          item.gpsLocation &&
+          item.gpsLocation.latitude !== 0 &&
+          item.gpsLocation.longitude !== 0
+      );
+
+      Object.keys(filteredData).forEach((key) => {
+        const value = filteredData[key];
+
+        if (value?.gpsLocation) {
+          const marker = L.marker([
+            value.gpsLocation.latitude,
+            value.gpsLocation.longitude,
+          ]).addTo(mapRef.current!);
+
+          marker.bindPopup(
+            `<b>Cattle ID: ${key}</b><br>
+           Lat: ${value.gpsLocation.latitude}, Lon: ${value.gpsLocation.longitude}<br>
+            `
+          );
+        }
+      });
+    } catch (error) {
+      console.error('Error fetching GPS data:', error);
+    }
+  };
+
   useEffect(() => {
     // Initialize the map
     const map = L.map('map').setView([7.250823, 80.592517], 16); // Default view (Coordinate, zoom)
@@ -119,23 +154,7 @@ const GeoFenceMap = ({
         onLocationSelect(lat, lng);
       });
 
-    // Fetch GPS data from backend
-    fetch('http://localhost:5010/api/sensor/location')
-      .then((response) => response.json())
-      .then((data) => {
-        Object.keys(data).forEach((key) => {
-          const value = data[key];
-          const marker = L.marker([
-            value.gpsLocation.latitude,
-            value.gpsLocation.longitude,
-          ]).addTo(map);
-          marker.bindPopup(
-            `<b>Cattle ID: ${key}</b><br>Lat: ${value.gpsLocation.latitude}, Lon: ${value.gpsLocation.longitude}<br> Timestamp: ${value.timestamp}`
-          );
-        });
-      })
-      .catch((error) => console.error('Error fetching GPS data:', error));
-
+    // fetchAllSensorLocation(mapRef);
     fetchAllGeoFence();
 
     return () => {

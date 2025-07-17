@@ -8,6 +8,7 @@ import NavSub from '../NavSub';
 import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { io } from 'socket.io-client';
+import { BASE_URL } from '../../services/Axios';
 
 const CattleList = () => {
   const navigate = useNavigate();
@@ -48,7 +49,7 @@ const CattleList = () => {
   };
 
   useEffect(() => {
-    const socket = io('http://localhost:5010');
+    const socket = io(`${BASE_URL}`);
     socket.on('sensor_data', () => {
       fetchAndFilter();
     });

@@ -1,4 +1,4 @@
-import axios from "axios";
+import Axios from './Axios';
 
 type SignUpFormFields = {
   firstName: string;
@@ -25,50 +25,47 @@ type UserDetailsFields = {
   address: string;
 };
 
-// Base URL for the API
-const BASE_URL = "http://localhost:5010";
-
 // End points
-const SIGN_UP = `${BASE_URL}/api/auth/signup`;
-const LOGIN = `${BASE_URL}/api/auth/login`;
-const CHANGE_PASSWORD = `${BASE_URL}/api/auth/change-password`;
-const GET_USER_DETAILS = `${BASE_URL}/api/auth/user-details`;
-const UPDATE_USER_DETAILS = `${BASE_URL}/api/auth/update-details`;
+const SIGN_UP = '/api/auth/signup';
+const LOGIN = '/api/auth/login';
+const CHANGE_PASSWORD = '/api/auth/change-password';
+const GET_USER_DETAILS = '/api/auth/user-details';
+const UPDATE_USER_DETAILS = '/api/auth/update-details';
 
 export const signup = (data: SignUpFormFields) =>
-  axios.post(SIGN_UP, data, {
+  Axios.post(SIGN_UP, data, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 
 export const login = (data: LoginFormFields) =>
-  axios.post(LOGIN, data, {
+  Axios.post(LOGIN, data, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
     },
   });
 
 export const changePassword = (data: ChangePasswordFields, token: string) =>
-  axios.post(CHANGE_PASSWORD, data, {
+  Axios.post(CHANGE_PASSWORD, data, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
   });
 
 export const getUserDetails = (token: string) =>
-  axios.get(GET_USER_DETAILS, {
+  Axios.get(GET_USER_DETAILS, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
   });
 
 export const updateUserDetails = (data: UserDetailsFields, token: string) =>
-  axios.put(UPDATE_USER_DETAILS, data, {
+  Axios.put(UPDATE_USER_DETAILS, data, {
     headers: {
-      "Content-Type": "application/json",
+      'Content-Type': 'application/json',
       Authorization: `Bearer ${token}`,
     },
   });
