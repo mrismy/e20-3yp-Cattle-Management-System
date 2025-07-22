@@ -1,42 +1,162 @@
-import CattleGrazing from '../assets/images/CattleLogin3.jpg';
+import { set, SubmitHandler, useForm } from "react-hook-form";
+import CattleGrazing from "../assets/images/CattleLogin3.jpg";
+import { Link, Navigate, useNavigate } from "react-router-dom";
+import { login } from "../services/AuthServices";
+import axios from "axios";
+import GlobalContext from "../context/GlobalContext";
+import { useContext } from "react";
+
+type FormFields = {
+  email: string;
+  password: string;
+};
 
 const Login = () => {
+  const navigate = useNavigate();
+  const {
+    register,
+    handleSubmit,
+    setError,
+    formState: { errors, isSubmitting },
+  } = useForm<FormFields>();
+  const { setAuth } = useContext(GlobalContext);
+
+  // Clear auth state from localStorage and context
+  const handleLogout = () => {
+    localStorage.removeItem("auth");
+    setAuth({
+      email: "",
+      password: "",
+      accessToken: "",
+      firstName: "",
+      lastName: "",
+      address: "",
+      role: "user",
+      userId: "",
+    });
+  };
+
+  const onSubmit: SubmitHandler<FormFields> = async (data) => {
+    try {
+      const response = await login(data);
+      const { accessToken, user } = response.data;
+      console.log("Login response:", response.data);
+      setAuth({
+        email: data.email,
+        password: data.password,
+        accessToken: accessToken,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        address: user.address,
+        role: user.role,
+        userId: user.id,
+      });
+      console.log("Login successful", response.data.accessToken);
+      navigate("/dashboard");
+    } catch (error) {
+      console.error("Error during login:", error);
+      if (axios.isAxiosError(error)) {
+        console.log("Axios error details:", {
+          status: error.response?.status,
+          data: error.response?.data,
+          message: error.message,
+        });
+        if (error.response?.data?.errors?.email) {
+          setError("email", {
+            message: error.response?.data?.errors?.email,
+          });
+        } else if (error.response?.data?.errors?.password) {
+          setError("password", {
+            message: error.response?.data?.errors?.password,
+          });
+        } else {
+          setError("root", {
+            message:
+              error.response?.data?.message ||
+              error.response?.data ||
+              "An unknown error occurred.",
+          });
+        }
+      } else {
+        setError("root", {
+          message: "An unknown error occurred.",
+        });
+      }
+    }
+  };
+
   return (
     <div className="flex w-full h-screen">
       {/* login form */}
       <div className="flex items-center justify-center bg-lime-100 w-full lg:w-1/2">
-        {/* <div className="flex flex-col bg-white h-4/5 w-4/5"> */}
-        <div className="bg-white px-10 py-20 rounded-3xl border-2 border-gray-100">
-          <h1 className="text-5xl font-semibold">Sign in to CMS now</h1>
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="bg-white w-xl px-10 py-12 rounded-3xl border-2 border-gray-100"
+        >
+          <h1 className="text-5xl font-semibold">Log in to CMS now</h1>
           <p className="font-medium text-lg text-gray-500 mt-4">
-            Welcome back! Please enter youe details
+            Welcome back! Please enter your details
           </p>
           <div className="mt-8">
             <div>
               <label className="text-lg font-medium">Email</label>
               <input
+                {...register("email", {
+                  required: "Email is required",
+                  pattern: {
+                    value: /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/,
+                    message: "Invalid email address",
+                  },
+                })}
+                type="email"
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your email"
               />
+              {errors.email && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.email.message}
+                </p>
+              )}
             </div>
             <div className="mt-3">
               <label className="text-lg font-medium">Password</label>
               <input
+                {...register("password", {
+                  required: "Password is required",
+                })}
                 className="w-full border-2 border-gray-100 bg-transparent rounded-lg p-3 mt-1"
                 placeholder="Enter your password"
                 type="password"
               />
+              {errors.password && (
+                <p className="text-red-500 text-sm mt-1 ml-1">
+                  {errors.password.message}
+                </p>
+              )}
             </div>
-            <button className="mt-6 ml-2 font-medium text-base text-violet-400">
+            <button className="mt-2 ml-1 font-medium text-base text-violet-400">
               Forgot Pasword
             </button>
-            <div className="mt-8 flex flex-col">
-              <button className="active:scale-[.98] active:duration-75 hover:scale-[1.01] ease-in-out transition-all py-3 rounded-xl bg-violet-500 text-white text-lg font-bold">
-                Sign in
+            <div className="mt-5 flex flex-col">
+              <button className="hover:scale-[1.01] ease-in-out transition-all py-3 rounded-xl bg-violet-500 text-white text-lg font-bold">
+                {isSubmitting ? "Logging in..." : "Log in"}
               </button>
+              {errors.root && (
+                <p className="text-red-500 text-md mt-1.5 ml-1">
+                  {errors.root.message}{" "}
+                </p>
+              )}
             </div>
+            <div className="flex flex-row mt-3 ml-1 items-center space-x-4">
+              <p className="text-md text-gray-500">
+                Contact your administrator for account access
+              </p>
+            </div>
+            {/* <div className="mt-5">
+              <Divider>Or</Divider>
+            </div> */}
           </div>
-        </div>
+        </form>
       </div>
 
       {/* Display the image */}
@@ -44,19 +164,6 @@ const Login = () => {
         <img src={CattleGrazing} className="w-full h-full object-cover" />
       </div>
     </div>
-    // <div className="flex w-full h-screen items-start">
-    //   <div className="relative w-1/2 h-full flex flex-col p-20">
-    //     <h1>Brand</h1>
-    //     <div className="w-full flex flex-col">
-    //       <h2 className="text-4xl font-semibold mb-4">Login</h2>
-    //       <p className="mb-2">Welcome back! Please enter your details.</p>
-    //     </div>
-    //   </div>
-
-    //   <div className="relative w-1/2 h-full flex flex-col">
-    //     <img src={CattleGrazing} className="w-full h-full object-cover" />
-    //   </div>
-    // </div>
   );
 };
 
