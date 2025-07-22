@@ -195,3 +195,21 @@ void max30102Sensor_init(void)
     isr_io_config();
     // Start test task
 }
+
+/**
+ * @brief Helper function to shutdown MAX30102 sensor
+ * 
+ * Performs complete shutdown sequence including:
+ * - Putting sensor in low-power mode
+ * - Printing final register states (optional)
+ * - Deinitializing I2C if needed
+ */
+void max30102Sensor_shutdown(void)
+{
+    // Shutdown sensor
+    ESP_ERROR_CHECK(max30102_shutdown(&max30102));
+      
+    // Optional: Clean up I2C (uncomment if needed)
+    // ESP_ERROR_CHECK(i2c_driver_delete(I2C_PORT));
+    
+}

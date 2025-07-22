@@ -43,6 +43,7 @@ uint8_t before_me = 0xFF;
 uint8_t my_position;
 bool before_me_saved = false;
 bool sentOnce = false;
+bool sync_status;
 
 uint16_t alloc_time;
 uint16_t time_interval;
@@ -106,7 +107,7 @@ void lora_peek_device_id(uint16_t *);
 void gps_task(void *);
 bool lora_new_rety_req(void);
 void get_my_slot(uint8_t *, int, uint8_t *, uint8_t *);
-void load_before_me(uint8_t *, uint16_t *, uint16_t *, uint8_t *);
+void load_before_me(uint8_t *, uint16_t *, uint16_t *, uint8_t *, bool *);
 
 bool sync_status = false;
 
@@ -116,22 +117,29 @@ void configSyncTime(void *pvParam)
     uint8_t dummy_buffer[256];
     uint32_t unix;
     uint8_t retry_count;
+    uint8_t max_retry_count;
     uint8_t prev_retry_count = -1;
     uint8_t *sync_status_mask;
     uint8_t mode;
 
     while (1)
     {
-        lora_peek_header(&mode, 1);
-        if (mode != 0xA0)
-        {
-            vTaskDelay(pdMS_TO_TICKS(20));
-            lora_receive(); // Listen to next packet
-            continue;
-        }
+        // lora_peek_header(&mode, 1);
+        // if (mode != 0xA0)
+        // {
+        //     vTaskDelay(pdMS_TO_TICKS(20));
+        //     lora_receive(); // Listen to next packet
+        //     continue;
+        // }
 
         // Receive packet with timeout (non-blocking alternative available)
         int bytes_received = lora_receive_packet(rx_buffer, sizeof(rx_buffer)); // Leave space for null terminator
+
+        if (bytes_received <= 0 || rx_buffer[0] != 0xA0)
+        {
+            vTaskDelay(pdMS_TO_TICKS(20)); // Yield to avoid WDT
+            continue;                      // Retry
+        }
 
         // ESP_LOGI("TIME_CONFIG", "Received buffer size: %d", bytes_received);
         ESP_LOG_BUFFER_HEXDUMP("RX", rx_buffer, bytes_received, ESP_LOG_INFO);
@@ -139,9 +147,10 @@ void configSyncTime(void *pvParam)
         unix = rx_buffer[1] | (rx_buffer[2] << 8) | (rx_buffer[3] << 16) | (rx_buffer[4] << 24);
         alloc_time = rx_buffer[9] | (rx_buffer[10] << 8);
         time_interval = rx_buffer[11] | (rx_buffer[12] << 8);
-        retry_count = rx_buffer[13];
-        sync_status_mask = &rx_buffer[14];
-        int len_sync_status = bytes_received - 14; // Sync_status_mask starts at 12th byte
+        max_retry_count = rx_buffer[13];
+        retry_count = rx_buffer[14];
+        sync_status_mask = &rx_buffer[15];
+        int len_sync_status = bytes_received - 15; // Sync_status_mask starts at 12th byte
 
         if (prev_retry_count == retry_count)
         {
@@ -161,7 +170,7 @@ void configSyncTime(void *pvParam)
         // If device is not synced
         if (!sync_status)
         {
-            ESP_LOGI("TIME CONFIG", "current time: %d, time interval, %d, allocated time: %d", (int)unix, (int)time_interval, (int)alloc_time);
+            ESP_LOGI("TIME CONFIG", "current time: %d, time interval, %d, allocated time: %d, Max_retries: %d", (int)unix, (int)time_interval, (int)alloc_time, (int)max_retry_count);
 
             if (unix > 0)
             {
@@ -175,7 +184,7 @@ void configSyncTime(void *pvParam)
             vTaskDelay(pdMS_TO_TICKS(20));
             lora_peek_header(&mode, 1);
         }
-        else if (retry_count < 4)
+        else if (retry_count < max_retry_count - 2)
         {
             ESP_LOGI("TIME_CONFIG", "Already Acked");
         }
@@ -198,10 +207,13 @@ void configSyncTime(void *pvParam)
                     err |= nvs_set_u16(sync_nvs, "time_interval", time_interval);
 
                     err |= nvs_set_u8(sync_nvs, "my_position", my_position);
+
+                    err |= nvs_set_u8(sync_nvs, "sync_status", sync_status ? 1 : 0);
+
                     if (err == ESP_OK)
                     {
                         nvs_commit(sync_nvs);
-                        ESP_LOGI("NVS", "Saved before_me = %d, Allocated_time = %d, Time_Interval = %d, my_position = %d", before_me, alloc_time, time_interval, my_position);
+                        ESP_LOGI("NVS", "Saved before_me = %d, Allocated_time = %d, Time_Interval = %d, my_position = %d, sync_status = %d", before_me, alloc_time, time_interval, my_position, sync_status ? 1 : 0);
                     }
                     else
                     {
@@ -310,6 +322,22 @@ void read_sensors_task(void *pvParam)
                     uint64_t sleep_us = (time_interval - alloc_time * (my_position + 1)) * 1000000;
                     int sleeping = (time_interval - alloc_time * (my_position + 1));
                     ESP_LOGI("SENSOR_MODE", "Going to sleep for %d s", sleeping);
+
+                    // Update NVS
+                    nvs_handle_t sync_nvs;
+                    esp_err_t err = nvs_open("sync_info", NVS_READWRITE, &sync_nvs);
+                    if (err == ESP_OK)
+                    {
+                        err |= nvs_set_u8(sync_nvs, "sync_status", 0);
+
+                        if (err == ESP_OK)
+                        {
+                            nvs_commit(sync_nvs);
+                            ESP_LOGI("NVS", "Updated Sync status : false");
+                        }
+                        nvs_close(sync_nvs);
+                    }
+
                     esp_sleep_enable_timer_wakeup(sleep_us);
                     vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
                     esp_deep_sleep_start();
@@ -404,11 +432,41 @@ void gps_task(void *pvParameters)
                 shared_data.lat = flat;
                 xSemaphoreGive(data_mutex);
                 newdata = 0;
+                disable_gps();
+                ESP_LOGI("GPS_TASK","Disable GPS");
+                uart_flush(GPS_UART_NUM);
+                ESP_ERROR_CHECK(uart_driver_delete(GPS_UART_NUM));
+                vTaskDelete(NULL);
             }
         }
 
         vTaskDelay(100 / portTICK_PERIOD_MS);
     }
+}
+
+// UBX command to enable power save mode
+const uint8_t ubx_power_save[] = {
+    0xB5, 0x62, 0x06, 0x11, 0x02, 0x00, 0x08, 0x01, 0x22, 0x91};
+
+// UBX command to completely disable navigation
+const uint8_t ubx_nav_off[] = {
+    0xB5, 0x62, 0x06, 0x04, 0x24, 0x00, 0xFF, 0xFF, 0x06, 0x03,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x17, 0xC2};
+
+void disable_gps()
+{
+    // Send power save command
+    uart_write_bytes(GPS_UART_NUM, (const char *)ubx_power_save, sizeof(ubx_power_save));
+    vTaskDelay(100 / portTICK_PERIOD_MS);
+
+    // Optional: Also send navigation off command for more complete shutdown
+    // uart_write_bytes(GPS_UART_NUM, (const char *)ubx_nav_off, sizeof(ubx_nav_off));
+    // vTaskDelay(100 / portTICK_PERIOD_MS);
+
+    // Flush the UART to ensure commands are sent
+    uart_flush(GPS_UART_NUM);
 }
 
 void read_heartrate_task(void *pvParameters)
@@ -513,6 +571,11 @@ void lora_receive_task(void *pvParameters)
 
             case 0xB0: // Read sensor task
             {
+                if (!sync_status)
+                {
+                    break;
+                }
+
                 if (((int)deviceId == (int)before_me) ||
                     (((int)deviceId == DEVICE_ID) && lora_new_rety_req()))
                 {
@@ -535,6 +598,20 @@ void lora_receive_task(void *pvParameters)
                     uint64_t sleep_us = (time_interval - alloc_time * (my_position + 1.5)) * 1000000;
                     int sleeping = sleep_us / 1000000;
                     ESP_LOGI("SENSOR_MODE", "Going to sleep for %d s", sleeping);
+                    // Update NVS
+                    nvs_handle_t sync_nvs;
+                    esp_err_t err = nvs_open("sync_info", NVS_READWRITE, &sync_nvs);
+                    if (err == ESP_OK)
+                    {
+                        err |= nvs_set_u8(sync_nvs, "sync_status", 0);
+
+                        if (err == ESP_OK)
+                        {
+                            nvs_commit(sync_nvs);
+                            ESP_LOGI("NVS", "Updated Sync status : false");
+                        }
+                        nvs_close(sync_nvs);
+                    }
                     esp_sleep_enable_timer_wakeup(sleep_us);
                     vTaskDelay(pdMS_TO_TICKS(100)); // Wait 100ms
                     esp_deep_sleep_start();
@@ -643,7 +720,7 @@ void app_main(void *pvParamaters)
     }
     ESP_ERROR_CHECK(ret);
 
-    load_before_me(&before_me, &alloc_time, &time_interval, &my_position);
+    load_before_me(&before_me, &alloc_time, &time_interval, &my_position, &sync_status);
     ESP_LOGI("MAIN", "Retreiving Before me : %d", (int)before_me);
 
     // init_uart();
@@ -774,10 +851,11 @@ void get_my_slot(uint8_t *sync_status_mask, int len, uint8_t *before_me, uint8_t
     *my_position = position;
 }
 
-void load_before_me(uint8_t *before_me, uint16_t *alloc_time, uint16_t *time_interval, uint8_t *my_position)
+void load_before_me(uint8_t *before_me, uint16_t *alloc_time, uint16_t *time_interval, uint8_t *my_position, bool *sync_status)
 {
     nvs_handle_t sync_nvs;
     esp_err_t err = nvs_open("sync_info", NVS_READONLY, &sync_nvs);
+    uint8_t flagRaw = 0;
     if (err == ESP_OK)
     {
         err |= nvs_get_u8(sync_nvs, "before_me", before_me);
@@ -787,6 +865,10 @@ void load_before_me(uint8_t *before_me, uint16_t *alloc_time, uint16_t *time_int
         err |= nvs_get_u16(sync_nvs, "time_interval", time_interval);
 
         err |= nvs_get_u8(sync_nvs, "my_position", my_position);
+
+        err |= nvs_get_u8(sync_nvs, "sync_status", &flagRaw);
+
+        *sync_status = (flagRaw == 1); // retriving flag
 
         if (err == ESP_OK)
         {

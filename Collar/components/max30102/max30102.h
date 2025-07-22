@@ -233,6 +233,13 @@ void i2c_task_1(void* arg);
  * @param i2cnum Pointer to I2C object handle
  */
 esp_err_t max30102_init(max30102_t *this,i2c_port_t i2c_num);
+/**
+ * @brief MAX30102 shutdown function - Puts sensor in low-power mode
+ * 
+ * @param this Pointer to max30102_t object instance
+ * @return esp_err_t ESP_OK if successful, error code otherwise
+ */
+esp_err_t max30102_shutdown(max30102_t *this);
 esp_err_t max30102_write_register(max30102_t* this, uint8_t address, uint8_t val);
 esp_err_t max30102_read_register(max30102_t* this, uint8_t address, uint8_t* reg);
 esp_err_t max30102_read_from(max30102_t* this, uint8_t address, uint8_t* reg,uint8_t size);

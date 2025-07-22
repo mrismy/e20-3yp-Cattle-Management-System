@@ -58,6 +58,37 @@ esp_err_t max30102_init(max30102_t *this, i2c_port_t i2c_num)
 
     return ret;
 }
+
+/**
+ * @brief MAX30102 shutdown function (puts sensor in low-power mode)
+ * 
+ * @param this Pointer to max30102_t object instance
+ * @return esp_err_t ESP_OK if successful, error code otherwise
+ */
+esp_err_t max30102_shutdown(max30102_t *this)
+{
+    // 1. Disable interrupts first
+    esp_err_t ret = max30102_write_register(this, MAX30102_INTERRUPT_ENABLE_1, 0x00);
+    if(ret != ESP_OK) return ret;
+
+    // 2. Clear FIFO pointers
+    ret = max30102_write_register(this, MAX30102_FIFO_WR_PTR, 0x00);
+    if(ret != ESP_OK) return ret;
+    ret = max30102_write_register(this, MAX30102_OVF_COUNTER, 0x00);
+    if(ret != ESP_OK) return ret;
+    ret = max30102_write_register(this, MAX30102_FIFO_RD_PTR, 0x00);
+    if(ret != ESP_OK) return ret;
+
+    // 3. Put device in shutdown mode (mode config = 0x00)
+    ret = max30102_write_register(this, MAX30102_MODE_CONFIG, 0x00);
+    if(ret != ESP_OK) return ret;
+
+    // 4. Reduce LED currents to minimum (optional but recommended)
+    ret = max30102_set_led_current(this, MAX30102_LED_CURRENT_0MA, MAX30102_LED_CURRENT_0MA);
+    
+    return ret;
+}
+
 esp_err_t max30102_set_led_current( max30102_t* this,max30102_current_t red_current,max30102_current_t ir_current )
 {
    esp_err_t ret = max30102_write_register(this, MAX30102_LED_IR_PA1, red_current);
