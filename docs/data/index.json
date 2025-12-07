@@ -27,5 +27,7 @@
       "email": "isurunawinne@eng.pdn.ac.lk"
     }
   ],
+  "image": "cover_page.jpg",
+  "thumbnail": "thumbnail.jpg",
   "tags": ["Web", "Embedded Systems"]
 }
