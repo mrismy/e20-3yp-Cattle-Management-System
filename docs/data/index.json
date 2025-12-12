@@ -1,6 +1,4 @@
 {
-  "image": "cover_page.jpg",
-  "thumbnail": "thumbnail.jpg",
   "team": [
     {
       "name": "Ahemad I.I.",
@@ -29,5 +27,7 @@
       "email": "isurunawinne@eng.pdn.ac.lk"
     }
   ],
-  "tags": ["Web", "Embedded Systems"]
+  "tags": ["Web", "Embedded Systems"],
+  "image": "cover_page.jpg",
+  "thumbnail": "thumbnail.jpg"
 }
