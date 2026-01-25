@@ -1,4 +1,6 @@
 {
+  "image": "cover_page.jpg",
+  "thumbnail": "thumbnail.jpg",
   "team": [
     {
       "name": "Ahemad I.I.",
@@ -28,11 +30,7 @@
     }
   ],
 
-  "image": "cover_page.jpg",
-  "thumbnail": "thumbnail.jpg",
-  "tags": ["Web", "Embedded Systems"],
-  "tags": ["Web", "Embedded Systems"],
-  "image": "cover_page.jpg",
-  "thumbnail": "thumbnail.jpg"
+
+  "tags": ["Web", "Embedded Systems"]
 
 }
