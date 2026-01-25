@@ -11,12 +11,13 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
   const refreshToken = cookie.jwt;
   const user = await User.findOne({ refreshToken: cookie.jwt }).exec();
   if (!user) {
-    return res.status(403);
+    return res.sendStatus(403);
   }
 
   if (!process.env.REFRESH_TOKEN_SECRET) {
     return res.status(500).json({ message: 'Refresh token secret not set' });
   }
+  
   jwt.verify(
     refreshToken,
     process.env.REFRESH_TOKEN_SECRET,
@@ -25,9 +26,9 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
         return res.status(403).json({ message: 'Forbidden' });
       }
       const accessToken = jwt.sign(
-        { userId: decoded.userId, email: decoded.email },
+        { userId: decoded.userId, email: decoded.email, role: decoded.role },
         process.env.ACCESS_TOKEN_SECRET!,
-        { expiresIn: '30s' }
+        { expiresIn: '30m' }
       );
       return res.status(200).json({ accessToken });
     }

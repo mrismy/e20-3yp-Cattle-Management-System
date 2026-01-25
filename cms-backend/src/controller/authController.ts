@@ -8,6 +8,8 @@ interface UserInterface {
   lastName: string;
   email: string;
   password: string;
+  address: string;
+  role: 'admin' | 'user';
 }
 
 // Error handling utility
@@ -46,7 +48,7 @@ export const login = async (req: Request, res: Response, next: unknown) => {
       throw new Error('JWT secrets are not configured');
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email: email.toLowerCase() });
     console.log('User found:', user ? 'Yes' : 'No');
     
     if (!user) return res.status(400).json({ message: 'User not found' });
@@ -58,13 +60,13 @@ export const login = async (req: Request, res: Response, next: unknown) => {
 
     // Generate tokens
     const accessToken = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, role: user.role },
       process.env.ACCESS_TOKEN_SECRET,
       { expiresIn: '30m' }
     );
 
     const refreshToken = jwt.sign(
-      { userId: user._id, email: user.email },
+      { userId: user._id, email: user.email, role: user.role },
       process.env.REFRESH_TOKEN_SECRET,
       { expiresIn: '7d' }
     );
@@ -81,7 +83,17 @@ export const login = async (req: Request, res: Response, next: unknown) => {
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
-    return res.status(200).json({ accessToken });
+    return res.status(200).json({ 
+      accessToken,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        address: user.address
+      }
+    });
   } catch (error) {
     console.error('Login error:', error);
     const errors = handleErrors(error);
@@ -89,9 +101,9 @@ export const login = async (req: Request, res: Response, next: unknown) => {
   }
 };
 
-// Register new user
-export const signup = async (req: Request, res: Response) => {
-  const { firstName, lastName, email, password } = req.body;
+// Register new user (admin only)
+export const createUser = async (req: Request, res: Response) => {
+  const { firstName, lastName, email, password, address, role = 'user' } = req.body;
 
   try {
     const salt = await bcrypt.genSalt(10);
@@ -100,15 +112,96 @@ export const signup = async (req: Request, res: Response) => {
     const newUser = new User({
       firstName,
       lastName,
-      email,
+      email: email.toLowerCase(),
       password: hashedPassword,
+      address,
+      role,
     });
 
     await newUser.save();
-    res.status(201).json({ message: 'User created successfully', user: newUser });
+    res.status(201).json({ 
+      message: 'User created successfully', 
+      user: {
+        id: newUser._id,
+        firstName: newUser.firstName,
+        lastName: newUser.lastName,
+        email: newUser.email,
+        role: newUser.role,
+        address: newUser.address
+      }
+    });
   } catch (error) {
     const errors = handleErrors(error);
     res.status(400).json({ errors });
+  }
+};
+
+// Get all users (admin only)
+export const getAllUsers = async (req: Request, res: Response) => {
+  try {
+    const users = await User.find({}).select('-password -refreshToken');
+    res.status(200).json(users);
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
+
+// Update user role (admin only)
+export const updateUserRole = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const { role } = req.body;
+
+  try {
+    if (!['admin', 'user'].includes(role)) {
+      return res.status(400).json({ message: 'Invalid role' });
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.role = role;
+    await user.save();
+
+    res.status(200).json({ 
+      message: 'User role updated successfully',
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        address: user.address
+      }
+    });
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
+
+// Delete user (admin only)
+export const deleteUser = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Prevent admin from deleting themselves
+    if (user.role === 'admin' && user._id.toString() === req.user?.userId) {
+      return res.status(400).json({ message: 'Cannot delete your own admin account' });
+    }
+
+    await User.findByIdAndDelete(userId);
+    res.status(200).json({ message: 'User deleted successfully' });
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
   }
 };
 
@@ -157,6 +250,100 @@ export const changePassword = async (req: Request, res: Response) => {
     await user.save();
 
     res.status(200).json({ message: 'Password updated successfully' });
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
+
+// Get user details
+export const getUserDetails = async (req: Request, res: Response) => {
+  const userId = req.user?.userId; // From JWT middleware
+
+  try {
+    const user = await User.findById(userId).select('-password -refreshToken');
+    //console.log(req.user);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+    res.status(200).json(user);
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
+
+// Update user details
+export const updateUserDetails = async (req: Request, res: Response) => {
+  const userId = req.user?.userId; // From JWT middleware
+  const { firstName, lastName, email, address } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if email is being changed and if it's already in use
+    if (email.toLowerCase() !== user.email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    // Update user details
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.email = email.toLowerCase();
+    user.address = address;
+
+    await user.save();
+    res.status(200).json({ message: 'User details updated successfully', user });
+  } catch (error) {
+    const errors = handleErrors(error);
+    res.status(500).json({ errors });
+  }
+};
+
+// Update user details (admin only)
+export const updateUserByAdmin = async (req: Request, res: Response) => {
+  const { userId } = req.params;
+  const { firstName, lastName, email, address, role } = req.body;
+
+  try {
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Check if email is being changed and if it's already in use by another user
+    if (email.toLowerCase() !== user.email) {
+      const existingUser = await User.findOne({ email: email.toLowerCase() });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already in use' });
+      }
+    }
+
+    // Update user details
+    user.firstName = firstName;
+    user.lastName = lastName;
+    user.email = email.toLowerCase();
+    user.address = address;
+    user.role = role;
+
+    await user.save();
+    res.status(200).json({ 
+      message: 'User details updated successfully', 
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role,
+        address: user.address
+      }
+    });
   } catch (error) {
     const errors = handleErrors(error);
     res.status(500).json({ errors });

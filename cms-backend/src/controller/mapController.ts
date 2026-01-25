@@ -5,49 +5,54 @@ import { mqttClient } from '../services/mqttClient';
 
 module.exports.getAll = async (req: any, res: any) => {
   try {
-    let memoryData = mqttClient.getLatestUpdate();
-    let sensorDataList: any[] = [];
+    const memoryData = mqttClient.getLatestUpdate(); // { deviceId1: {...}, deviceId2: {...}, ... }
 
-    if (Object.keys(memoryData).length > 0) {
-      // Convert memoryData (object) to array
-      sensorDataList = Object.values(memoryData);
-    } else {
-      // Get the latest record per deviceId from DB
-      sensorDataList = await sensorData.aggregate([
-        {
-          $sort: { createdAt: -1 }, // sort by latest
+    // Step 1: Get the latest sensor data per deviceId from the DB
+    let dbSensorData = await sensorData.aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$deviceId',
+          doc: { $first: '$$ROOT' },
         },
-        {
-          $group: {
-            _id: '$deviceId',
-            doc: { $first: '$$ROOT' }, // get latest per device
-          },
-        },
-        {
-          $replaceRoot: { newRoot: '$doc' },
-        },
-      ]);
-    }
+      },
+      { $replaceRoot: { newRoot: '$doc' } },
+    ]);
 
+    // Step 2: Replace DB entries with in-memory MQTT data if available
+    const mergedSensorData = dbSensorData.map((dbDoc) => {
+      const memDoc = memoryData[dbDoc.deviceId];
+      return memDoc ? memDoc : dbDoc;
+    });
+
+    // Step 3: Get all cattle info and create a Map for fast lookup
     const cattleList = await cattle.find();
-    const cattleMap = new Map(cattleList.map((c) => [c.tagId, c]));
+    const cattleMap = new Map(cattleList.map((c) => [c.deviceId, c]));
 
+    // Step 4: Enrich sensor data with cattle info and sensor status/action
     const result = await Promise.all(
-      sensorDataList.map(async (sensor) => {
+      mergedSensorData.map(async (sensor) => {
         const deviceId = sensor.deviceId;
-        const cattleInfo =
-          deviceId !== null && deviceId !== undefined
-            ? cattleMap.get(deviceId)
-            : undefined;
+        const cattleInfo = cattleMap.get(deviceId);
+        // console.log(sensor);
 
-        const cattleStatus = await CattleSensorData.isCattleInSafeZone(
-          deviceId
-        );
+        let locationStatus = 'UNKNOWN';
+        try {
+          if (
+            sensor &&
+            typeof sensor.gpsLocation?.latitude === 'number' &&
+            typeof sensor.gpsLocation?.longitude === 'number'
+          ) {
+            locationStatus = await CattleSensorData.cattleZoneType(sensor);
+          }
+        } catch (err) {
+          console.error(`Error determining zone for device ${deviceId}:`, err);
+        }
 
         return {
           ...sensor,
-          cattleId: cattleInfo ? cattleInfo.tagId : null,
-          cattleStatus,
+          cattleId: cattleInfo ? cattleInfo.cattleId : null,
+          locationStatus,
         };
       })
     );

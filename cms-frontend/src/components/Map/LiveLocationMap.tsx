@@ -2,9 +2,19 @@ import L from 'leaflet';
 import { useEffect, useRef } from 'react';
 import 'leaflet/dist/leaflet.css';
 import { CattleData } from '../Interface';
+import { axiosPrivate } from '../../services/Axios';
 
 interface CattleDataProps {
   cattleData: CattleData[];
+  highlightedCattleId?: string | null;
+}
+
+interface geoFenceInterface {
+  latitude: number;
+  longitude: number;
+  radius: number;
+  zoneType: string;
+  zoneName: string;
 }
 
 // Fix default marker icons (Leaflet issue with Webpack)
@@ -20,7 +30,7 @@ const createStatusIcon = (status: string) => {
   let color = 'gray';
   if (status === 'SAFE') {
     color = 'green';
-  } else if (status === 'ALERT') {
+  } else if (status === 'WARNING') {
     color = 'yellow';
   } else if (status === 'DANGER') {
     color = 'red';
@@ -37,59 +47,118 @@ const createStatusIcon = (status: string) => {
   });
 };
 
-const LiveLocationMap = ({ cattleData }: CattleDataProps) => {
+const LiveLocationMap = ({
+  cattleData,
+  highlightedCattleId,
+}: CattleDataProps) => {
   const mapRef = useRef<L.Map | null>(null);
   const markersRef = useRef<{ [key: string]: L.Marker }>({});
 
+  // Initialize map once
   useEffect(() => {
-    // Initialize the map
-    mapRef.current = L.map('map').setView([7.25, 80.59], 16);
+    if (!mapRef.current) {
+      if (cattleData.length > 1 && cattleData[1].gpsLocation) {
+        const mapLon = cattleData[1].gpsLocation.longitude;
+        const mapLat = cattleData[1].gpsLocation.latitude;
+        console.log('Initial map center:', mapLat, mapLon);
+        mapRef.current = L.map('map').setView([mapLat, mapLon], 16);
+      } else {
+        console.warn('Not enough cattle data to set initial map view.');
+        mapRef.current = L.map('map').setView([7.25, 80.59], 16);
+      }
+      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution:
+          '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      }).addTo(mapRef.current);
 
-    // Add OpenStreetMap tiles
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      attribution:
-        '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
-    }).addTo(mapRef.current);
-
-    // Update markers when cattleData changes
-    const updateMarkers = () => {
-      // Clear existing markers
-      Object.values(markersRef.current).forEach((marker) => {
-        mapRef.current?.removeLayer(marker);
+      // Only add geofences once when map is initialized
+      axiosPrivate.get('/geo-fence').then((res) => {
+        res.data.forEach((geo: geoFenceInterface) => {
+          const { latitude, longitude, radius, zoneType } = geo;
+          L.circle([latitude, longitude], {
+            radius,
+            color: zoneType === 'safe' ? '#1F7D53' : '#E83F25',
+            fillColor: zoneType === 'safe' ? '#DDF6D2' : '#FFAAAA',
+            fillOpacity: 0.1,
+          }).addTo(mapRef.current!);
+        });
       });
-      markersRef.current = {};
+    }
+  }, []);
 
-      // Add new markers
-      cattleData.forEach((data) => {
-        if (data.gpsLocation?.latitude && data.gpsLocation?.longitude) {
-          const marker = L.marker(
-            [data.gpsLocation.latitude, data.gpsLocation.longitude],
-            { icon: createStatusIcon(data.cattleStatus) }
-          ).addTo(mapRef.current!);
+  // Update cattle markers on data change
+  useEffect(() => {
+    if (!mapRef.current) return;
 
-          marker.bindPopup(
-            `<b>Cattle ID: ${data.cattleId}</b><br>
-             Status: ${data.cattleStatus}<br>
-             Lat: ${data.gpsLocation.latitude.toFixed(6)}<br>
-             Lon: ${data.gpsLocation.longitude.toFixed(6)}<br>`
-          );
+    // Clear previous markers
+    Object.values(markersRef.current).forEach((marker) => {
+      mapRef.current!.removeLayer(marker);
+    });
+    markersRef.current = {};
 
-          markersRef.current[data.cattleId.toString()] = marker;
-        }
-      });
-    };
+    // Add updated markers
+    cattleData.forEach((data) => {
+      if (!data.cattleId) return;
+      if (
+        data.gpsLocation?.latitude &&
+        data.gpsLocation?.longitude &&
+        data.deviceId != null
+      ) {
+        const marker = L.marker(
+          [data.gpsLocation.latitude, data.gpsLocation.longitude],
+          { icon: createStatusIcon(data.locationStatus) }
+        ).addTo(mapRef.current!);
 
-    // Initial update
-    updateMarkers();
+        marker.bindPopup(
+          `<div style="font-family: sans-serif; font-size: 14px;">
+            <div style="font-weight: bold; margin-bottom: 2px;">Cattle ID: <span style="color: #1a202c">${
+              data.cattleId
+            }</span></div>
+            <div>Location status: 
+              <span style="color: ${
+                data.locationStatus === 'SAFE'
+                  ? 'green'
+                  : data.locationStatus === 'WARNING'
+                  ? 'orange'
+                  : 'red'
+              }; font-weight: 600;">
+                ${data.locationStatus.toLowerCase()}
+              </span>
+            </div>
+            <div style="margin-top: 2px; font-size: 13px; color: #4A5568;">
+            Location: (${data.gpsLocation.latitude.toFixed(
+              3
+            )}, ${data.gpsLocation.longitude.toFixed(3)})
+            </div>
+          </div>`,
+          {
+            offset: L.point(0, -5),
+          }
+        );
 
-    // Set up polling (every 5 seconds)
-    const intervalId = setInterval(updateMarkers, 5000);
-
-    return () => {
-      clearInterval(intervalId);
-      mapRef.current?.remove();
-    };
+        markersRef.current[data.cattleId.toString()] = marker;
+      }
+    });
   }, [cattleData]);
+
+  // Highlight selected cattle
+  useEffect(() => {
+    if (
+      highlightedCattleId &&
+      markersRef.current[highlightedCattleId] &&
+      mapRef.current
+    ) {
+      const marker = markersRef.current[highlightedCattleId];
+      marker.openPopup();
+      mapRef.current.setView(marker.getLatLng(), 17, { animate: true });
+
+      const timeout = setTimeout(() => {
+        marker.closePopup();
+      }, 3000);
+
+      return () => clearTimeout(timeout);
+    }
+  }, [highlightedCattleId]);
 
   return <div id="map" className="h-full w-full rounded-2xl" />;
 };

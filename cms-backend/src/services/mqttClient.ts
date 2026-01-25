@@ -3,9 +3,9 @@ import { SensorDataInterface } from '../types/sensorDataInterface';
 import { CattleSensorData } from '../services/controls';
 import mongoose from 'mongoose';
 import sensorData from '../model/sensorData';
-import latestSensorData from '../model/latestSensorData';
 import path from 'path';
 import fs from 'fs';
+import { getSocketIOInstance } from '../socket';
 // const awsIot = require('aws-iot-device-sdk');
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
@@ -47,7 +47,7 @@ class MqttHandler {
 
     this.client.on('connect', () => {
       this.isConnected = true;
-      console.log('Connected to AWS IoT');
+      //console.log('Connected to AWS IoT');
     });
 
     this.client.on('error', (err) => {
@@ -61,7 +61,7 @@ class MqttHandler {
 
     this.client.on('close', () => {
       this.isConnected = false;
-      console.log('Disconnected from MQTT broker');
+      //console.log('Disconnected from MQTT broker');
     });
 
     // Ensure only ONE message listener is attached globally
@@ -113,45 +113,35 @@ class MqttHandler {
             gpsLocation
           );
 
-          // Store latest data in MongoDB
-          // const existingData = await latestSensorData.findOne({ deviceId });
-
-          // if (existingData) {
-          //   existingData.heartRate = heartRate;
-          //   existingData.temperature = temperature;
-          //   existingData.gpsLocation = gpsLocation;
-          //   //existingData.timestamp = new Date().toLocaleString("en-IN", { timeZone: "Asia/Kolkata" });
-          //   await existingData.save();
-          //   console.log(
-          //     `Updated latest sensor data in DB for device ${deviceId}:`
-          //   );
-          // } else {
-          //   await this.storeLatestSensorData(
-          //     deviceId,
-          //     heartRate,
-          //     temperature,
-          //     gpsLocation
-          //   );
-          // }
-
           // Check alerts and log them
-          const { status, action } = await CattleSensorData.checkSensors(
-            deviceId
-          );
+          const status = await CattleSensorData.saftyStatus(receivedMsg);
 
-          action.forEach((actionCode: number) => {
-            if (actionCode === 0) {
-              console.log(status, 'Cattle data not found.');
-            } else if (actionCode === 1) {
-              console.log(status, 'Cattle is safe and within limits.');
-            } else if (actionCode === 2) {
-              console.log(status, 'Heart rate is abnormal.');
-            } else if (actionCode === 3) {
-              console.log(status, 'Temperature is abnormal.');
-            } else if (actionCode === 4) {
-              console.log(status, 'Cattle is out of the designated area.');
-            }
-          });
+          // Send real-time data to frontend
+          const ioInstance = getSocketIOInstance();
+          if (ioInstance) {
+            ioInstance.emit('sensor_data', {
+              deviceId,
+              heartRate,
+              temperature,
+              gpsLocation,
+              status,
+              timestamp: this.latestupdate[deviceId].timestamp,
+            });
+          }
+
+          // action.forEach((actionCode: number) => {
+          //   if (actionCode === 0) {
+          //     console.log(status, 'Cattle data not found.');
+          //   } else if (actionCode === 1) {
+          //     console.log(status, 'Cattle is safe and within limits.');
+          //   } else if (actionCode === 2) {
+          //     console.log(status, 'Heart rate is abnormal.');
+          //   } else if (actionCode === 3) {
+          //     console.log(status, 'Temperature is abnormal.');
+          //   } else if (actionCode === 4) {
+          //     console.log(status, 'Cattle is out of the designated area.');
+          //   }
+          // });
         }
       } catch (error) {
         console.error('Error parsing MQTT message:', error);
@@ -176,32 +166,22 @@ class MqttHandler {
 
       await newSensorData.save();
       console.log(`Sensor data stored in DB for device ${deviceId}:`);
+
+      const ioInstance = getSocketIOInstance();
+      if (ioInstance) {
+        console.log('Send data socket: ');
+        ioInstance.emit('sensor_data_updated', {
+          deviceId,
+          heartRate,
+          temperature,
+          gpsLocation,
+          timestamp: new Date().toISOString(),
+        });
+      }
     } catch (error) {
       console.error(' Error storing sensor data:', error);
     }
   }
-
-  // Function to store latest sensor data in MongoDB
-  // private async storeLatestSensorData(
-  //   deviceId: number,
-  //   heartRate: number,
-  //   temperature: number,
-  //   gpsLocation?: { latitude: number; longitude: number }
-  // ) {
-  //   try {
-  //     const newSensorData = new latestSensorData({
-  //       deviceId,
-  //       heartRate,
-  //       temperature,
-  //       gpsLocation,
-  //     });
-
-  //     await newSensorData.save();
-  //     console.log(`Latest Sensor data stored in DB for device ${deviceId}:`);
-  //   } catch (error) {
-  //     console.error(' Error storing sensor data:', error);
-  //   }
-  // }
 
   public static getInstance(): MqttHandler {
     if (!MqttHandler.instance) {
