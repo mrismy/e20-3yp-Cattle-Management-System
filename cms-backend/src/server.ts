@@ -50,8 +50,11 @@ app.get('/', (req: any, res: any) => {
 });
 
 // Register the routes
-app.use(authRouter);
-// app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
+//app.use(authRouter);
+//app.use('/api/auth/login', authRouter); // Mount auth routes under /api/auth
+app.use('/api/auth', authRouter);
+ app.use(verifyJWT); // Apply JWT verification middleware to all routes below this line
+ //app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
 app.use('/geo-fence', geoFenceRouter);
 app.use('/map', mapRouter);
 app.use('/api/cattle', cattleRouter);
@@ -59,7 +62,7 @@ app.use('/api/sensor', sensorDataRouter);
 app.use('/api/threshold', sensorThresholdRouter);
 app.use('/api/configurations', receiverConfigRouter);
 // app.use('/notification', notificationRouter);
-app.use('/api/auth', authRouter); // Mount auth routes under /api/auth
+
 
 import notificationRoutes from './routes/notificationRoutes';
 app.use('/api/notifications', notificationRoutes);

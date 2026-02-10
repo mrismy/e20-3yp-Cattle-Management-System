@@ -6,6 +6,7 @@ import sensorData from '../model/sensorData';
 import path from 'path';
 import fs from 'fs';
 import { getSocketIOInstance } from '../socket';
+import console from 'console';
 // const awsIot = require('aws-iot-device-sdk');
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
@@ -31,7 +32,7 @@ class MqttHandler {
     //this.client = mqtt.connect(MQTT_BROKER);
 
     const certsDir = path.join(__dirname, '..', '..', 'certs');
-
+    console.log("mqttClient.ts initialized");
     const options = {
       key: fs.readFileSync(path.join(certsDir, 'private.pem.key')),
       cert: fs.readFileSync(path.join(certsDir, 'certificate.pem.crt')),
@@ -47,7 +48,7 @@ class MqttHandler {
 
     this.client.on('connect', () => {
       this.isConnected = true;
-      //console.log('Connected to AWS IoT');
+      console.log('Connected to AWS IoT');
     });
 
     this.client.on('error', (err) => {
@@ -61,7 +62,7 @@ class MqttHandler {
 
     this.client.on('close', () => {
       this.isConnected = false;
-      //console.log('Disconnected from MQTT broker');
+      console.log('Disconnected from MQTT broker');
     });
 
     // Ensure only ONE message listener is attached globally

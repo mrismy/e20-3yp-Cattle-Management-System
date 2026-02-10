@@ -4,17 +4,18 @@ import { AiFillSafetyCertificate } from 'react-icons/ai';
 import { MdDangerous } from 'react-icons/md';
 import { GoAlertFill } from 'react-icons/go';
 import Map from './Map';
-import { axiosPrivate } from '../services/Axios';
 import { useContext, useEffect, useState } from 'react';
 import { CattleData } from './Interface';
 import { useNavigate } from 'react-router-dom';
 import GlobalContext from '../context/GlobalContext';
+import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
 
 const Dashboard = () => {
   const { setCattlelist_selectedOption, setSelectedMenu } =
     useContext(GlobalContext);
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
   const navigate = useNavigate();
+  const axiosPrivate = UseAxiosPrivate();
 
   const fetchAllCattle = async () => {
     try {
