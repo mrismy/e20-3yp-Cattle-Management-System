@@ -44,6 +44,7 @@ export const login = (data: LoginFormFields) =>
     headers: {
       'Content-Type': 'application/json',
     },
+    withCredentials: true,
   });
 
 export const changePassword = (data: ChangePasswordFields, token: string) =>

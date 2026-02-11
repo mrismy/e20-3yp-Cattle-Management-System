@@ -62,7 +62,7 @@ class MqttHandler {
 
     this.client.on('close', () => {
       this.isConnected = false;
-      console.log('Disconnected from MQTT broker');
+      //console.log('Disconnected from MQTT broker');
     });
 
     // Ensure only ONE message listener is attached globally
@@ -224,9 +224,9 @@ class MqttHandler {
     options?: mqtt.IClientSubscribeOptions
   ): void {
     if (!this.isConnected) {
-      console.warn(
-        `MQTT client not connected. Retrying subscription to ${topic} in 2 seconds.`
-      );
+      // console.warn(
+      //   //`MQTT client not connected. Retrying subscription to ${topic} in 2 seconds.`
+      // );
       setTimeout(() => this.subscribe(topic, options), 2000);
       return;
     }

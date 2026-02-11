@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 
 export const handleRefreshToken = async (req: Request, res: Response) => {
   const cookie = req.cookies;
+  console.log('Refresh token request received. Cookies:', cookie);
   if (!cookie?.jwt) {
     return res.sendStatus(401);
   }
@@ -30,6 +31,7 @@ export const handleRefreshToken = async (req: Request, res: Response) => {
         process.env.ACCESS_TOKEN_SECRET!,
         { expiresIn: '30m' }
       );
+      console.log('Access token refreshed for user:', decoded.email);
       return res.status(200).json({ accessToken });
     }
   );

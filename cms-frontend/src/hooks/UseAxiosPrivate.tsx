@@ -10,8 +10,11 @@ const UseAxiosPrivate = () => {
   useEffect(() => {
     const requestIntercept = axiosPrivate.interceptors.request.use(
       (config) => {
-        if (!config.headers["Authorization"]) {
-          config.headers["Authorization"] = `Bearer ${auth?.accessToken}`;
+        // Skip attaching Authorization for refresh endpoint
+        const isRefreshEndpoint = config.url?.includes('/api/auth/refresh');
+        // Only attach Authorization if we actually have a token
+        if (!isRefreshEndpoint && !config.headers["Authorization"] && auth?.accessToken) {
+          config.headers["Authorization"] = `Bearer ${auth.accessToken}`;
         }
         return config;
       },
@@ -22,10 +25,16 @@ const UseAxiosPrivate = () => {
       (response) => response,
       async (error) => {
         const prevRequest = error?.config;
+        const isRefreshEndpoint = prevRequest?.url?.includes('/api/auth/refresh');
+        
+        if (isRefreshEndpoint) {
+          window.location.href = "/login";
+          return Promise.reject(error);
+        }
+        
         // Handle both 401 (Unauthorized) and 403 (Forbidden) errors
         if (
-          (error?.response?.status === 401 ||
-            error?.response?.status === 403) &&
+          (error?.response?.status === 401 || error?.response?.status === 403) &&
           !prevRequest?.sent
         ) {
           prevRequest.sent = true;
@@ -35,11 +44,14 @@ const UseAxiosPrivate = () => {
             return axiosPrivate(prevRequest);
           } catch (refreshError) {
             // If refresh fails, redirect to login
-            console.error("Token refresh failed:", refreshError);
             window.location.href = "/login";
             return Promise.reject(refreshError);
           }
         }
+        // if (isRefreshEndpoint) {
+        //   // If refresh itself fails, force login
+        //   window.location.href = "/login";
+        // }
         return Promise.reject(error);
       }
     );
