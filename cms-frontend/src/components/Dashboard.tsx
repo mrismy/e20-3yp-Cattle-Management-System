@@ -15,13 +15,14 @@ const Dashboard = () => {
     useContext(GlobalContext);
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
   const navigate = useNavigate();
+  console.log("Axios About to Intialize")
   const axiosPrivate = UseAxiosPrivate();
 
   const fetchAllCattle = async () => {
     try {
       const response = await axiosPrivate.get('/api/sensor/latestWithCattle');
       const data = response.data;
-      console.log('Response:', data);
+      // console.log('Response:', data);
       setAllCattleData(data);
     } catch (error) {
       console.error('Error fetching cattle data:', error);

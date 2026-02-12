@@ -13,21 +13,21 @@ const Map = () => {
     );
 
     // Fetch GPS data from backend
-    fetch('http://localhost:5000/api/sensor/location')
-      .then((response) => response.json())
-      .then((data) => {
-        Object.keys(data).forEach((key) => {
-          const value = data[key];
-          const marker = L.marker([
-            value.gpsLocation.latitude,
-            value.gpsLocation.longitude,
-          ]).addTo(map);
-          marker.bindPopup(
-            `<b>Cattle ID: ${key}</b><br>Lat: ${value.gpsLocation.latitude}, Lon: ${value.gpsLocation.longitude}<br> Timestamp: ${value.timestamp}`
-          );
-        });
-      })
-      .catch((error) => console.error('Error fetching GPS data:', error));
+    // fetch('http://localhost:5000/api/sensor/location')
+    //   .then((response) => response.json())
+    //   .then((data) => {
+    //     Object.keys(data).forEach((key) => {
+    //       const value = data[key];
+    //       const marker = L.marker([
+    //         value.gpsLocation.latitude,
+    //         value.gpsLocation.longitude,
+    //       ]).addTo(map);
+    //       marker.bindPopup(
+    //         `<b>Cattle ID: ${key}</b><br>Lat: ${value.gpsLocation.latitude}, Lon: ${value.gpsLocation.longitude}<br> Timestamp: ${value.timestamp}`
+    //       );
+    //     });
+    //   })
+      // .catch((error) => console.error('Error fetching GPS data:', error));
 
     return () => {
       map.remove();

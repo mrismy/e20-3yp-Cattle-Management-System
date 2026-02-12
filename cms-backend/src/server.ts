@@ -15,7 +15,7 @@ import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { setSocketIOInstance } from './socket';
 const cookieParser = require('cookie-parser');
-const PORT = process.env.PORT || 5011;
+const PORT = process.env.PORT || 5010;
 const DB_CONNECTION = process.env.DB_CONNECTION || '';
 
 // Initilize server

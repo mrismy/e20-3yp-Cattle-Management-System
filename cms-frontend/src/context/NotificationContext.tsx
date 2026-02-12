@@ -45,7 +45,7 @@ export const NotificationProvider = ({ children }: PropsWithChildren<{}>) => {
     axiosPrivate
       .get('/api/notifications')
       .then((res) => {
-        console.log('Fetched notifications:', res.data);
+        // console.log('Fetched notifications:', res.data);
         setNotifications(res.data);
       })
       .catch((err) => {

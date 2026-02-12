@@ -1,11 +1,11 @@
 import { useContext, useEffect } from "react";
-import useRefreshToken from "./useRefreshToken";
 import { axiosPrivate } from "../services/Axios";
 import GlobalContext from "../context/GlobalContext";
 
 const UseAxiosPrivate = () => {
-  const refresh = useRefreshToken();
-  const { auth } = useContext(GlobalContext);
+  console.log("I get called in intialization")
+  // const refresh = useRefreshToken();
+  const { auth, setAuth } = useContext(GlobalContext);
 
   useEffect(() => {
     const requestIntercept = axiosPrivate.interceptors.request.use(
@@ -26,12 +26,12 @@ const UseAxiosPrivate = () => {
       async (error) => {
         const prevRequest = error?.config;
         const isRefreshEndpoint = prevRequest?.url?.includes('/api/auth/refresh');
-        
+
         if (isRefreshEndpoint) {
           window.location.href = "/login";
           return Promise.reject(error);
         }
-        
+
         // Handle both 401 (Unauthorized) and 403 (Forbidden) errors
         if (
           (error?.response?.status === 401 || error?.response?.status === 403) &&
@@ -39,7 +39,18 @@ const UseAxiosPrivate = () => {
         ) {
           prevRequest.sent = true;
           try {
-            const newAccessToken = await refresh();
+            const response = await axiosPrivate.get('/api/auth/refresh', {
+              withCredentials: true,
+            });;
+            setAuth((prev) => {
+              console.log(JSON.stringify(prev));
+              console.log(response.data.accessToken);
+              return {
+                ...prev,
+                accessToken: response.data.accessToken,
+              };
+            });
+            const newAccessToken = response.data.accessToken;
             prevRequest.headers["Authorization"] = `Bearer ${newAccessToken}`;
             return axiosPrivate(prevRequest);
           } catch (refreshError) {
@@ -60,7 +71,7 @@ const UseAxiosPrivate = () => {
       axiosPrivate.interceptors.request.eject(requestIntercept);
       axiosPrivate.interceptors.response.eject(responseIntercept);
     };
-  }, [refresh, auth]);
+  }, [auth]);
 
   return axiosPrivate;
 };

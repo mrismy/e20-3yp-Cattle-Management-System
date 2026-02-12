@@ -1,11 +1,13 @@
 import { useContext } from 'react';
 import GlobalContext from '../context/GlobalContext';
-import Axios from '../services/Axios';
+import UseAxiosPrivate from './UseAxiosPrivate';
 
 const useRefreshToken = () => {
   const { setAuth } = useContext(GlobalContext);
+  const axiosPrivate = UseAxiosPrivate();
+
   const refresh = async () => {
-    const response = await Axios.get('/api/auth/refresh', {
+    const response = await axiosPrivate.get('/api/auth/refresh', {
       withCredentials: true,
     });
     setAuth((prev) => {

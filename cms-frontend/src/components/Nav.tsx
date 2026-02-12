@@ -19,10 +19,6 @@ const Nav = () => {
       (href !== '/' && location.pathname.startsWith(href))
     );
   };
-  console.log('Nav - selectedMenu:', selectedMenu);
-  console.log('Nav - auth state:', auth);
-  console.log('Nav - auth.role:', auth.role);
-  console.log('Nav - isAdmin:', auth.role === 'admin');
 
   return (
     <div className="flex flex-col w-64 h-full bg-white shadow-md z-10 overflow-y-auto">
