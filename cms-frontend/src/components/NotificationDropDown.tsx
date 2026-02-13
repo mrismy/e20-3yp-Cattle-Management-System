@@ -1,4 +1,3 @@
-import React from "react";
 import { useNotifications } from "../context/NotificationContext";
 
 const NotificationDropDown = ({
@@ -6,20 +5,20 @@ const NotificationDropDown = ({
 }: {
   onNotificationClick?: (n: any) => void;
 }) => {
-  const { notifications, markRead, deleteNotification, clearAll, markAllRead } =
+  const { notifications, markRead, markAllRead } =
     useNotifications();
 
   return (
-    <div className="fixed right-10 top-20 w-80 bg-white border border-gray-200 rounded-lg shadow-lg z-[9999] max-h-96 overflow-y-auto">
+    <div className="fixed right-10 top-20 w-80 bg-white border border-gray-200 rounded-lg shadow-lg -z-50 max-h-96 overflow-y-auto">
       <div className="flex justify-between items-center px-4 py-2 border-b">
         <span className="font-bold">Notifications</span>
         <div className="flex gap-2">
           <button className="text-xs text-blue-600" onClick={markAllRead}>
             Mark all read
           </button>
-          <button className="text-xs text-red-600" onClick={clearAll}>
+          {/* <button className="text-xs text-red-600" onClick={clearAll}>
             Clear all
-          </button>
+          </button> */}
         </div>
       </div>
       {notifications.length === 0 ? (
@@ -59,10 +58,10 @@ const NotificationDropDown = ({
                 className="text-xs text-red-500 hover:underline ml-2"
                 onClick={(e) => {
                   e.stopPropagation();
-                  deleteNotification(n._id);
+                  markRead(n._id);
                 }}
               >
-                Delete
+                Mark Read
               </button>
             </div>
           </div>

@@ -5,10 +5,7 @@ import {
   useEffect,
   PropsWithChildren,
 } from 'react';
-import { io } from 'socket.io-client';
-import { axiosPrivate, BASE_URL } from '../services/Axios';
-
-const socket = io(`${BASE_URL}`);
+import { axiosPrivate, socket} from '../services/Axios';
 
 export interface Notification {
   _id: string;
@@ -43,9 +40,9 @@ export const NotificationProvider = ({ children }: PropsWithChildren<{}>) => {
   useEffect(() => {
     // Fetch notifications on mount
     axiosPrivate
-      .get('/api/notifications')
+      .get('/api/notifications/unread')
       .then((res) => {
-        // console.log('Fetched notifications:', res.data);
+        console.log('Fetched notifications:', res.data);
         setNotifications(res.data);
       })
       .catch((err) => {
@@ -73,7 +70,7 @@ export const NotificationProvider = ({ children }: PropsWithChildren<{}>) => {
 
   const clearAll = async () => {
     try {
-      await axiosPrivate.delete('/api/notifications/clearAll');
+      // await axiosPrivate.delete('/api/notifications/clearAll');
       setNotifications([]);
     } catch (err) {
       console.error('Failed to clear all notifications:', err);

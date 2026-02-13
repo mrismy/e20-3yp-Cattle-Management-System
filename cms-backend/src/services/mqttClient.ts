@@ -7,7 +7,6 @@ import path from 'path';
 import fs from 'fs';
 import { getSocketIOInstance } from '../socket';
 import console from 'console';
-// const awsIot = require('aws-iot-device-sdk');
 
 const MQTT_BROKER = process.env.MQTT_BROKER || 'mqtt://localhost';
 
@@ -29,53 +28,49 @@ class MqttHandler {
   private latestupdate: Record<number, CattleData> = {};
 
   private constructor() {
-    //this.client = mqtt.connect(MQTT_BROKER);
+    // console.log("mqttClient.ts initialized");
 
-    const certsDir = path.join(__dirname, '..', '..', 'certs');
-    console.log("mqttClient.ts initialized");
+    // const certsDir = path.join(__dirname, '..', '..', 'certs');
+    // console.log("mqttClient.ts initialized");
+    // const options = {
+    //   key: fs.readFileSync(path.join(certsDir, 'private.pem.key')),
+    //   cert: fs.readFileSync(path.join(certsDir, 'certificate.pem.crt')),
+    //   ca: fs.readFileSync(path.join(certsDir, 'AmazonRootCA1.pem')),
+    //   clientId: 'test-client',
+    //   protocol: 'mqtts' as mqtt.MqttProtocol,
+    //   host: 'aoowqlrrhcw8y-ats.iot.eu-north-1.amazonaws.com',
+    //   port: 8883,
+    //   rejectUnauthorized: true,
+    // };
+
     const options = {
-      key: fs.readFileSync(path.join(certsDir, 'private.pem.key')),
-      cert: fs.readFileSync(path.join(certsDir, 'certificate.pem.crt')),
-      ca: fs.readFileSync(path.join(certsDir, 'AmazonRootCA1.pem')),
-      clientId: 'test-client',
-      protocol: 'mqtts' as mqtt.MqttProtocol,
-      host: 'aoowqlrrhcw8y-ats.iot.eu-north-1.amazonaws.com',
-      port: 8883,
-      rejectUnauthorized: true,
+      clientId: 'local-mqtt-client',
+      protocol: 'mqtt' as mqtt.MqttProtocol,
+      host: 'localhost',
+      port: 1883,
     };
 
-    this.client = mqtt.connect(options);
+    this.client = mqtt.connect(MQTT_BROKER, options);
 
     this.client.on('connect', () => {
       this.isConnected = true;
-      console.log('Connected to AWS IoT');
+      console.log('Connected to local Mosquitto MQTT broker');
     });
 
     this.client.on('error', (err) => {
       console.error('MQTT error:', err);
     });
 
-    // this.client.on('connect', () => {
-    //     this.isConnected = true;
-    //     console.log('Connected to MQTT broker');
-    // });
-
     this.client.on('close', () => {
       this.isConnected = false;
-      //console.log('Disconnected from MQTT broker');
+      console.log('Disconnected from MQTT broker');
     });
 
-    // Ensure only ONE message listener is attached globally
     this.client.on('message', async (receivedTopic, message) => {
       try {
-        //const data = JSON.parse(message.toString());
-        //const receivedMsg: SensorDataInterface = data;
-        //const {deviceId, heartRate, temperature, gpsLocation}= receivedMsg;
-
         const raw = JSON.parse(message.toString());
         console.log(`Received message on topic ${receivedTopic}:`, raw);
 
-        // Map and transform raw fields
         const receivedMsg: SensorDataInterface = {
           deviceId: parseInt(raw.i),
           temperature: parseFloat(raw.t),
@@ -83,9 +78,9 @@ class MqttHandler {
           gpsLocation:
             raw.la && raw.lo
               ? {
-                  latitude: parseFloat(raw.la),
-                  longitude: parseFloat(raw.lo),
-                }
+                latitude: parseFloat(raw.la),
+                longitude: parseFloat(raw.lo),
+              }
               : undefined,
         };
 
@@ -102,11 +97,10 @@ class MqttHandler {
             }),
           };
           console.log(
-            `Updated data for Cow ${deviceId}:`,
+            `Updated data for cattle ${deviceId}:`,
             this.latestupdate[deviceId]
           );
 
-          // Store data in MongoDB
           await this.storeSensorData(
             deviceId,
             heartRate,
@@ -114,10 +108,8 @@ class MqttHandler {
             gpsLocation
           );
 
-          // Check alerts and log them
           const status = await CattleSensorData.saftyStatus(receivedMsg);
 
-          // Send real-time data to frontend
           const ioInstance = getSocketIOInstance();
           if (ioInstance) {
             ioInstance.emit('sensor_data', {
@@ -129,20 +121,6 @@ class MqttHandler {
               timestamp: this.latestupdate[deviceId].timestamp,
             });
           }
-
-          // action.forEach((actionCode: number) => {
-          //   if (actionCode === 0) {
-          //     console.log(status, 'Cattle data not found.');
-          //   } else if (actionCode === 1) {
-          //     console.log(status, 'Cattle is safe and within limits.');
-          //   } else if (actionCode === 2) {
-          //     console.log(status, 'Heart rate is abnormal.');
-          //   } else if (actionCode === 3) {
-          //     console.log(status, 'Temperature is abnormal.');
-          //   } else if (actionCode === 4) {
-          //     console.log(status, 'Cattle is out of the designated area.');
-          //   }
-          // });
         }
       } catch (error) {
         console.error('Error parsing MQTT message:', error);

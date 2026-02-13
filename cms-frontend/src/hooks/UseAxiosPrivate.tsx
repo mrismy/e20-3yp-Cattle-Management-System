@@ -3,7 +3,6 @@ import { axiosPrivate } from "../services/Axios";
 import GlobalContext from "../context/GlobalContext";
 
 const UseAxiosPrivate = () => {
-  console.log("I get called in intialization")
   // const refresh = useRefreshToken();
   const { auth, setAuth } = useContext(GlobalContext);
 
@@ -43,8 +42,8 @@ const UseAxiosPrivate = () => {
               withCredentials: true,
             });;
             setAuth((prev) => {
-              console.log(JSON.stringify(prev));
-              console.log(response.data.accessToken);
+              // console.log(JSON.stringify(prev));
+              // console.log(response.data.accessToken);
               return {
                 ...prev,
                 accessToken: response.data.accessToken,

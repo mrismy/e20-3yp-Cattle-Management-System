@@ -1,32 +1,65 @@
-import React, { useContext, useEffect, useRef } from "react";
-import GlobalContext from "../context/GlobalContext";
-import { useNotifications } from "../context/NotificationContext";
-import { useParams } from "react-router-dom";
+import { useEffect, useState, useRef } from "react";
 import dayjs from "dayjs";
+import UseAxiosPrivate from "../hooks/UseAxiosPrivate";
+import { Notification } from "../context/NotificationContext";
 
 const AlertScreen = () => {
-  const { notifications, markRead } = useNotifications();
-  const { setSelectedMenu } = useContext(GlobalContext);
-  const { id } = useParams();
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const privateAxios = UseAxiosPrivate();
   const rowRefs = useRef<{ [key: string]: HTMLTableRowElement | null }>({});
 
   useEffect(() => {
-    setSelectedMenu("Alerts");
-  }, [setSelectedMenu]);
+    const getAllNotification = async () => {
+      try {
+        const resp = await privateAxios.get('/api/notifications');
+        console.log(resp.data);
+        setNotifications(resp.data);
+      } catch (error) {
+        console.error("Failed to fetch notifications:", error);
+      }
+    };
+    getAllNotification();
+  }, []);
 
   useEffect(() => {
-    if (id && rowRefs.current[id]) {
-      rowRefs.current[id]?.scrollIntoView({
+    if (selectedId && rowRefs.current[selectedId]) {
+      rowRefs.current[selectedId]?.scrollIntoView({
         behavior: "smooth",
         block: "center",
       });
     }
-  }, [id, notifications]);
+  }, [selectedId, notifications]);
+
+  const markRead = async (id: string) => {
+    try {
+      await privateAxios.patch(`/api/notifications/${id}/read`);
+      setNotifications(prev => 
+        prev.map(n => n._id === id ? { ...n, read: true } : n)
+      );
+      setSelectedId(id);
+    } catch (error) {
+      console.error("Failed to mark as read:", error);
+    }
+  };
+
+  const getStatusColor = (status: string) => {
+    switch(status?.toUpperCase()) {
+      case 'DANGER': return 'bg-red-100 text-red-800';
+      case 'WARNING': return 'bg-yellow-100 text-yellow-800';
+      default: return 'bg-gray-100 text-gray-800';
+    }
+  };
 
   return (
     <div className="mt-10 overflow-x-auto px-5">
       <div className="flex items-start justify-between mb-4">
         <h2 className="text-2xl font-bold text-gray-800">Notifications</h2>
+        {notifications.length > 0 && (
+          <span className="bg-blue-100 text-blue-800 text-sm font-medium px-3 py-1 rounded-full">
+            {notifications.filter(n => !n.read).length} unread
+          </span>
+        )}
       </div>
       <hr className="text-gray-300 w-full mb-8" />
 
@@ -50,12 +83,6 @@ const AlertScreen = () => {
         <tbody className="bg-white divide-y divide-gray-100">
           {notifications.length > 0 ? (
             notifications.map((n) => {
-              console.log(
-                "Notification status:",
-                n.status,
-                "Type:",
-                typeof n.status
-              );
               return (
                 <tr
                   key={n._id}
@@ -66,7 +93,7 @@ const AlertScreen = () => {
                     }
                   }}
                   className={`cursor-pointer transition-colors ${
-                    id === n._id
+                    selectedId === n._id
                       ? "bg-green-50 hover:bg-green-100"
                       : n.read
                       ? "hover:bg-gray-50"
@@ -85,15 +112,9 @@ const AlertScreen = () => {
 
                   <td className="py-3 text-center">
                     <span
-                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                        n.status === "DANGER"
-                          ? "bg-red-100 text-red-800"
-                          : n.status === "WARNING"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-gray-100 text-gray-800"
-                      }`}
+                      className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${getStatusColor(n.status)}`}
                     >
-                      {n.status.charAt(0).toUpperCase() + n.status.slice(1)}
+                      {n.status?.charAt(0).toUpperCase() + n.status?.slice(1).toLowerCase()}
                     </span>
                   </td>
 

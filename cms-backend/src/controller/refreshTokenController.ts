@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 
 export const handleRefreshToken = async (req: Request, res: Response) => {
   const cookie = req.cookies;
-  console.log('Refresh token request received. Cookies:', cookie);
+  // console.log('Refresh token request received. Cookies:', cookie);
   if (!cookie?.jwt) {
     return res.sendStatus(401);
   }

@@ -9,18 +9,33 @@ import { CattleData } from './Interface';
 import { useNavigate } from 'react-router-dom';
 import GlobalContext from '../context/GlobalContext';
 import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
+import { socket } from '../services/Axios';
+import { useNotifications } from '../context/NotificationContext';
+
+interface sensor_data {
+  deviceId: number,
+  heartRate: number,
+  temperature: number,
+  gpsLocation: {
+    latitude: number,
+    longitude: number
+  },
+  status: string,
+}
 
 const Dashboard = () => {
+
+  const latestupdate: Record<number, sensor_data> = {};
+
   const { setCattlelist_selectedOption, setSelectedMenu } =
     useContext(GlobalContext);
   const [allCattleData, setAllCattleData] = useState<CattleData[]>([]);
   const navigate = useNavigate();
-  console.log("Axios About to Intialize")
   const axiosPrivate = UseAxiosPrivate();
 
   const fetchAllCattle = async () => {
     try {
-      const response = await axiosPrivate.get('/api/sensor/latestWithCattle');
+      const response = await axiosPrivate.get('/api/sensor/cattle');
       const data = response.data;
       // console.log('Response:', data);
       setAllCattleData(data);
@@ -30,9 +45,42 @@ const Dashboard = () => {
     }
   };
 
+  const { notifications } = useNotifications();
+
+  if (notifications) {
+    notifications.forEach(record => {
+      latestupdate[record.cattleId] = {
+        deviceId: record.cattleId,
+        heartRate: 78,
+        temperature: 38.5,
+        gpsLocation: {
+          latitude: 10,
+          longitude: 40
+        },
+        status: "unsafe"
+      }
+    });
+  }
+
   useEffect(() => {
     fetchAllCattle();
   }, []);
+
+  socket.on('sensor_data', (sensor_data: sensor_data) => {
+    if (sensor_data) {
+      latestupdate[sensor_data.deviceId] = {
+        deviceId: sensor_data.deviceId,
+        heartRate: sensor_data.heartRate,
+        temperature: sensor_data.temperature,
+        gpsLocation: sensor_data.gpsLocation,
+        status: sensor_data.status,
+      };
+      console.log(
+        `Updated data for cattle ${sensor_data.deviceId}:`,
+        latestupdate[sensor_data.deviceId]
+      );
+    }
+  });
 
   return (
     <>
@@ -68,7 +116,7 @@ const Dashboard = () => {
               <h3 className="text-3xl font-bold text-gray-800 mt-1">
                 {allCattleData.length -
                   allCattleData.filter(
-                    (cattle) => cattle.status === 'un-monitored'
+                    (cattle) => cattle.deviceId == null
                   ).length}
               </h3>
             </div>
@@ -105,7 +153,7 @@ const Dashboard = () => {
               <p className="text-gray-500 text-sm font-medium">Safe State</p>
               <h3 className="text-3xl font-bold text-gray-800 mt-1">
                 {
-                  allCattleData.filter((cattle) => cattle.status === 'safe')
+                  Object.values(latestupdate).filter((cattle) => cattle.status === 'safe')
                     .length
                 }
               </h3>
@@ -125,7 +173,7 @@ const Dashboard = () => {
               <p className="text-gray-500 text-sm font-medium">Unsafe State</p>
               <h3 className="text-3xl font-bold text-gray-800 mt-1">
                 {
-                  allCattleData.filter((cattle) => cattle.status === 'unsafe')
+                  Object.values(latestupdate).filter((cattle) => cattle.status === 'unsafe')
                     .length
                 }
               </h3>

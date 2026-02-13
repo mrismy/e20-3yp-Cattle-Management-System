@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { io } from 'socket.io-client';
 
 // Base URL for the API
 export const BASE_URL = 'http://localhost:5010';
@@ -12,3 +13,5 @@ export const axiosPrivate = axios.create({
   headers: { 'Content-Type': 'application/json' },
   withCredentials: true,
 });
+
+export const socket = io(`${BASE_URL}`);

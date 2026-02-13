@@ -59,93 +59,65 @@ router.get('/withCattle', async (req: any, res: any) => {
       .json({ message: 'Error fetching sensor data with cattle information' });
   }
 });
-router.get('/latest', async (req: any, res: any) => {
+
+router.get('/cattle', async (req: any, res: any) => {
   try {
-    const memoryData = mqttClient.getLatestUpdate(); // { deviceId1: {...}, deviceId2: {...}, ... }
-
-    // Step 1: Get the latest DB record per deviceId
-    const latestFromDB = await sensorData.aggregate([
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: '$deviceId',
-          doc: { $first: '$$ROOT' },
-        },
-      },
-      { $replaceRoot: { newRoot: '$doc' } },
-    ]);
-
-    // Step 2: Replace DB entries with matching in-memory entries
-    const finalData = latestFromDB.map((dbDoc) => {
-      const memDoc = memoryData[dbDoc.deviceId];
-      return memDoc ? memDoc : dbDoc;
-    });
-
-    res.status(200).json(finalData);
-  } catch (error) {
-    console.error('Error fetching sensor data:', error);
-    res.status(500).json({ message: 'Error fetching sensor data' });
-  }
-});
-
-router.get('/latestWithCattle', async (req: any, res: any) => {
-  try {
-    const memoryData = mqttClient.getLatestUpdate(); // In-memory MQTT data
+    // const memoryData = mqttClient.getLatestUpdate(); // In-memory MQTT data
 
     // Step 1: Get all cattle records
     const cattleList = await cattle.find();
-
+    console.log(cattleList);
     // Step 2: Get the latest sensor data per deviceId from DB
-    const dbSensorData = await sensorData.aggregate([
-      { $sort: { createdAt: -1 } },
-      {
-        $group: {
-          _id: '$deviceId',
-          doc: { $first: '$$ROOT' },
-        },
-      },
-      { $replaceRoot: { newRoot: '$doc' } },
-    ]);
+    // const dbSensorData = await sensorData.aggregate([
+    //   { $sort: { createdAt: -1 } },
+    //   {
+    //     $group: {
+    //       _id: '$deviceId',
+    //       doc: { $first: '$$ROOT' },
+    //     },
+    //   },
+    //   { $replaceRoot: { newRoot: '$doc' } },
+    // ]);
 
     // Step 3: Merge DB sensor data with MQTT data
-    const latestSensorDataMap = new Map<number, any>();
-    dbSensorData.forEach((doc) => {
-      latestSensorDataMap.set(doc.deviceId, doc);
-    });
-    for (const deviceId in memoryData) {
-      latestSensorDataMap.set(Number(deviceId), memoryData[deviceId]);
-    }
+    // const latestSensorDataMap = new Map<number, any>();
+    // dbSensorData.forEach((doc) => {
+    //   latestSensorDataMap.set(doc.deviceId, doc);
+    // });
+    // for (const deviceId in memoryData) {
+    //   latestSensorDataMap.set(Number(deviceId), memoryData[deviceId]);
+    // }
 
     // Step 4: Enrich each cattle record
-    const enrichedCattleData = await Promise.all(
-      cattleList.map(async (cattleInfo) => {
-        const deviceId = cattleInfo.deviceId;
-        const sensor = deviceId ? latestSensorDataMap.get(deviceId) : null;
-        let status = 'no-data';
-        if (deviceId === null) {
-          status = 'un-monitored';
-        }
-        if (sensor) {
-          try {
-            status = await CattleSensorData.saftyStatus(sensor);
-          } catch (err) {
-            status = 'no-threshold';
-          }
-        }
-        // console.log(sensor);
+    // const enrichedCattleData = await Promise.all(
+    //   cattleList.map(async (cattleInfo) => {
+    //     const deviceId = cattleInfo.deviceId;
+    //     const sensor = deviceId ? latestSensorDataMap.get(deviceId) : null;
+    //     let status = 'no-data';
+    //     if (deviceId === null) {
+    //       status = 'un-monitored';
+    //     }
+    //     if (sensor) {
+    //       try {
+    //         status = await CattleSensorData.saftyStatus(sensor);
+    //       } catch (err) {
+    //         status = 'no-threshold';
+    //       }
+    //     }
+    //     console.log(sensor);
 
-        return {
-          ...sensor,
-          cattleId: cattleInfo.cattleId,
-          deviceId: cattleInfo.deviceId || null,
-          cattleCreatedAt: cattleInfo.createdAt,
-          sensorCreatedAt: sensor ? sensor.createdAt : null,
-          status: status,
-        };
-      })
-    );
+    //     return {
+    //       ...sensor,
+    //       cattleId: cattleInfo.cattleId,
+    //       deviceId: cattleInfo.deviceId || null,
+    //       cattleCreatedAt: cattleInfo.createdAt,
+    //       sensorCreatedAt: sensor ? sensor.createdAt : null,
+    //       status: status,
+    //     };
+    //   })
+    // );
 
-    res.status(200).json(enrichedCattleData);
+    res.status(200).json(cattleList);
   } catch (error) {
     console.error('Error in /latestWithCattle:', error);
     res
@@ -407,7 +379,7 @@ router.get('/withCattle/week/:date/:cattleId', async (req: any, res: any) => {
       avgTemperature:
         item.temperature.count > 0
           ? Math.round((item.temperature.sum / item.temperature.count) * 10) /
-            10
+          10
           : null,
     }));
 
@@ -495,7 +467,7 @@ router.get('/withCattle/month/:date/:cattleId', async (req: any, res: any) => {
       avgTemperature:
         item.temperature.count > 0
           ? Math.round((item.temperature.sum / item.temperature.count) * 10) /
-            10
+          10
           : null,
     }));
 

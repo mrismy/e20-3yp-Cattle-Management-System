@@ -3,7 +3,15 @@ import { Request, Response } from 'express';
 
 // Get all notifications
 export const getNotifications = async (req: Request, res: Response) => {
-  const notifications = await Notification.find().sort({ timestamp: -1 });
+  const notifications = await Notification.find({}).sort({ timestamp: -1 });
+  // console.log(notifications);
+  res.json(notifications);
+};
+
+// Get All unread notification
+export const getUnReadNotifications = async (req: Request, res: Response) => {
+  const notifications = await Notification.find({read: false}).sort({ timestamp: -1 });
+  // console.log(notifications);
   res.json(notifications);
 };
 
