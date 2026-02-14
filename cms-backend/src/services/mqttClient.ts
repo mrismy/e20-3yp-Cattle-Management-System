@@ -144,19 +144,9 @@ class MqttHandler {
       });
 
       await newSensorData.save();
-      console.log(`Sensor data stored in DB for device ${deviceId}:`);
-
-      const ioInstance = getSocketIOInstance();
-      if (ioInstance) {
-        console.log('Send data socket: ');
-        ioInstance.emit('sensor_data_updated', {
-          deviceId,
-          heartRate,
-          temperature,
-          gpsLocation,
-          timestamp: new Date().toISOString(),
-        });
-      }
+      console.log(`Sensor data stored in DB for device ${deviceId}`);
+      // Note: real-time socket emit is handled in the MQTT message handler
+      // via the 'sensor_data' event (which includes status). No duplicate emit needed here.
     } catch (error) {
       console.error(' Error storing sensor data:', error);
     }

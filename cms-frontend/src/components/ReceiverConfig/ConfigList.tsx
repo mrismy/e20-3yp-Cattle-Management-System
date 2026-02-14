@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { MdDeleteOutline } from 'react-icons/md';
 import { useNavigate } from 'react-router-dom';
-import Axios from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 
 interface ConfigData {
   zoneName: string;
@@ -11,12 +11,13 @@ interface ConfigData {
 
 const ConfigList = () => {
   const navigate = useNavigate();
+  const axiosPrivate = UseAxiosPrivate();
   const [configs, setConfigs] = useState<ConfigData[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAllConfigs = async () => {
     try {
-      const response = await Axios.get('/api/configurations');
+      const response = await axiosPrivate.get('/api/configurations');
       const data = response.data;
       console.log(data);
       setConfigs(data);

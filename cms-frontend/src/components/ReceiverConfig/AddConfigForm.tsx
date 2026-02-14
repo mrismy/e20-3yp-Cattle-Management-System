@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useForm, FieldValues } from 'react-hook-form';
 import { IoMdCloseCircleOutline } from 'react-icons/io';
-import Axios from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { useNavigate } from 'react-router-dom';
 
 const AddConfigForm = () => {
   const navigate = useNavigate();
+  const axiosPrivate = UseAxiosPrivate();
   const {
     register,
     handleSubmit,
@@ -26,7 +27,7 @@ const AddConfigForm = () => {
 
       console.log('Submitting:', formattedData);
 
-      const response = await Axios.post(
+      const response = await axiosPrivate.post(
         '/api/configurations/new-config',
         formattedData,
         {
@@ -43,7 +44,7 @@ const AddConfigForm = () => {
     }
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => { }, []);
 
   return (
     <div className="absolute inset-0 flex justify-center items-center bg-opacity-100 backdrop-blur-lg">
@@ -79,11 +80,10 @@ const AddConfigForm = () => {
               type="text"
               {...register('zoneName', { required: true })}
               placeholder="Enter Zone Name"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
-                errors.zoneName
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${errors.zoneName
                   ? 'border-red-500 focus:ring-red-200'
                   : 'border-gray-300 focus:ring-green-200'
-              }`}
+                }`}
             />
             {errors.zoneName && (
               <p className="mt-1 text-sm text-red-600">Zone Name is required</p>
@@ -102,11 +102,10 @@ const AddConfigForm = () => {
               type="text"
               {...register('zoneId', { required: true })}
               placeholder="Enter Zone ID"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
-                errors.zoneId
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${errors.zoneId
                   ? 'border-red-500 focus:ring-red-200'
                   : 'border-gray-300 focus:ring-green-200'
-              }`}
+                }`}
             />
             {errors.zoneId && (
               <p className="mt-1 text-sm text-red-600">Zone ID is required</p>
@@ -125,11 +124,10 @@ const AddConfigForm = () => {
               type="text"
               {...register('receiverId', { required: true })}
               placeholder="Enter Receiver ID"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
-                errors.receiverId
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${errors.receiverId
                   ? 'border-red-500 focus:ring-red-200'
                   : 'border-gray-300 focus:ring-green-200'
-              }`}
+                }`}
             />
             {errors.receiverId && (
               <p className="mt-1 text-sm text-red-600">

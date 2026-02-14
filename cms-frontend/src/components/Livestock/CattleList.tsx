@@ -7,8 +7,7 @@ import { MdDeleteOutline, MdOutlineEdit } from 'react-icons/md';
 import NavSub from '../NavSub';
 import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { Outlet, useNavigate } from 'react-router-dom';
-import { io } from 'socket.io-client';
-import { BASE_URL } from '../../services/Axios';
+import { useLiveData } from '../../context/SocketContext';
 
 const CattleList = () => {
   const navigate = useNavigate();
@@ -22,6 +21,9 @@ const CattleList = () => {
   );
   const [loading, setLoading] = useState(true);
   const axiosPrivate = UseAxiosPrivate();
+
+  // Real-time updates from SocketContext
+  const { cattleListVersion, latestSensorData } = useLiveData();
 
   // Fetch and filter all cattle data
   const fetchAndFilter = async () => {
@@ -48,15 +50,11 @@ const CattleList = () => {
     }
   };
 
+  // Re-fetch when sensor data arrives (status may change) or cattle list changes
   useEffect(() => {
-    const socket = io(`${BASE_URL}`);
-    socket.on('sensor_data', () => {
-      fetchAndFilter();
-    });
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
+    fetchAndFilter();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [latestSensorData, cattleListVersion]);
 
   useEffect(() => {
     setFilteredCattleData([]);
@@ -98,15 +96,14 @@ const CattleList = () => {
       ) : (
         <table className="w-full divide-y divide-gray-200 rounded-lg overflow-hidden shadow-md">
           <thead
-            className={`${
-              cattleList_selectedOption === 'all cattle'
+            className={`${cattleList_selectedOption === 'all cattle'
                 ? 'text-gray-800 bg-white'
                 : cattleList_selectedOption === 'safe'
-                ? 'text-green-800 bg-green-100'
-                : cattleList_selectedOption === 'unsafe'
-                ? 'text-red-800 bg-red-100'
-                : 'text-gray-800 bg-gray-200'
-            }`}>
+                  ? 'text-green-800 bg-green-100'
+                  : cattleList_selectedOption === 'unsafe'
+                    ? 'text-red-800 bg-red-100'
+                    : 'text-gray-800 bg-gray-200'
+              }`}>
             <tr>
               {[
                 'cattle id',
@@ -156,13 +153,12 @@ const CattleList = () => {
 
                     <td className="py-3 text-center ">
                       <span
-                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                          cattleData.status === 'safe'
+                        className={`px-2 py-1 inline-flex text-xs leading-5 font-semibold rounded-full ${cattleData.status === 'safe'
                             ? 'bg-green-100 text-green-800'
                             : cattleData.status === 'unsafe'
-                            ? 'bg-red-100 text-red-800'
-                            : 'bg-gray-100 text-gray-800'
-                        }`}>
+                              ? 'bg-red-100 text-red-800'
+                              : 'bg-gray-100 text-gray-800'
+                          }`}>
                         {cattleData.status.charAt(0).toUpperCase() +
                           cattleData.status.slice(1)}
                       </span>
@@ -170,11 +166,11 @@ const CattleList = () => {
 
                     <td className="py-3 text-center text-sm text-gray-500">
                       {cattleData.status === 'safe' ||
-                      cattleData.status === 'unsafe'
+                        cattleData.status === 'unsafe'
                         ? cattleData.sensorCreatedAt
                           ? dayjs(cattleData.sensorCreatedAt).format(
-                              'MMM D, YYYY h:mm A'
-                            )
+                            'MMM D, YYYY h:mm A'
+                          )
                           : '--'
                         : '--'}
                     </td>

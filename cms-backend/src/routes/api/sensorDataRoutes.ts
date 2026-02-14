@@ -119,10 +119,90 @@ router.get('/cattle', async (req: any, res: any) => {
 
     res.status(200).json(cattleList);
   } catch (error) {
-    console.error('Error in /latestWithCattle:', error);
+    console.error('Error in /cattle:', error);
     res
       .status(500)
-      .json({ message: 'Error fetching sensor data with cattle information' });
+      .json({ message: 'Error fetching cattle data' });
+  }
+});
+
+// Dashboard summary endpoint – returns aggregate counts for all dashboard cards
+router.get('/dashboard-summary', async (req: any, res: any) => {
+  try {
+    const memoryData = mqttClient.getLatestUpdate();
+
+    // Step 1: Get all cattle records
+    const cattleList = await cattle.find();
+
+    // Step 2: Get the latest sensor data per deviceId from DB
+    const dbSensorData = await sensorData.aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$deviceId',
+          doc: { $first: '$$ROOT' },
+        },
+      },
+      { $replaceRoot: { newRoot: '$doc' } },
+    ]);
+
+    // Step 3: Merge DB sensor data with MQTT in-memory data
+    const latestSensorDataMap = new Map<number, any>();
+    dbSensorData.forEach((doc) => {
+      latestSensorDataMap.set(doc.deviceId, doc);
+    });
+    for (const deviceId in memoryData) {
+      latestSensorDataMap.set(Number(deviceId), memoryData[deviceId]);
+    }
+
+    // Step 4: Compute counts
+    let safeCount = 0;
+    let unsafeCount = 0;
+    let noDataCount = 0;
+    let unMonitoredCount = 0;
+    let activeCollars = 0;
+
+    await Promise.all(
+      cattleList.map(async (cattleInfo) => {
+        const deviceId = cattleInfo.deviceId;
+
+        if (deviceId != null) {
+          activeCollars++;
+        }
+
+        const sensor = deviceId ? latestSensorDataMap.get(deviceId) : null;
+        let status = 'no-data';
+        if (deviceId === null || deviceId === undefined) {
+          status = 'un-monitored';
+        }
+        if (sensor) {
+          try {
+            status = await CattleSensorData.saftyStatus(sensor);
+          } catch (err) {
+            status = 'no-data';
+          }
+        }
+
+        switch (status) {
+          case 'safe': safeCount++; break;
+          case 'unsafe': unsafeCount++; break;
+          case 'un-monitored': unMonitoredCount++; break;
+          default: noDataCount++; break;
+        }
+      })
+    );
+
+    res.status(200).json({
+      totalCattle: cattleList.length,
+      activeCollars,
+      safeCount,
+      unsafeCount,
+      noDataCount,
+      unMonitoredCount,
+    });
+  } catch (error) {
+    console.error('Error in /dashboard-summary:', error);
+    res.status(500).json({ message: 'Error computing dashboard summary' });
   }
 });
 
@@ -146,12 +226,16 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
     ]);
 
     // Step 3: Merge DB sensor data with MQTT data
+    // Track which deviceIds have MQTT in-memory data (so we can use its timestamp)
+    const mqttDeviceIds = new Set<number>();
     const latestSensorDataMap = new Map<number, any>();
     dbSensorData.forEach((doc) => {
       latestSensorDataMap.set(doc.deviceId, doc);
     });
     for (const deviceId in memoryData) {
-      latestSensorDataMap.set(Number(deviceId), memoryData[deviceId]);
+      const numId = Number(deviceId);
+      mqttDeviceIds.add(numId);
+      latestSensorDataMap.set(numId, memoryData[deviceId]);
     }
 
     // Step 4: Enrich each cattle record
@@ -160,7 +244,7 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
         const deviceId = cattleInfo.deviceId;
         const sensor = deviceId ? latestSensorDataMap.get(deviceId) : null;
         let status = 'no-data';
-        if (deviceId === null) {
+        if (deviceId === null || deviceId === undefined) {
           status = 'un-monitored';
         }
         if (sensor) {
@@ -170,14 +254,23 @@ router.get('/latestWithCattle', async (req: any, res: any) => {
             status = 'no-threshold';
           }
         }
-        // console.log(sensor);
+
+        // Use MQTT in-memory timestamp if available, otherwise DB createdAt
+        let sensorCreatedAt = null;
+        if (sensor) {
+          if (deviceId && mqttDeviceIds.has(deviceId) && sensor.timestamp) {
+            sensorCreatedAt = sensor.timestamp;
+          } else {
+            sensorCreatedAt = sensor.createdAt || null;
+          }
+        }
 
         return {
           ...sensor,
           cattleId: cattleInfo.cattleId,
           deviceId: cattleInfo.deviceId || null,
           cattleCreatedAt: cattleInfo.createdAt,
-          sensorCreatedAt: sensor ? sensor.createdAt : null,
+          sensorCreatedAt,
           status: status,
         };
       })

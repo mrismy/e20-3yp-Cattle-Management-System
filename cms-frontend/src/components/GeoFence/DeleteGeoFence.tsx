@@ -1,6 +1,6 @@
 import L from 'leaflet';
 import { useEffect, useRef, useState } from 'react';
-import Axios from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { MdDeleteForever } from 'react-icons/md';
 import { FiAlertTriangle } from 'react-icons/fi';
 
@@ -13,6 +13,7 @@ interface geoFenceInterface {
 }
 
 const DeleteGeoFence = () => {
+  const axiosPrivate = UseAxiosPrivate();
   const [geoFences, setGeoFences] = useState<geoFenceInterface[]>([]);
   const mapRef = useRef<L.Map | null>(null);
   const [selectedGeoFence, setSelectedGeoFence] = useState<geoFenceInterface>();
@@ -59,7 +60,7 @@ const DeleteGeoFence = () => {
 
   const fetchAllGeoFence = async () => {
     try {
-      const response = await Axios.get('/geo-fence/');
+      const response = await axiosPrivate.get('/geo-fence/');
       const geoFences = response.data;
       setGeoFences(geoFences);
       // Clear existing circles
@@ -91,7 +92,7 @@ const DeleteGeoFence = () => {
   const handleDeleteGeoFence = async (geoFence: geoFenceInterface) => {
     try {
       console.log(geoFence);
-      const response = await Axios.delete('/geo-fence/delete', {
+      const response = await axiosPrivate.delete('/geo-fence/delete', {
         data: geoFence,
       });
       const deleteGeoFence = response.data;
@@ -152,11 +153,10 @@ const DeleteGeoFence = () => {
                     return (
                       <tr
                         onClick={() => handleRowClick(geoFence)}
-                        className={`cursor-pointer transition-colors duration-200 ${
-                          isSelected
+                        className={`cursor-pointer transition-colors duration-200 ${isSelected
                             ? 'bg-violet-50 border-l-5 border-violet-600'
                             : 'hover:bg-gray-50'
-                        }`}>
+                          }`}>
                         <td className="px-6 py-3 whitespace-nowrap">
                           <div className="flex items-center">
                             <div className="text-sm font-medium text-gray-900">
@@ -166,11 +166,10 @@ const DeleteGeoFence = () => {
                         </td>
                         <td className="px-6 py-3 whitespace-nowrap">
                           <span
-                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
-                              geoFence.zoneType === 'danger'
+                            className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${geoFence.zoneType === 'danger'
                                 ? 'bg-red-100 text-red-800'
                                 : 'bg-green-100 text-green-800'
-                            }`}>
+                              }`}>
                             {geoFence.zoneType}
                           </span>
                         </td>

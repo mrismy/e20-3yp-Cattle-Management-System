@@ -1,13 +1,14 @@
 import { useEffect } from 'react';
-import Axios from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { useNavigate } from 'react-router-dom';
 
 const Configure = () => {
   const navigate = useNavigate();
+  const axiosPrivate = UseAxiosPrivate();
 
   const fetchAllConfigs = async () => {
     try {
-      const response = await Axios.get('/api/configurations');
+      const response = await axiosPrivate.get('/api/configurations');
       const configs = response.data;
       console.log(configs);
     } catch (error) {

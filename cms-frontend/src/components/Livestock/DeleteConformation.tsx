@@ -1,11 +1,11 @@
 import { IoMdCloseCircleOutline } from 'react-icons/io';
 import { useNavigate, useParams } from 'react-router-dom';
-import { axiosPrivate } from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { useState } from 'react';
-import { set } from 'date-fns';
 
 const DeleteConformation = () => {
   const navigate = useNavigate();
+  const axiosPrivate = UseAxiosPrivate();
   const { cattleId } = useParams<{ cattleId: string }>();
   const [isDeleting, setIsDeleting] = useState(false);
   // delete cattle data

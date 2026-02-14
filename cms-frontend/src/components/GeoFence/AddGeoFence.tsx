@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import GeoFenceMap from './GeoFenceMap';
-import Axios from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { toast } from 'react-toastify';
 
 const GeoFense = () => {
+  const axiosPrivate = UseAxiosPrivate();
   const [newLocation, setNewLocation] = useState(true);
   const [zoneType, setZoneType] = useState<'safe' | 'danger'>('safe');
   const [zoneName, setZoneName] = useState('');
@@ -42,7 +43,7 @@ const GeoFense = () => {
     };
 
     console.log(locationData);
-    const response = Axios.post('/geo-fence/new', locationData, {
+    const response = axiosPrivate.post('/geo-fence/new', locationData, {
       headers: {
         'Content-Type': 'application/json',
       },
@@ -138,30 +139,27 @@ const GeoFense = () => {
           <div className="flex justify-center">
             <div className="relative bg-gray-100 rounded-full p-1 w-full max-w-xs">
               <div
-                className={`absolute top-1 bottom-1 left-1 right-1/2 rounded-full transition-all duration-300 ${
-                  zoneType === 'safe'
+                className={`absolute top-1 bottom-1 left-1 right-1/2 rounded-full transition-all duration-300 ${zoneType === 'safe'
                     ? 'bg-green-500 shadow-md'
                     : 'bg-red-500 shadow-md transform translate-x-full'
-                }`}
+                  }`}
               />
               <button
                 disabled={!selectedLocation}
                 onClick={() => setZoneType('safe')}
-                className={`relative z-10 w-1/2 py-2 text-sm font-medium rounded-full transition-colors ${
-                  zoneType === 'safe'
+                className={`relative z-10 w-1/2 py-2 text-sm font-medium rounded-full transition-colors ${zoneType === 'safe'
                     ? 'text-white'
                     : 'text-gray-600 hover:text-gray-800'
-                }`}>
+                  }`}>
                 Safe Zone
               </button>
               <button
                 disabled={!selectedLocation}
                 onClick={() => setZoneType('danger')}
-                className={`relative z-10 w-1/2 py-2 text-sm font-medium rounded-full transition-colors ${
-                  zoneType === 'danger'
+                className={`relative z-10 w-1/2 py-2 text-sm font-medium rounded-full transition-colors ${zoneType === 'danger'
                     ? 'text-white'
                     : 'text-gray-600 hover:text-gray-800'
-                }`}>
+                  }`}>
                 Danger Zone
               </button>
             </div>
@@ -190,11 +188,10 @@ const GeoFense = () => {
         <button
           onClick={handleSave}
           disabled={!selectedLocation}
-          className={`w-full py-2 px-4 rounded-md font-medium text-white transition-all ${
-            !selectedLocation
+          className={`w-full py-2 px-4 rounded-md font-medium text-white transition-all ${!selectedLocation
               ? 'bg-gray-400 cursor-not-allowed'
               : 'bg-green-600 hover:bg-green-700 hover:shadow-md'
-          }`}>
+            }`}>
           Save Geo-fence
         </button>
       </div>

@@ -1,11 +1,12 @@
 import { useEffect } from 'react';
 import { useForm, FieldValues } from 'react-hook-form';
 import { IoMdCloseCircleOutline } from 'react-icons/io';
-import Axios from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 import { useNavigate } from 'react-router-dom';
 
 const AddCattleForm = () => {
   const navigate = useNavigate();
+  const axiosPrivate = UseAxiosPrivate();
   const {
     register,
     handleSubmit,
@@ -26,7 +27,7 @@ const AddCattleForm = () => {
       };
       console.log(formatedData);
       // const response = await addCattle(formatedData);
-      const response = Axios.post('/api/cattle', formatedData, {
+      const response = axiosPrivate.post('/api/cattle', formatedData, {
         headers: {
           'Content-Type': 'application/json',
         },
@@ -38,7 +39,7 @@ const AddCattleForm = () => {
     }
   };
 
-  useEffect(() => {}, []);
+  useEffect(() => { }, []);
 
   return (
     <div className="absolute inset-0 flex justify-center items-center bg-opacity-100 backdrop-blur-lg">
@@ -72,11 +73,10 @@ const AddCattleForm = () => {
               type="text"
               {...register('cattleId', { required: true })}
               placeholder="Enter the cattle RFID"
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${
-                errors.cattleId
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-1 ${errors.cattleId
                   ? 'border-red-500 focus:ring-red-200'
                   : 'border-gray-300 focus:ring-green-200'
-              }`}
+                }`}
             />
             {errors.cattleId?.type === 'required' && (
               <p className="mt-1 text-sm text-red-600">Cattle ID is required</p>

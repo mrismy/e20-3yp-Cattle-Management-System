@@ -2,6 +2,7 @@ import express, { Request, Response } from 'express';
 import Cattle from '../../model/cattle';
 import { cattleInterface, cattleInterface1 } from '../../types/cattleInterface';
 import sensorData from '../../model/sensorData';
+import { getSocketIOInstance } from '../../socket';
 
 const router = express.Router();
 
@@ -56,6 +57,12 @@ router.post('/', async (req: any, res: any) => {
 
     const newCattle = new Cattle({ cattleId, deviceId });
     await newCattle.save();
+    // Notify all connected clients that the cattle list has changed
+    const io = getSocketIOInstance();
+    if (io) {
+      io.emit('cattle_list_updated', { action: 'added', cattle: newCattle });
+    }
+
     res
       .status(201)
       .json({ message: 'Cattle added successfully', cattle: newCattle });
@@ -112,6 +119,13 @@ router.delete('/:cattleId', async (req: any, res: any) => {
       return res.status(404).json({ message: 'Sensor data not found' });
     }
     console.log('Sensor data deleted:', deletedSensorData.deletedCount);
+
+    // Notify all connected clients that the cattle list has changed
+    const io = getSocketIOInstance();
+    if (io) {
+      io.emit('cattle_list_updated', { action: 'deleted', cattleId: req.params.cattleId });
+    }
+
     res.status(200).json({ message: 'Cattle deleted successfully' });
   } catch (error: any) {
     console.error('Error deleting cattle:', error);

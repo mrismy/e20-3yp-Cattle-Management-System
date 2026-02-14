@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useForm, FieldValues } from 'react-hook-form';
-import Axios from '../../services/Axios';
+import UseAxiosPrivate from '../../hooks/UseAxiosPrivate';
 
 interface Receiver {
   id: string;
@@ -16,6 +16,7 @@ interface Settings {
 }
 
 const ConfigSettings = () => {
+  const axiosPrivate = UseAxiosPrivate();
   const [receiverList, setReceiverList] = useState<Receiver[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -46,7 +47,7 @@ const ConfigSettings = () => {
     try {
       setError(null);
       setLoading(true);
-      const response = await Axios.get('/api/configurations');
+      const response = await axiosPrivate.get('/api/configurations');
       const data = response.data;
 
       const receivers = data.map((item: any) => ({
@@ -66,7 +67,7 @@ const ConfigSettings = () => {
   const fetchSettingsForReceiver = async (receiverId: string) => {
     try {
       setIsFetchingSettings(true);
-      const response = await Axios.get(`/api/settings/${receiverId}`);
+      const response = await axiosPrivate.get(`/api/settings/${receiverId}`);
       const settings = response.data;
       setSelectedSettings(settings);
 
@@ -119,7 +120,7 @@ const ConfigSettings = () => {
 
       // Use PUT if updating existing settings, POST if creating new
       const method = selectedSettings ? 'put' : 'post';
-      await Axios[method]('/api/settings', payload, {
+      await axiosPrivate[method]('/api/settings', payload, {
         headers: { 'Content-Type': 'application/json' },
       });
 
@@ -167,9 +168,8 @@ const ConfigSettings = () => {
           </label>
           <select
             {...register('receiverId', { required: true })}
-            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-              errors.receiverId ? 'border-red-500' : 'border-gray-300'
-            }`}
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${errors.receiverId ? 'border-red-500' : 'border-gray-300'
+              }`}
             disabled={receiverList.length === 0}>
             <option value="">Select Receiver</option>
             {receiverList.map((receiver) => (

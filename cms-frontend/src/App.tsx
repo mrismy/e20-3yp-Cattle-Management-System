@@ -23,6 +23,7 @@ import EditCattleForm from './components/Livestock/EditCattleForm';
 import CattleCard from './components/Livestock/CattleCard';
 import DeleteConformation from './components/Livestock/DeleteConformation';
 import { NotificationProvider } from './context/NotificationContext';
+import { SocketProvider } from './context/SocketContext';
 import AlertScreen from './components/AlertScreen';
 import UserManagement from './components/UserManagement';
 import { useContext } from 'react';
@@ -54,15 +55,17 @@ function App() {
               <Route
                 element={
                   <NotificationProvider>
-                    <div className="fixed left-0 top-0 h-full z-20">
-                      <Nav />
-                    </div>
-                    <div className="flex flex-col w-full ml-64 bg-gray-100">
-                      <TopNav />
-                      <div className="h-11/12 relative overflow-auto">
-                        <Outlet />
+                    <SocketProvider>
+                      <div className="fixed left-0 top-0 h-full z-20">
+                        <Nav />
                       </div>
-                    </div>
+                      <div className="flex flex-col w-full ml-64 bg-gray-100">
+                        <TopNav />
+                        <div className="h-11/12 relative overflow-auto">
+                          <Outlet />
+                        </div>
+                      </div>
+                    </SocketProvider>
                   </NotificationProvider>
                 }>
                 <Route element={<RequireAuth />}>
