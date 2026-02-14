@@ -3,9 +3,14 @@ import {
   useContext,
   useState,
   useEffect,
+  useCallback,
+  useRef,
   PropsWithChildren,
 } from 'react';
-import { axiosPrivate, socket} from '../services/Axios';
+import { socket } from '../services/Axios';
+import { fetchUnreadCount } from '../services/notificationService';
+import GlobalContext from './GlobalContext';
+import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
 
 export interface Notification {
   _id: string;
@@ -16,95 +21,73 @@ export interface Notification {
   timestamp: string;
 }
 
+// Callback type for components that want real-time new notifications
+type NewNotificationListener = (notification: Notification) => void;
+
 interface NotificationContextType {
-  notifications: Notification[];
-  markAllRead: () => Promise<void>;
-  clearAll: () => Promise<void>;
-  markRead: (id: string) => Promise<void>;
-  deleteNotification: (id: string) => Promise<void>;
+  unreadCount: number;
+  setUnreadCount: React.Dispatch<React.SetStateAction<number>>;
+  /** Subscribe to real-time new notifications from socket.
+   *  Returns an unsubscribe function. */
+  subscribeToNew: (listener: NewNotificationListener) => () => void;
 }
 
 const NotificationContext = createContext<NotificationContextType>({
-  notifications: [],
-  markAllRead: async () => {},
-  clearAll: async () => {},
-  markRead: async (_id: string) => {},
-  deleteNotification: async (_id: string) => {},
+  unreadCount: 0,
+  setUnreadCount: () => { },
+  subscribeToNew: () => () => { },
 });
 
-export const useNotifications = () => useContext(NotificationContext);
+export const useNotificationBadge = () => useContext(NotificationContext);
 
 export const NotificationProvider = ({ children }: PropsWithChildren<{}>) => {
-  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [unreadCount, setUnreadCount] = useState(0);
+  const { auth } = useContext(GlobalContext);
+  const axiosPrivate = UseAxiosPrivate();
 
-  useEffect(() => {
-    // Fetch notifications on mount
-    axiosPrivate
-      .get('/api/notifications/unread')
-      .then((res) => {
-        console.log('Fetched notifications:', res.data);
-        setNotifications(res.data);
-      })
-      .catch((err) => {
-        console.error('Failed to fetch notifications:', err);
-      });
+  // Listeners for real-time new notifications (used by dropdown / alert screen)
+  const listenersRef = useRef<Set<NewNotificationListener>>(new Set());
 
-    // Listen for new notifications
-    socket.on('new_notification', (notification: Notification) => {
-      setNotifications((prev) => [notification, ...prev]);
-    });
-
+  const subscribeToNew = useCallback((listener: NewNotificationListener) => {
+    listenersRef.current.add(listener);
     return () => {
-      socket.off('new_notification');
+      listenersRef.current.delete(listener);
     };
   }, []);
 
-  const markAllRead = async () => {
-    try {
-      await axiosPrivate.post('/api/notifications/markAllRead');
-      setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
-    } catch (err) {
-      console.error('Failed to mark all as read:', err);
+  useEffect(() => {
+    if (!auth?.accessToken) {
+      setUnreadCount(0);
+      return;
     }
-  };
 
-  const clearAll = async () => {
-    try {
-      // await axiosPrivate.delete('/api/notifications/clearAll');
-      setNotifications([]);
-    } catch (err) {
-      console.error('Failed to clear all notifications:', err);
-    }
-  };
+    // Fetch initial unread count (lightweight call)
+    fetchUnreadCount(axiosPrivate)
+      .then((count) => setUnreadCount(count))
+      .catch((err) => console.error('Failed to fetch unread count:', err));
 
-  const markRead = async (id: string) => {
-    try {
-      await axiosPrivate.post(`/api/notifications/${id}/markRead`);
-      setNotifications((prev) =>
-        prev.map((n) => (n._id === id ? { ...n, read: true } : n))
-      );
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err);
-    }
-  };
+    // Listen for new notifications via socket
+    const handleNewNotification = (notification: Notification) => {
+      // Increment badge count
+      setUnreadCount((prev) => prev + 1);
 
-  const deleteNotification = async (id: string) => {
-    try {
-      await axiosPrivate.delete(`/api/notifications/${id}`);
-      setNotifications((prev) => prev.filter((n) => n._id !== id));
-    } catch (err) {
-      console.error('Failed to delete notification:', err);
-    }
-  };
+      // Broadcast to any subscribed components (dropdown, alert screen, etc.)
+      listenersRef.current.forEach((listener) => listener(notification));
+    };
+
+    socket.on('new_notification', handleNewNotification);
+
+    return () => {
+      socket.off('new_notification', handleNewNotification);
+    };
+  }, [!!auth?.accessToken]); // only re-run on login/logout, not token refresh
 
   return (
     <NotificationContext.Provider
       value={{
-        notifications,
-        markAllRead,
-        clearAll,
-        markRead,
-        deleteNotification,
+        unreadCount,
+        setUnreadCount,
+        subscribeToNew,
       }}>
       {children}
     </NotificationContext.Provider>

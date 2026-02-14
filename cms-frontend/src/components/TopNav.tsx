@@ -2,26 +2,13 @@ import { useState, useEffect, useRef } from 'react';
 import NotificationIcon from './NotificationIcon';
 import NotificationDropDown from './NotificationDropDown';
 import { FaCircleUser } from 'react-icons/fa6';
-import { useNotifications } from '../context/NotificationContext';
+import { useNotificationBadge } from '../context/NotificationContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-
-export interface Notification {
-  deviceId: number;
-  heartRate: number;
-  temperature: number;
-  gpsLocation?: {
-    latitude: number;
-    longitude: number;
-  };
-  status: string;
-  timestamp: string;
-}
 
 const TopNav = () => {
   const [isClicked, setIsClicked] = useState(false);
   const notificationRef = useRef<HTMLDivElement>(null);
-  const { notifications } = useNotifications();
-  const unreadCount = notifications.filter((n) => !n.read).length;
+  const { unreadCount } = useNotificationBadge();
   const navigate = useNavigate();
 
   const location = useLocation();

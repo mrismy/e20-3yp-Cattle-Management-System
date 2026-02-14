@@ -47,62 +47,60 @@ function App() {
     <>
       <BrowserRouter>
         <ContextWrapper>
-          <NotificationProvider>
-            <div className="flex w-full h-screen">
-              <Routes>
-                <Route path="/login" element={<Login />} />
+          <div className="flex w-full h-screen">
+            <Routes>
+              <Route path="/login" element={<Login />} />
 
-                <Route
-                  element={
-                    <>
-                      <div className="fixed left-0 top-0 h-full z-20">
-                        <Nav />
+              <Route
+                element={
+                  <NotificationProvider>
+                    <div className="fixed left-0 top-0 h-full z-20">
+                      <Nav />
+                    </div>
+                    <div className="flex flex-col w-full ml-64 bg-gray-100">
+                      <TopNav />
+                      <div className="h-11/12 relative overflow-auto">
+                        <Outlet />
                       </div>
-                      <div className="flex flex-col w-full ml-64 bg-gray-100">
-                        <TopNav />
-                        <div className="h-11/12 relative overflow-auto">
-                          <Outlet />
-                        </div>
-                      </div>
-                    </>
-                  }>
-                  <Route element={<RequireAuth />}>
-                    <Route path="/dashboard" element={<Dashboard />} />
-                    <Route path="/livestock" element={<CattleList />}>
-                      <Route path="add-cattle" element={<AddCattleForm />} />
-                      <Route
-                        path="edit-cattle/:cattleId"
-                        element={<EditCattleForm />}
-                      />
-                      <Route path=":cattleId" element={<CattleCard />} />
-                      <Route
-                        path="delete-cattle/:cattleId"
-                        element={<DeleteConformation />}
-                      />
-                    </Route>
-                    <Route path="/map" element={<MapPage />} />
-                    <Route path="/geo-fence" element={<GeoFencePage />} />
-                    <Route path="/profile" element={<Profile />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/configure" element={<ConfigPage />} />
-                    <Route path="/configure-add" element={<AddConfigForm />} />
-                    <Route path="/alerts" element={<AlertScreen />} />
-                    <Route path="/alerts/:id" element={<AlertScreen />} />
+                    </div>
+                  </NotificationProvider>
+                }>
+                <Route element={<RequireAuth />}>
+                  <Route path="/dashboard" element={<Dashboard />} />
+                  <Route path="/livestock" element={<CattleList />}>
+                    <Route path="add-cattle" element={<AddCattleForm />} />
+                    <Route
+                      path="edit-cattle/:cattleId"
+                      element={<EditCattleForm />}
+                    />
+                    <Route path=":cattleId" element={<CattleCard />} />
+                    <Route
+                      path="delete-cattle/:cattleId"
+                      element={<DeleteConformation />}
+                    />
+                  </Route>
+                  <Route path="/map" element={<MapPage />} />
+                  <Route path="/geo-fence" element={<GeoFencePage />} />
+                  <Route path="/profile" element={<Profile />} />
+                  <Route path="/settings" element={<Settings />} />
+                  <Route path="/configure" element={<ConfigPage />} />
+                  <Route path="/configure-add" element={<AddConfigForm />} />
+                  <Route path="/alerts" element={<AlertScreen />} />
+                  <Route path="/alerts/:id" element={<AlertScreen />} />
 
-                    {/* Admin-only routes */}
-                    <Route element={<RequireAdmin />}>
-                      <Route
-                        path="/user-management"
-                        element={<UserManagement />}
-                      />
-                    </Route>
+                  {/* Admin-only routes */}
+                  <Route element={<RequireAdmin />}>
+                    <Route
+                      path="/user-management"
+                      element={<UserManagement />}
+                    />
                   </Route>
                 </Route>
+              </Route>
 
-                <Route path="*" element={<Navigate to="/login" replace />} />
-              </Routes>
-            </div>
-          </NotificationProvider>
+              <Route path="*" element={<Navigate to="/login" replace />} />
+            </Routes>
+          </div>
         </ContextWrapper>
       </BrowserRouter>
       <ToastContainer />

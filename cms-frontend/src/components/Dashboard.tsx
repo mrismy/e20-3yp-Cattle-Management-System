@@ -10,7 +10,6 @@ import { useNavigate } from 'react-router-dom';
 import GlobalContext from '../context/GlobalContext';
 import UseAxiosPrivate from '../hooks/UseAxiosPrivate';
 import { socket } from '../services/Axios';
-import { useNotifications } from '../context/NotificationContext';
 
 interface sensor_data {
   deviceId: number,
@@ -25,7 +24,7 @@ interface sensor_data {
 
 const Dashboard = () => {
 
-  const latestupdate: Record<number, sensor_data> = {};
+  const [latestupdate, setLatestUpdate] = useState<Record<number, sensor_data>>({});
 
   const { setCattlelist_selectedOption, setSelectedMenu } =
     useContext(GlobalContext);
@@ -37,7 +36,6 @@ const Dashboard = () => {
     try {
       const response = await axiosPrivate.get('/api/sensor/cattle');
       const data = response.data;
-      // console.log('Response:', data);
       setAllCattleData(data);
     } catch (error) {
       console.error('Error fetching cattle data:', error);
@@ -45,42 +43,34 @@ const Dashboard = () => {
     }
   };
 
-  const { notifications } = useNotifications();
-
-  if (notifications) {
-    notifications.forEach(record => {
-      latestupdate[record.cattleId] = {
-        deviceId: record.cattleId,
-        heartRate: 78,
-        temperature: 38.5,
-        gpsLocation: {
-          latitude: 10,
-          longitude: 40
-        },
-        status: "unsafe"
-      }
-    });
-  }
-
   useEffect(() => {
     fetchAllCattle();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  socket.on('sensor_data', (sensor_data: sensor_data) => {
-    if (sensor_data) {
-      latestupdate[sensor_data.deviceId] = {
-        deviceId: sensor_data.deviceId,
-        heartRate: sensor_data.heartRate,
-        temperature: sensor_data.temperature,
-        gpsLocation: sensor_data.gpsLocation,
-        status: sensor_data.status,
-      };
-      console.log(
-        `Updated data for cattle ${sensor_data.deviceId}:`,
-        latestupdate[sensor_data.deviceId]
-      );
-    }
-  });
+  // Listen for real-time sensor data inside useEffect to prevent duplicate listeners
+  useEffect(() => {
+    const handleSensorData = (sensor_data: sensor_data) => {
+      if (sensor_data) {
+        setLatestUpdate((prev) => ({
+          ...prev,
+          [sensor_data.deviceId]: {
+            deviceId: sensor_data.deviceId,
+            heartRate: sensor_data.heartRate,
+            temperature: sensor_data.temperature,
+            gpsLocation: sensor_data.gpsLocation,
+            status: sensor_data.status,
+          },
+        }));
+      }
+    };
+
+    socket.on('sensor_data', handleSensorData);
+
+    return () => {
+      socket.off('sensor_data', handleSensorData);
+    };
+  }, []);
 
   return (
     <>

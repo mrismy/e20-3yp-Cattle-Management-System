@@ -108,7 +108,7 @@ class MqttHandler {
             gpsLocation
           );
 
-          const status = await CattleSensorData.saftyStatus(receivedMsg);
+          const status = await CattleSensorData.saftyStatusWithNotify(receivedMsg);
 
           const ioInstance = getSocketIOInstance();
           if (ioInstance) {

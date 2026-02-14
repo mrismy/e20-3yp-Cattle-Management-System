@@ -43,30 +43,63 @@ export class CattleSensorData {
     return threshold;
   };
 
+  // ─── READ-ONLY safety status (for API endpoints) ───
+  // Does NOT create any notifications. Safe to call from any API route.
   public static saftyStatus = async (sensor: SensorDataInterface) => {
     if (!sensor) {
       return 'no-data';
     }
     const cattleHeartRateStatus = await this.isHeartRateSafe(sensor);
     const cattleTemperatureStatus = await this.isTemperatureSafe(sensor);
-    const cattleLocationStatus = await this.cattleZoneType(sensor);
+    const cattleLocationStatus = await this.getZoneStatus(sensor);
 
-    // Notification creation if danger detected
+    if (
+      cattleHeartRateStatus === HeartRateStatus.Safe &&
+      cattleTemperatureStatus === TemperatureStatus.Safe &&
+      cattleLocationStatus === ZoneStatus.Safe
+    ) {
+      return 'safe';
+    }
+    return 'unsafe';
+  };
+
+  // ─── MQTT-ONLY safety status (creates ONE combined notification) ───
+  // Call this ONLY from the MQTT message handler, not from API endpoints.
+  public static saftyStatusWithNotify = async (sensor: SensorDataInterface) => {
+    if (!sensor) {
+      return 'no-data';
+    }
+    const cattleHeartRateStatus = await this.isHeartRateSafe(sensor);
+    const cattleTemperatureStatus = await this.isTemperatureSafe(sensor);
+    const cattleLocationStatus = await this.getZoneStatus(sensor);
+
+    // Collect all issues into one combined notification
+    const issues: string[] = [];
+    let worstStatus: 'DANGER' | 'WARNING' = 'WARNING';
+
     if (cattleHeartRateStatus === HeartRateStatus.Danger) {
-      await this.createAndEmitNotification(
-        sensor.deviceId,
-        `Cattle ${sensor.deviceId} has abnormal heart rate.`,
-        'DANGER'
-      );
+      issues.push('abnormal heart rate');
+      worstStatus = 'DANGER';
     }
 
     if (cattleTemperatureStatus === TemperatureStatus.Danger) {
-      await this.createAndEmitNotification(
-        sensor.deviceId,
-        `Cattle ${sensor.deviceId} has abnormal temperature.`,
-        'DANGER'
-      );
+      issues.push('abnormal temperature');
+      worstStatus = 'DANGER';
     }
+
+    if (cattleLocationStatus === ZoneStatus.Danger) {
+      issues.push('in danger zone or outside safe zones');
+      worstStatus = 'DANGER';
+    } else if (cattleLocationStatus === ZoneStatus.Warning) {
+      issues.push('near zone boundary');
+    }
+
+    // Emit a SINGLE combined notification if there are any issues
+    if (issues.length > 0) {
+      const message = `Cattle ${sensor.deviceId}: ${issues.join(', ')}.`;
+      await this.createAndEmitNotification(sensor.deviceId, message, worstStatus);
+    }
+
     if (
       cattleHeartRateStatus === HeartRateStatus.Safe &&
       cattleTemperatureStatus === TemperatureStatus.Safe &&
@@ -115,12 +148,12 @@ export class CattleSensorData {
     return HeartRateStatus.Danger;
   };
 
-  public static cattleZoneType = async (
+  // ─── READ-ONLY zone status (no notifications) ───
+  // Used by API endpoints and by saftyStatus
+  public static getZoneStatus = async (
     latestSensorData: SensorDataInterface
   ): Promise<ZoneStatus> => {
     const threshold = await this.getThresholdValue();
-    // if (!threshold) throw new Error('Threshold not found');
-
     const warningBuffer = threshold?.geofence?.threshold || 0;
 
     const geoFences = await geoFenceModel.find();
@@ -133,19 +166,13 @@ export class CattleSensorData {
 
     // First check all danger zones
     for (const geoFence of geoFences.filter((g) => g.zoneType === 'danger')) {
-      const { latitude, longitude, radius, zoneType } = geoFence;
       const distance = this.findDistance(
         latestSensorData.gpsLocation.latitude,
-        latitude,
+        geoFence.latitude,
         latestSensorData.gpsLocation.longitude,
-        longitude
+        geoFence.longitude
       );
       if (distance <= geoFence.radius) {
-        await this.createAndEmitNotification(
-          latestSensorData.deviceId,
-          `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
-          'DANGER'
-        );
         return ZoneStatus.Danger;
       }
       if (distance <= geoFence.radius + warningBuffer) {
@@ -153,121 +180,45 @@ export class CattleSensorData {
       }
     }
 
-    // Then check safe zones if not in danger
+    // Then check safe zones
     for (const geoFence of geoFences.filter((g) => g.zoneType === 'safe')) {
-      const { latitude, longitude, radius, zoneType } = geoFence;
       const distance = this.findDistance(
         latestSensorData.gpsLocation.latitude,
-        latitude,
+        geoFence.latitude,
         latestSensorData.gpsLocation.longitude,
-        longitude
+        geoFence.longitude
       );
       if (distance <= geoFence.radius - warningBuffer) {
         isInSafe = true;
       } else if (distance <= geoFence.radius) {
         isInWarning = true;
-        await this.createAndEmitNotification(
-          latestSensorData.deviceId,
-          `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
-          'WARNING'
-        );
       }
     }
-
-    // for (const geoFence of geoFences) {
-    //   const { latitude, longitude, radius, zoneType } = geoFence;
-    //   const distance = this.findDistance(
-    //     latestSensorData.gpsLocation.latitude,
-    //     latitude,
-    //     latestSensorData.gpsLocation.longitude,
-    //     longitude
-    //   );
-
-    //   if (zoneType === 'safe') {
-    //     if (distance <= radius - warningBuffer) {
-    //       isInSafe = true;
-    //     } else if (distance <= radius) {
-    //       isInWarning = true;
-    //     } else if (distance > radius) {
-    //     }
-    //   } else if (zoneType === 'danger') {
-    //     if (distance <= radius) {
-    //       await this.createAndEmitNotification(
-    //         latestSensorData.deviceId,
-    //         `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
-    //         'DANGER'
-    //       );
-    //       return ZoneStatus.Danger;
-    //     } else if (distance <= radius + warningBuffer) {
-    //       isInWarning = true;
-    //       await this.createAndEmitNotification(
-    //         latestSensorData.deviceId,
-    //         `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
-    //         'WARNING'
-    //       );
-    //     } else if (distance > radius) {
-    //       isInSafe = true;
-    //     }
-    //   }
-    // }
-    // for (const geoFence of geoFences) {
-    //   const { latitude, longitude, radius, zoneType } = geoFence;
-    //   const distance = this.findDistance(
-    //     latestSensorData.gpsLocation.latitude,
-    //     latitude,
-    //     latestSensorData.gpsLocation.longitude,
-    //     longitude
-    //   );
-
-    //   if (zoneType === 'safe') {
-    //     if (distance <= radius - warningBuffer) {
-    //       isInSafe = true;
-    //     } else if (distance <= radius) {
-    //       isInWarning = true;
-    //     } else if (distance > radius) {
-    //     }
-    //   } else if (zoneType === 'danger') {
-    //     if (distance <= radius) {
-    //       await this.createAndEmitNotification(
-    //         latestSensorData.deviceId,
-    //         `Cattle ${latestSensorData.deviceId} is inside a danger geofence.`,
-    //         'DANGER'
-    //       );
-    //       return ZoneStatus.Danger;
-    //     } else if (distance <= radius + warningBuffer) {
-    //       isInWarning = true;
-    //       await this.createAndEmitNotification(
-    //         latestSensorData.deviceId,
-    //         `Cattle ${latestSensorData.deviceId} is in a warning zone.`,
-    //         'WARNING'
-    //       );
-    //     } else if (distance > radius) {
-    //       isInSafe = true;
-    //     }
-    //   }
-    // }
 
     if (isInWarning) return ZoneStatus.Warning;
     if (isInSafe) return ZoneStatus.Safe;
 
-    await this.createAndEmitNotification(
-      latestSensorData.deviceId,
-      `Cattle ${latestSensorData.deviceId} is outside all safe zones.`,
-      'DANGER'
-    );
     return ZoneStatus.Danger;
   };
+
+  // Keep the old name as an alias so existing API code that calls cattleZoneType still works
+  public static cattleZoneType = CattleSensorData.getZoneStatus;
+
+  private static NOTIFICATION_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
 
   private static async createAndEmitNotification(
     cattleId: number,
     message: string,
     status: string
   ) {
+    // Check for any recent notification (read or unread) with the same details
+    // within the cooldown window to prevent spam after marking as read
+    const cooldownTime = new Date(Date.now() - this.NOTIFICATION_COOLDOWN_MS);
     const existing = await Notification.findOne({
       cattleId,
       status,
-      read: false,
       message,
+      timestamp: { $gte: cooldownTime },
     });
     if (!existing) {
       const notification = new Notification({
@@ -301,9 +252,9 @@ export class CattleSensorData {
     const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(toRad(lat1)) *
-        Math.cos(toRad(lat2)) *
-        Math.sin(dLon / 2) *
-        Math.sin(dLon / 2);
+      Math.cos(toRad(lat2)) *
+      Math.sin(dLon / 2) *
+      Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return radiusOfEarth * c;
   };
