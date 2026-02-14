@@ -126,6 +126,73 @@ router.get('/cattle', async (req: any, res: any) => {
   }
 });
 
+router.get('/latestWithCattle', async (req: any, res: any) => {
+  try {
+    const memoryData = mqttClient.getLatestUpdate(); // In-memory MQTT data
+
+    // Step 1: Get all cattle records
+    const cattleList = await cattle.find();
+
+    // Step 2: Get the latest sensor data per deviceId from DB
+    const dbSensorData = await sensorData.aggregate([
+      { $sort: { createdAt: -1 } },
+      {
+        $group: {
+          _id: '$deviceId',
+          doc: { $first: '$$ROOT' },
+        },
+      },
+      { $replaceRoot: { newRoot: '$doc' } },
+    ]);
+
+    // Step 3: Merge DB sensor data with MQTT data
+    const latestSensorDataMap = new Map<number, any>();
+    dbSensorData.forEach((doc) => {
+      latestSensorDataMap.set(doc.deviceId, doc);
+    });
+    for (const deviceId in memoryData) {
+      latestSensorDataMap.set(Number(deviceId), memoryData[deviceId]);
+    }
+
+    // Step 4: Enrich each cattle record
+    const enrichedCattleData = await Promise.all(
+      cattleList.map(async (cattleInfo) => {
+        const deviceId = cattleInfo.deviceId;
+        const sensor = deviceId ? latestSensorDataMap.get(deviceId) : null;
+        let status = 'no-data';
+        if (deviceId === null) {
+          status = 'un-monitored';
+        }
+        if (sensor) {
+          try {
+            status = await CattleSensorData.saftyStatus(sensor);
+          } catch (err) {
+            status = 'no-threshold';
+          }
+        }
+        // console.log(sensor);
+
+        return {
+          ...sensor,
+          cattleId: cattleInfo.cattleId,
+          deviceId: cattleInfo.deviceId || null,
+          cattleCreatedAt: cattleInfo.createdAt,
+          sensorCreatedAt: sensor ? sensor.createdAt : null,
+          status: status,
+        };
+      })
+    );
+
+    res.status(200).json(enrichedCattleData);
+  } catch (error) {
+    console.error('Error in /latestWithCattle:', error);
+    res
+      .status(500)
+      .json({ message: 'Error fetching sensor data with cattle information' });
+  }
+});
+
+
 router.get('/latest/:cattleId', async (req: any, res: any) => {
   try {
     const cattleId = parseInt(req.params.cattleId);
