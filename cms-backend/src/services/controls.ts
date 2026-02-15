@@ -207,13 +207,15 @@ export class CattleSensorData {
   private static NOTIFICATION_COOLDOWN_MS = 15 * 60 * 1000; // 15 minutes
 
   private static async createAndEmitNotification(
-    cattleId: number,
+    deviceId: number,
     message: string,
     status: string
   ) {
     // Check for any recent notification (read or unread) with the same details
     // within the cooldown window to prevent spam after marking as read
     const cooldownTime = new Date(Date.now() - this.NOTIFICATION_COOLDOWN_MS);
+    const cattleI = await cattle.findOne({ deviceId });
+    const cattleId = cattleI ? cattleI.cattleId : null;
     const existing = await Notification.findOne({
       cattleId,
       status,
@@ -221,10 +223,11 @@ export class CattleSensorData {
       timestamp: { $gte: cooldownTime },
     });
     if (!existing) {
+
       const notification = new Notification({
         cattleId,
-        message,
-        status,
+          message,
+          status,
         timestamp: new Date(),
       });
       await notification.save();
